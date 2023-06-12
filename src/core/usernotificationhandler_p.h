@@ -25,12 +25,13 @@ class UserNotificationHandler : public QObject
 public:
     enum MessageBoxDataType {
         MSG_TEXT,
-        MSG_CAPTION,
-        MSG_YES_BUTTON_TEXT,
-        MSG_NO_BUTTON_TEXT,
-        MSG_YES_BUTTON_ICON,
-        MSG_NO_BUTTON_ICON,
+        MSG_TITLE,
+        MSG_PRIMARYACTION_TEXT,
+        MSG_SECONDARYACTION_TEXT,
+        MSG_PRIMARYACTION_ICON,
+        MSG_SECONDARYACTION_ICON,
         MSG_DONT_ASK_AGAIN,
+        MSG_DETAILS,
         MSG_META_DATA,
     };
 
@@ -51,6 +52,7 @@ public:
 
 private Q_SLOTS:
     void processRequest();
+    void slotProcessRequest(int result);
 
 private:
     QCache<QString, int> m_cachedResults;

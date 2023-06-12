@@ -14,7 +14,6 @@
 // KDE
 #include <KLineEdit> // Needed for KUrlRequester::lineEdit()
 #include <KLocalizedString>
-#include <KMessageBox>
 #include <KPluginFactory>
 #include <kurifilter.h>
 
@@ -392,7 +391,7 @@ void KProxyDialog::save()
     KSaveIOConfig::setProxyConfigScript(mProxyMap.value(QStringLiteral("ProxyScript")));
     KSaveIOConfig::setNoProxyFor(mProxyMap.value(QStringLiteral("NoProxy")));
 
-    KSaveIOConfig::updateRunningIOSlaves(this);
+    KSaveIOConfig::updateRunningWorkers(this);
     if (isPACProxyType(lastProxyType) || isPACProxyType(proxyType)) {
         KSaveIOConfig::updateProxyScout(this);
     }

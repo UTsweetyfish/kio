@@ -26,8 +26,7 @@ private Q_SLOTS:
     void initTestCase()
     {
         QStandardPaths::setTestModeEnabled(true);
-        qputenv("KIOSLAVE_ENABLE_TESTMODE", "1"); // ensure the ioslaves call QStandardPaths::setTestModeEnabled too
-        qputenv("KDE_FORK_SLAVES", "yes"); // to avoid a runtime dependency on klauncher
+        qputenv("KIOSLAVE_ENABLE_TESTMODE", "1"); // ensure the KIO workers call QStandardPaths::setTestModeEnabled too
 
         QVERIFY(m_tempDir.isValid());
         QVERIFY(m_tempDestDir.isValid());
@@ -38,7 +37,7 @@ private Q_SLOTS:
 
         m_srcFile = m_srcDir + QStringLiteral("/srcfile");
 
-        KIO::setDefaultJobUiDelegateFactory(nullptr); // no "skip" dialogs
+        KIO::setDefaultJobUiDelegateFactoryV2(nullptr); // no "skip" dialogs
 
         // Set a recent dir
         KConfigGroup recentDirsGroup(KSharedConfig::openConfig(), "kuick-copy");

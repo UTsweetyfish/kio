@@ -6,6 +6,17 @@
 */
 
 #include "jobtest.h"
+#include "mockcoredelegateextensions.h"
+
+#include "kio/job.h"
+#include "kiotesthelper.h" // createTestFile etc.
+#include <kio/chmodjob.h>
+#include <kio/copyjob.h>
+#include <kio/deletejob.h>
+#include <kio/directorysizejob.h>
+#include <kio/statjob.h>
+#include <kmountpoint.h>
+#include <kprotocolinfo.h>
 
 #include <KJobUiDelegate>
 #include <KLocalizedString>
@@ -22,22 +33,13 @@
 #include <QSignalSpy>
 #include <QTemporaryFile>
 #include <QTest>
+#include <QTimer>
 #include <QUrl>
 #include <QVariant>
 
-#include "kiotesthelper.h" // createTestFile etc.
-#include <kio/chmodjob.h>
-#include <kio/copyjob.h>
-#include <kio/deletejob.h>
-#include <kio/directorysizejob.h>
-#include <kio/scheduler.h>
-#include <kio/statjob.h>
-#include <kmountpoint.h>
-#include <kprotocolinfo.h>
 #ifndef Q_OS_WIN
 #include <unistd.h> // for readlink
 #endif
-#include "mockcoredelegateextensions.h"
 
 QTEST_MAIN(JobTest)
 
@@ -67,9 +69,6 @@ void JobTest::initTestCase()
 {
     QStandardPaths::setTestModeEnabled(true);
     QCoreApplication::instance()->setApplicationName("kio/jobtest"); // testing for #357499
-
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
 
     // to make sure io is not too fast
     qputenv("KIOSLAVE_FILE_ENABLE_TESTMODE", "1");
@@ -932,8 +931,10 @@ void JobTest::copyFolderWithUnaccessibleSubfolder()
 #ifdef Q_OS_WIN
     QSKIP("Skipping unaccessible folder test on Windows, cannot remove all permissions from a folder");
 #endif
-    const QString src_dir = homeTmpDir() + "srcHome";
-    const QString dst_dir = homeTmpDir() + "dstHome";
+    QTemporaryDir dir(homeTmpDir() + "UnaccessibleSubfolderTest");
+    QVERIFY(dir.isValid());
+    const QString src_dir = dir.path() + "srcHome";
+    const QString dst_dir = dir.path() + "dstHome";
 
     QDir().remove(src_dir);
     QDir().remove(dst_dir);
@@ -950,13 +951,18 @@ void JobTest::copyFolderWithUnaccessibleSubfolder()
     ScopedCleaner cleaner([&] {
         QFile(inaccessible).setPermissions(QFile::Permissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ExeOwner));
 
+        qDebug() << "Cleaning up" << src_dir << "and" << dst_dir;
         KIO::DeleteJob *deljob1 = KIO::del(QUrl::fromLocalFile(src_dir), KIO::HideProgressInfo);
         deljob1->setUiDelegate(nullptr); // no skip dialog, thanks
-        QVERIFY(deljob1->exec());
+        const bool job1OK = deljob1->exec();
+        QVERIFY(job1OK);
 
         KIO::DeleteJob *deljob2 = KIO::del(QUrl::fromLocalFile(dst_dir), KIO::HideProgressInfo);
         deljob2->setUiDelegate(nullptr); // no skip dialog, thanks
-        QVERIFY(deljob2->exec());
+        const bool job2OK = deljob2->exec();
+        QVERIFY(job2OK);
+
+        qDebug() << "Result:" << job1OK << job2OK;
     });
 
     KIO::CopyJob *job = KIO::copy(QUrl::fromLocalFile(src_dir), QUrl::fromLocalFile(dst_dir), KIO::HideProgressInfo);
@@ -1316,22 +1322,9 @@ void JobTest::moveDirectoryToReadonlyFilesystem()
     }
 }
 
-void JobTest::listRecursive()
+static QByteArray expectedListRecursiveOutput()
 {
-    // Note: many other tests must have been run before since we rely on the files they created
-
-    const QString src = homeTmpDir();
-#ifndef Q_OS_WIN
-    // Add a symlink to a dir, to make sure we don't recurse into those
-    bool symlinkOk = symlink("dirFromHome", QFile::encodeName(src + "/dirFromHome_link").constData()) == 0;
-    QVERIFY(symlinkOk);
-#endif
-    KIO::ListJob *job = KIO::listRecursive(QUrl::fromLocalFile(src), KIO::HideProgressInfo);
-    job->setUiDelegate(nullptr);
-    connect(job, &KIO::ListJob::entries, this, &JobTest::slotEntries);
-    QVERIFY2(job->exec(), qPrintable(job->errorString()));
-    m_names.sort();
-    QByteArray ref_names = QByteArray(
+    return QByteArray(
         ".,..,"
         "dirFromHome,dirFromHome/testfile,"
         "dirFromHome/testlink," // exists on Windows too, see createTestDirectory
@@ -1344,7 +1337,54 @@ void JobTest::listRecursive()
         "dirFromHome_link,"
 #endif
         "fileFromHome");
+}
 
+void JobTest::listRecursive()
+{
+    // Note: many other tests must have been run before since we rely on the files they created
+
+    const QString src = homeTmpDir();
+#ifndef Q_OS_WIN
+    // Add a symlink to a dir, to make sure we don't recurse into those
+    bool symlinkOk = symlink("dirFromHome", QFile::encodeName(src + "/dirFromHome_link").constData()) == 0;
+    QVERIFY(symlinkOk);
+#endif
+    m_names.clear();
+    KIO::ListJob *job = KIO::listRecursive(QUrl::fromLocalFile(src), KIO::HideProgressInfo);
+    job->setUiDelegate(nullptr);
+    connect(job, &KIO::ListJob::entries, this, &JobTest::slotEntries);
+    QVERIFY2(job->exec(), qPrintable(job->errorString()));
+    m_names.sort();
+    const QByteArray ref_names = expectedListRecursiveOutput();
+    const QString joinedNames = m_names.join(QLatin1Char(','));
+    if (joinedNames.toLatin1() != ref_names) {
+        qDebug("%s", qPrintable(joinedNames));
+        qDebug("%s", ref_names.data());
+    }
+    QCOMPARE(joinedNames.toLatin1(), ref_names);
+}
+
+void JobTest::multipleListRecursive()
+{
+    // Note: listRecursive() must have been run first
+    const QString src = homeTmpDir();
+    m_names.clear();
+    QVector<KIO::ListJob *> jobs;
+    for (int i = 0; i < 100; ++i) {
+        KIO::ListJob *job = KIO::listRecursive(QUrl::fromLocalFile(src), KIO::HideProgressInfo);
+        job->setUiDelegate(nullptr);
+        if (i == 6) {
+            connect(job, &KIO::ListJob::entries, this, &JobTest::slotEntries);
+        }
+        connect(job, &KJob::result, this, [&jobs, job]() {
+            jobs.removeOne(job);
+        });
+        jobs.push_back(job);
+    }
+    QTRY_VERIFY(jobs.isEmpty());
+
+    m_names.sort();
+    const QByteArray ref_names = expectedListRecursiveOutput();
     const QString joinedNames = m_names.join(QLatin1Char(','));
     if (joinedNames.toLatin1() != ref_names) {
         qDebug("%s", qPrintable(joinedNames));
@@ -2147,6 +2187,14 @@ void JobTest::copyFileDestAlreadyExists_data()
     QTest::newRow("manualSkip") << false;
 }
 
+static void simulatePressingSkip(KJob *job)
+{
+    // Simulate the user pressing "Skip" in the dialog.
+    job->setUiDelegate(new KJobUiDelegate);
+    auto *askUserHandler = new MockAskUserInterface(job->uiDelegate());
+    askUserHandler->m_skipResult = KIO::Result_Skip;
+}
+
 void JobTest::copyFileDestAlreadyExists() // to test skipping when copying
 {
     QFETCH(bool, autoSkip);
@@ -2167,10 +2215,7 @@ void JobTest::copyFileDestAlreadyExists() // to test skipping when copying
         job->setUiDelegate(nullptr);
         job->setAutoSkip(true);
     } else {
-        // Simulate the user pressing "Skip" in the dialog.
-        job->setUiDelegate(new KJobUiDelegate);
-        auto *askUserHandler = new MockAskUserInterface(job->uiDelegate());
-        askUserHandler->m_skipResult = KIO::Result_Skip;
+        simulatePressingSkip(job);
     }
     QVERIFY2(job->exec(), qPrintable(job->errorString()));
     QVERIFY(QFile::exists(otherTmpDir() + "anotherFile"));
@@ -2350,10 +2395,7 @@ void JobTest::copyDirectoryAlreadyExistsSkip()
 
     job = KIO::copy(u, d, KIO::HideProgressInfo);
 
-    // Simulate the user pressing "Skip" in the dialog.
-    job->setUiDelegate(new KJobUiDelegate);
-    auto *askUserHandler = new MockAskUserInterface(job->uiDelegate());
-    askUserHandler->m_skipResult = KIO::Result_Skip;
+    simulatePressingSkip(job);
 
     QVERIFY2(job->exec(), qPrintable(job->errorString()));
     QVERIFY(QFile::exists(dest + QStringLiteral("/a/testfile")));
@@ -2456,7 +2498,7 @@ void JobTest::safeOverwrite()
     connect(job, &KIO::FileCopyJob::processedSize, this, [&](KJob *job, qulonglong size) {
         Q_UNUSED(job);
         if (size > 0 && size < srcSize) {
-            // To avoid overwriting dest, we want the kioslave to use dest.part
+            // To avoid overwriting dest, we want the KIO worker to use dest.part
             QCOMPARE(QFileInfo::exists(destPartFile), destFileExists);
         }
     });
@@ -2907,7 +2949,7 @@ void JobTest::cancelCopyAndCleanDest()
         qFatal("Couldn't open %s", qPrintable(f.fileName()));
     }
 
-    const int sz = 2000000; //~2MB
+    const int sz = 4000000; //~4MB
     f.seek(sz - 1);
     f.write("0");
     f.close();
@@ -2926,6 +2968,7 @@ void JobTest::cancelCopyAndCleanDest()
     connect(copyJob, &KIO::Job::processedSize, this, [destFile, suspend, destToCheck](KJob *job, qulonglong processedSize) {
         if (processedSize > 0) {
             QVERIFY2(QFile::exists(destToCheck), qPrintable(destToCheck));
+            qDebug() << "processedSize=" << processedSize << "file size" << QFileInfo(destToCheck).size();
             if (suspend) {
                 job->suspend();
             }
@@ -2939,6 +2982,6 @@ void JobTest::cancelCopyAndCleanDest()
     QCOMPARE(copyJob->error(), KIO::ERR_USER_CANCELED);
 
     // the destination file actual deletion happens after finished() is emitted
-    // we need to give some time to the ioslave to finish the file cleaning
+    // we need to give some time to the KIO worker to finish the file cleaning
     QTRY_VERIFY2(!QFile::exists(destToCheck), qPrintable(destToCheck));
 }

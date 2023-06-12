@@ -147,15 +147,15 @@ public:
     enum Information {
         NoInformation, ///< No additional information will be shown for items.
         Size, ///< The file size for files, and the number of items for folders.
-        Permissions, ///< A UNIX permissions string, e.g. -rwxr-xr-x.
-        OctalPermissions, ///< The permissions as an octal value, e.g. 0644.
-        Owner, ///< The user name of the file owner, e.g. root
-        OwnerAndGroup, ///< The user and group that owns the file, e.g. root:root
+        Permissions, ///< A UNIX permissions string, e.g.\ -rwxr-xr-x.
+        OctalPermissions, ///< The permissions as an octal value, e.g.\ 0644.
+        Owner, ///< The user name of the file owner, e.g.\ root
+        OwnerAndGroup, ///< The user and group that owns the file, e.g.\ root:root
         CreationTime, ///< The date and time the file/folder was created.
         ModificationTime, ///< The date and time the file/folder was last modified.
         AccessTime, ///< The date and time the file/folder was last accessed.
-        MimeType, ///< The MIME type for the item, e.g. text/html.
-        FriendlyMimeType, ///< The descriptive name for the MIME type, e.g. HTML Document.
+        MimeType, ///< The MIME type for the item, e.g.\ text/html.
+        FriendlyMimeType, ///< The descriptive name for the MIME type, e.g.\ HTML Document.
         LinkDest, ///< The destination of a symbolic link. @since 4.5
         LocalPathOrUrl, ///< The local path to the file or the URL in case it is not a local file. @since 4.5
         Comment, ///< A simple comment that can be displayed to the user as is. @since 4.6
@@ -180,7 +180,7 @@ public:
      * Returns the nominal size for the item referred to by @p index, given the
      * provided options.
      *
-     * If the model provides a valid Qt::FontRole and/or Qt::AlignmentRole for the item,
+     * If the model provides a valid Qt::FontRole and/or Qt::TextAlignmentRole for the item,
      * those will be used instead of the ones specified in the style options.
      *
      * This function is reimplemented from @ref QAbstractItemDelegate.
@@ -200,10 +200,10 @@ public:
      * This function will use the following data values if the model provides
      * them for the item, in place of the values in @p option:
      *
-     * @li Qt::FontRole        The font that should be used for the display role.
-     * @li Qt::AlignmentRole   The alignment of the display role.
-     * @li Qt::ForegroundRole  The text color for the display role.
-     * @li Qt::BackgroundRole  The background color for the item.
+     * @li Qt::FontRole           The font that should be used for the display role.
+     * @li Qt::TextAlignmentRole  The alignment of the display role.
+     * @li Qt::ForegroundRole     The text color for the display role.
+     * @li Qt::BackgroundRole     The background color for the item.
      *
      * This function is reimplemented from @ref QAbstractItemDelegate.
      *

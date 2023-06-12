@@ -99,7 +99,6 @@ void KFilePlacesModelTest::initTestCase()
 {
     QVERIFY(m_tmpHome.isValid());
     qputenv("HOME", m_tmpHome.path().toUtf8()); // use a empty home dir
-    qputenv("KDE_FORK_SLAVES", "yes"); // to avoid a runtime dependency on klauncher
 
     QStandardPaths::setTestModeEnabled(true);
 
@@ -131,7 +130,7 @@ void KFilePlacesModelTest::createPlacesModels()
     m_places2 = new KFilePlacesModel();
 
     // When the xbel file is empty, KFilePlacesModel fills it with 3 default items
-    // 5 when ioslave recentlyused:/ is installed
+    // 5 when KIO worker recentlyused:/ is installed
     QCOMPARE(m_places->rowCount(), m_hasRecentlyUsedKio ? 5 : 3);
 
     QVERIFY(spy.wait());
@@ -840,11 +839,6 @@ void KFilePlacesModelTest::testEnableBaloo()
         QVERIFY(urls.contains("recentlyused:/files"));
         QVERIFY(urls.contains("recentlyused:/locations"));
     }
-
-    QVERIFY(urls.contains("search:/documents"));
-    QVERIFY(urls.contains("search:/images"));
-    QVERIFY(urls.contains("search:/audio"));
-    QVERIFY(urls.contains("search:/videos"));
 }
 
 void KFilePlacesModelTest::testRemoteUrls_data()

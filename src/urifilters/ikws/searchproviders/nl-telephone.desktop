@@ -4,21 +4,21 @@ Name[af]=Telefoonbok soektog verskaffer
 Name[ar]=مزود بحث Telephonebook
 Name[as]=Telephonebook Search Provider
 Name[az]=Telefon kitabçası axtarış təminatçısı
-Name[be]=Пошук тэлефонаў
-Name[be@latin]=Pošuk telefonaŭ
+Name[be]=Пошук нумароў тэлефонаў
+Name[be@latin]=Pošuk numaroŭ teliefonaŭ
 Name[bg]=Търсене в телефонен указател
 Name[bn]=টেলিফোন-বুক অনুসন্ধান সরবরাহকারী
-Name[bs]=Telefonski imenik (Holandija)
+Name[bs]=Provajder Pretraživanja Telefonskog Imenika
 Name[ca]=Proveïdor de cerques a la guia de telèfons
-Name[ca@valencia]=Proveïdor de cerques a la guia de telèfons
+Name[ca@valencia]=Proveïdor de busques en la guia de telèfons
 Name[cs]=Poskytovatel prohledávání tel. seznamu
 Name[csb]=Szëkôrz Telephonebook
-Name[cy]= Darparydd Chwiliadau Llyfr Ffôn
+Name[cy]=Darparydd Chwiliadau Llyfr Ffôn
 Name[da]=Telefonbog-søgeudbyder
 Name[de]=Telefonbuchsuche
 Name[el]=Πάροχος αναζήτησης Telephonebook
 Name[en_GB]=Telephonebook Search Provider
-Name[eo]=Serĉprovizanto de telefonlibro
+Name[eo]=Serĉprovizanto de Telefonlibro
 Name[es]=Proveedor de búsqueda de teléfonos
 Name[et]=Hollandi telefoniraamatu otsingumootor
 Name[eu]=Detelefoongids telefono-bilatzailea
@@ -38,8 +38,10 @@ Name[hsb]=Prowider za pytanje w telefonskich knihach
 Name[hu]=Telefonkönyv (NL)
 Name[ia]=Fornitor de cerca Telephonebook
 Name[id]=Penyedia Pencarian Buku Telepon
+Name[ie]=Telephonebook Search Provider
 Name[is]=Leitarvél fyrir símaskrár
 Name[it]=Motore di ricerca dell'elenco telefonico
+Name[ka]=Telephonebook-ით ძებნა
 Name[kk]=Телефон кітапшасын іздеу провайдері
 Name[km]=ក្រុមហ៊ុន​ផ្ដល់​​ការ​​ស្វែងរក​សៀវភៅ​លេខ​ទូរស័ព្ទ
 Name[kn]=ದೂರವಾಣಿ ಪುಸ್ತಕ ಹುಡುಕಾಟ ಪೂರೈಕೆದಾರ
@@ -76,6 +78,7 @@ Name[sv]=Telephonebook söktjänst
 Name[te]=టెలిఫోన్‌బుక్ శోధన కర్త
 Name[tg]=Таҳвилгари ҷустуҷӯ дар китоби телефонӣ
 Name[th]=ผู้ให้บริการค้นหาสมุดโทรศัพท์
+Name[tok]=ilo alasa pi nimi toki lon ma Netelan
 Name[tr]=Telefon Defteri Arama Sağlayıcı
 Name[ug]=تېلېفون دەپتىرىدىن ئىزدەشنى تەمىنلىگۈچى
 Name[uk]=Провайдер пошуку Telephonebook
@@ -90,15 +93,20 @@ Type=Service
 Keys=telnl,telefoon
 Query=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[ar]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
-Query[ast]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[az]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[be]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[be@latin]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[bg]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[bs]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[ca]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[ca@valencia]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[cs]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[cy]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[da]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[de]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[el]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[en_GB]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[eo]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[es]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[et]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[eu]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
@@ -108,14 +116,17 @@ Query[gl]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{
 Query[hu]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[ia]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[id]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[ie]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[is]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[it]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[ka]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[ko]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[lt]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[ml]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[my]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[nl]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[nn]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[pa]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[pl]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[pt]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[pt_BR]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
@@ -125,6 +136,8 @@ Query[sk]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{
 Query[sl]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[sv]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[tg]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[tok]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
+Query[tr]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[uk]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[vi]=https://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}
 Query[x-test]=xxhttps://www.detelefoongids.nl/\\{1}/\\{2}/10-1/?oWhat=\\{1}&oWhere=\\{2}xx

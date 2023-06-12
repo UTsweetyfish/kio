@@ -4,24 +4,25 @@ Name=Wiktionary - The Free Dictionary
 Name[af]=Wiktionary - Die gratis woordeboek
 Name[ar]=ويكاموس - القاموس الحرّ
 Name[as]=Wiktionary - The Free Dictionary
-Name[ast]=Wiktionary - El diccionariu llibre
+Name[ast]=Wikcionariu - El diccionariu llibre
 Name[az]=Wiktionary - Azad Lüğət
-Name[be]=Wiktionary - Свабодны Слоўнік
-Name[be@latin]=Wikisłoŭnik: svabodny słoŭnik
+Name[be]=Wiktionary - свабодны слоўнік
+Name[be@latin]=Wiktionary - svabodny sloŭnik
 Name[bg]=Уикиречник - свободният речник
 Name[bn]=ইউক্‌শনারি - মুক্ত অভিধান
 Name[bn_IN]=Wiktionary - মুক্ত অভিধান
 Name[br]=Wiktionary - Ar geriadur frank
-Name[bs]=Vikirečnik — slobodni rječnik
+Name[bs]=VikireÄnik â€” slobodni rjeÄnik
 Name[ca]=Viccionari: El diccionari lliure
 Name[ca@valencia]=Viccionari: El diccionari lliure
 Name[cs]=Wiktionary - volně dostupný slovník
 Name[csb]=Wiktionary - wòlny słowôrz
+Name[cy]=Wiktionary - Y Geiriadur Rhydd
 Name[da]=Wiktionary - den frie ordbog
 Name[de]=Wiktionary – Das freie Wörterbuch
 Name[el]=Wiktionary - Το ελεύθερο λεξικό
 Name[en_GB]=Wiktionary - The Free Dictionary
-Name[eo]=Vikivortaro - la libera vortaro
+Name[eo]=Vikivortaro - La Libera Vortaro
 Name[es]=Wiktionary - El diccionario libre
 Name[et]=Wiktionary - Vaba sõnaraamat
 Name[eu]=Wiktionary, hiztegi askea
@@ -41,8 +42,10 @@ Name[hsb]=Wikisłownik - Swobodny słownik
 Name[hu]=Wiktionary
 Name[ia]=Wiktionary - Le Dictionario Libere e Gratuite
 Name[id]=Wiktionary - Kamus Gratis
+Name[ie]=Wiktionarium - Li líber dictionarium
 Name[is]=Wiktionary - Frjálsa orðabókin
 Name[it]=Wiktionary - Il dizionario libero
+Name[ka]=Wiktionary - უფასო ლექსიკონი
 Name[kk]=Wiktionary - ашық сөздік
 Name[km]=Wikipedia - វចនានុក្រម​ឥត​គិត​ថ្លៃ
 Name[kn]=ವಿಕ್ಷನರಿ - ಮುಕ್ತ ಶಬ್ದಕೋಶ
@@ -61,7 +64,7 @@ Name[ne]=विक्सनरी - नि:शुल्क शब्दकोश
 Name[nl]=Wiktionary - het vrije woordenboek
 Name[nn]=Wiktionary – den frie ordboka
 Name[or]=Wiktionary - ମୁକ୍ତ ଅଭିଧାନ
-Name[pa]=ਵਿੱਕੀਸ਼ਨਰੀ - ਮੁਫਤ ਡਿਕਸ਼ਨਰੀ
+Name[pa]=ਵਿਕੀਸ਼ਨਰੀ - ਮੁਫਤ ਡਿਕਸ਼ਨਰੀ
 Name[pl]=Wiktionary - Otwarty słownik
 Name[pt]=Wiktionary - O Dicionário Livre
 Name[pt_BR]=Wikcionário - o dicionário livre
@@ -79,6 +82,7 @@ Name[sv]=Wiktionary - den fria ordboken
 Name[te]=విక్షనరి - స్వేఛ్ఛా పదకోశము
 Name[tg]=Wiktionary - Луғати озод
 Name[th]=วิกิชันนารี - พจนานุุกรมเสรี
+Name[tok]=lipu Wiktionary
 Name[tr]=VikiSözlük - Özgür Sözlük
 Name[ug]=Wiktionary - ھەقسىز لۇغەت
 Name[uk]=Вікісловник — вільний словник
@@ -94,11 +98,14 @@ Query=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ar]=https://ar.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ast]=https://ast.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[az]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[be]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[be@latin]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[bg]=https://bg.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[bs]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ca]=https://ca.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ca@valencia]=https://ca.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[cs]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[cy]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[da]=https://da.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[de]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[el]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
@@ -115,8 +122,10 @@ Query[hi]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[hu]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ia]=http://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[id]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[ie]=https://ie.wiktionary.org/wiki/Special:Serchar?search=\\{@}&go=Continuar
 Query[is]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[it]=http://it.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[ka]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[kk]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ko]=https://ko.wiktionary.org/wiki/특수:검색?search=\\{@}&go=Go
 Query[lt]=https://lt.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
@@ -140,6 +149,7 @@ Query[sr@ijekavianlatin]=https://en.wiktionary.org/wiki/Special:Search?search=\\
 Query[sr@latin]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[sv]=https://sv.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[tg]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[tok]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[tr]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ug]=https://en.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[uk]=https://uk.wiktionary.org/wiki/Special:Search?search=\\{@}&go=Go

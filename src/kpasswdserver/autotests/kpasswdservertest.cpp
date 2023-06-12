@@ -51,6 +51,7 @@ private Q_SLOTS:
 
         KIO::AuthInfo info;
         info.url = QUrl(QStringLiteral("http://www.example.com"));
+        info.keepPassword = true;
 
         // Make a check for that host, should say "not found"
         QVERIFY(noCheckAuth(server, info));
@@ -122,6 +123,7 @@ private Q_SLOTS:
         server.setWalletDisabled(true);
         KIO::AuthInfo info;
         info.url = QUrl(QStringLiteral("http://www.example.com"));
+        info.keepPassword = true;
 
         // Add auth to the cache
         const qlonglong windowId = 42;
@@ -268,6 +270,7 @@ private Q_SLOTS:
         authInfo.url = QUrl(QStringLiteral("http://www.example.com/test/test.html"));
         authInfo.username = QStringLiteral("toto");
         authInfo.password = QStringLiteral("foobar");
+        authInfo.keepPassword = true;
         server.addAuthInfo(authInfo, windowId);
 
         KIO::AuthInfo queryAuthInfo;
@@ -395,17 +398,18 @@ private:
         const bool isCancelRetryDialogTest = (hasErrorMessage && retryButton == s_buttonCancel);
 
         if (hasErrorMessage) {
+            auto checkRetryFunc = [this, retryButton]() {
+                checkRetryDialog(retryButton);
+            };
             // Retry dialog only knows Yes/No
-            QMetaObject::invokeMethod(this, "checkRetryDialog", Qt::QueuedConnection, Q_ARG(QDialogButtonBox::StandardButton, retryButton));
+            QMetaObject::invokeMethod(this, checkRetryFunc, Qt::QueuedConnection);
         }
 
         if (!isCancelRetryDialogTest) {
-            QMetaObject::invokeMethod(this,
-                                      "checkAndFillDialog",
-                                      Qt::QueuedConnection,
-                                      Q_ARG(KIO::AuthInfo, info),
-                                      Q_ARG(KIO::AuthInfo, filledInfo),
-                                      Q_ARG(QDialog::DialogCode, code));
+            auto checkFillFunc = [this, info, filledInfo, code]() {
+                checkAndFillDialog(info, filledInfo, code);
+            };
+            QMetaObject::invokeMethod(this, checkFillFunc, Qt::QueuedConnection);
         }
         // Force KPasswdServer to process the request now, otherwise the checkAndFillDialog needs a timer too...
         server.processRequest();
@@ -441,12 +445,10 @@ private:
         }
 
         QVERIFY(spy.isEmpty());
-        QMetaObject::invokeMethod(this,
-                                  "checkAndFillDialog",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(KIO::AuthInfo, infos.first()),
-                                  Q_ARG(KIO::AuthInfo, filledInfo),
-                                  Q_ARG(QDialog::DialogCode, code));
+        auto checkFillFunc = [this, first = infos.first(), filledInfo, code]() {
+            checkAndFillDialog(first, filledInfo, code);
+        };
+        QMetaObject::invokeMethod(this, checkFillFunc, Qt::QueuedConnection);
 
         // Force KPasswdServer to process the request now, otherwise the checkAndFillDialog needs a timer too...
         server.processRequest();
@@ -492,12 +494,10 @@ private:
         }
 
         QVERIFY(spy.isEmpty());
-        QMetaObject::invokeMethod(this,
-                                  "checkAndFillDialog",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(KIO::AuthInfo, infos.first()),
-                                  Q_ARG(KIO::AuthInfo, filledInfo),
-                                  Q_ARG(QDialog::DialogCode, code));
+        auto checkAndFillFunc = [this, first = infos.first(), filledInfo, code]() {
+            checkAndFillDialog(first, filledInfo, code);
+        };
+        QMetaObject::invokeMethod(this, checkAndFillFunc, Qt::QueuedConnection);
 
         // Force KPasswdServer to process the request now, otherwise the checkAndFillDialog needs a timer too...
         server.processRequest();
@@ -526,11 +526,13 @@ protected Q_SLOTS:
         const QList<QWidget *> widgetsList = QApplication::topLevelWidgets();
         for (QWidget *widget : widgetsList) {
             if (KPasswordDialog *dialog = qobject_cast<KPasswordDialog *>(widget)) {
+                qDebug() << "Found dialog" << dialog;
                 if (code == QDialog::Accepted) {
                     QCOMPARE(dialog->username(), getUserNameFrom(info));
                     QCOMPARE(dialog->password(), info.password);
                     dialog->setUsername(filledInfo.username);
                     dialog->setPassword(filledInfo.password);
+                    qDebug() << "Filled dialog with" << filledInfo.username << filledInfo.password;
                 }
                 dialog->done(code);
                 return;
@@ -545,6 +547,7 @@ protected Q_SLOTS:
         for (QWidget *widget : widgetsList) {
             QDialog *dialog = qobject_cast<QDialog *>(widget);
             if (dialog && !dialog->inherits("KPasswordDialog")) {
+                qDebug() << "Closing dialog" << dialog << "with code" << code;
                 dialog->done(code);
                 return;
             }

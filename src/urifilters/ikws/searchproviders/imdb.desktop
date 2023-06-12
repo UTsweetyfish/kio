@@ -4,25 +4,24 @@ Name=Internet Movie Database
 Name[af]=Internet Film Databasis
 Name[ar]=قاعدة بيانات الإنترنت للأفلام
 Name[as]=ইন্টাৰ্নে'ট বোলছবিৰ তথ্যভঁৰাল
-Name[ast]=Internet Movie Database
 Name[az]=İnternet Film Məlumat Bazası
-Name[be]=База звестак пра фільмы
-Name[be@latin]=Sieciŭnaja baza filmaŭ
+Name[be]=Сеціўная база даных фільмаў
+Name[be@latin]=Sieciŭnaja baza danych fiĺmaŭ
 Name[bg]=Internet Movie Database
 Name[bn]=ইন্টারনেট চলচ্চিত্র ডেটাবেস
 Name[bn_IN]=ইন্টারনেট ছায়াছবির ডাটাবেস
 Name[br]=Stlennvon filmoù Internet
-Name[bs]=Internet baza filmova
+Name[bs]=Baza Podataka Internet Filma
 Name[ca]=Base de dades de pel·lícules a Internet
 Name[ca@valencia]=Base de dades de pel·lícules a Internet
 Name[cs]=Internetová databáze filmů
 Name[csb]=Internetowô baza filmów (IMDB)
-Name[cy]=Cronfa Ffilmiau y Rhyngrwyd
+Name[cy]=Datagronfa Ffilmiau y Rhyngrwyd
 Name[da]=Internetfilm-database
 Name[de]=Internet-Filmdatenbank
 Name[el]=Βάση δεδομένων ταινιών στο διαδίκτυο
 Name[en_GB]=Internet Movie Database
-Name[eo]=Reta datumbazo de filmoj
+Name[eo]=Interreta Filmdatumbazo (IMDB)
 Name[es]=Base de datos de internet de películas
 Name[et]=Interneti filmide andmebaas
 Name[eu]=Interneteko filmeen datu-basea
@@ -42,8 +41,10 @@ Name[hsb]=Internetowa datowa baza filmow
 Name[hu]=IMDb filmadatbázis
 Name[ia]=Internet Movie Database
 Name[id]=Basis Data Film Internet
-Name[is]=IMDB internet kvikmyndagagnagrunnurinn
+Name[ie]=Internet Movie Database
+Name[is]=Internet Movie Database
 Name[it]=Banca dati cinematografica in rete
+Name[ka]=ინტერნეტის ფილმების ბაზა
 Name[kk]=Internet фильмдер қоры
 Name[km]=មូលដ្ឋាន​ទិន្នន័យ​ភាពយន្ត​តាម​អ៊ីនធឺណិត
 Name[kn]=ಜಾಲ ಚಲಚ್ಚಿತ್ರ ದತ್ತಸಂಚಯ
@@ -81,6 +82,7 @@ Name[sv]=Internet filmdatabas
 Name[te]=ఇంటర్‌నెట్ చలనచిత్ర డాటాబేస్
 Name[tg]=Пойгоҳи иттилоотии интернетӣ
 Name[th]=ฐานข้อมูลภาพยนตร์ทางอินเทอร์เน็ต
+Name[tok]=ilo alasa IMDB
 Name[tr]=İnternet Film Veritabanı
 Name[ug]=ئىنتېرنېت كىنو ساندىنى
 Name[uk]=База даних кінофільмів в Інтернет
@@ -94,15 +96,20 @@ Name[zh_TW]=Internet 電影資料庫
 Keys=imdb
 Query=https://imdb.com/find?s=all&q=\\{@}
 Query[ar]=https://imdb.com/find?s=all&q=\\{@}
-Query[ast]=https://imdb.com/find?s=all&q=\\{@}
 Query[az]=https://imdb.com/find?s=all&q=\\{@}
+Query[be]=https://imdb.com/find?s=all&q=\\{@}
+Query[be@latin]=https://imdb.com/find?s=all&q=\\{@}
+Query[bg]=https://imdb.com/find?s=all&q=\\{@}
+Query[bs]=https://imdb.com/find?s=all&q=\\{@}
 Query[ca]=https://imdb.com/find?s=all&q=\\{@}
 Query[ca@valencia]=https://imdb.com/find?s=all&q=\\{@}
 Query[cs]=https://imdb.com/find?s=all&q=\\{@}
+Query[cy]=https://imdb.com/find?s=all&q=\\{@}
 Query[da]=https://imdb.com/find?s=all&q=\\{@}
 Query[de]=https://imdb.com/find?s=all&q=\\{@}
 Query[el]=https://imdb.com/find?s=all&q=\\{@}
 Query[en_GB]=https://imdb.com/find?s=all&q=\\{@}
+Query[eo]=https://imdb.com/find?s=all&q=\\{@}
 Query[es]=https://imdb.com/find?s=all&q=\\{@}
 Query[et]=https://imdb.com/find?s=all&q=\\{@}
 Query[eu]=https://imdb.com/find?s=all&q=\\{@}
@@ -112,13 +119,16 @@ Query[gl]=https://imdb.com/find?s=all&q=\\{@}
 Query[hu]=https://imdb.com/find?s=all&q=\\{@}
 Query[ia]=https://imdb.com/find?s=all&q=\\{@}
 Query[id]=https://imdb.com/find?s=all&q=\\{@}
+Query[ie]=https://imdb.com/find?s=all&q=\\{@}
 Query[is]=https://imdb.com/find?s=all&q=\\{@}
 Query[it]=https://imdb.com/find?s=all&q=\\{@}
+Query[ka]=https://imdb.com/find?s=all&q=\\{@}
 Query[ko]=https://imdb.com/find?s=all&q=\\{@}
 Query[lt]=https://imdb.com/find?s=all&q=\\{@}
 Query[my]=https://imdb.com/find?s=all&q=\\{@}
 Query[nl]=https://imdb.com/find?s=all&q=\\{@}
 Query[nn]=https://imdb.com/find?s=all&q=\\{@}
+Query[pa]=https://imdb.com/find?s=all&q=\\{@}
 Query[pl]=https://imdb.com/find?s=all&q=\\{@}
 Query[pt]=https://imdb.com/find?s=all&q=\\{@}
 Query[pt_BR]=https://imdb.com/find?s=all&q=\\{@}
@@ -128,6 +138,8 @@ Query[sk]=https://imdb.com/find?s=all&q=\\{@}
 Query[sl]=https://imdb.com/find?s=all&q=\\{@}
 Query[sv]=https://imdb.com/find?s=all&q=\\{@}
 Query[tg]=https://imdb.com/find?s=all&q=\\{@}
+Query[tok]=https://imdb.com/find?s=all&q=\\{@}
+Query[tr]=https://imdb.com/find?s=all&q=\\{@}
 Query[uk]=https://imdb.com/find?s=all&q=\\{@}
 Query[vi]=https://imdb.com/find?s=all&q=\\{@}
 Query[x-test]=xxhttps://imdb.com/find?s=all&q=\\{@}xx

@@ -10,6 +10,8 @@
 
 #include "udsentry.h"
 
+#include "../utils_p.h"
+
 #include <QDataStream>
 #include <QDebug>
 #include <QString>
@@ -217,7 +219,7 @@ void UDSEntryPrivate::load(QDataStream &s)
     // We cache the loaded strings. Some of them, like, e.g., the user,
     // will often be the same for many entries in a row. Caching them
     // permits to use implicit sharing to save memory.
-    static QVector<QString> cachedStrings;
+    thread_local QVector<QString> cachedStrings;
     if (quint32(cachedStrings.size()) < size) {
         cachedStrings.resize(size);
     }
@@ -383,7 +385,7 @@ long long UDSEntry::numberValue(uint field, long long defaultValue) const
 
 bool UDSEntry::isDir() const
 {
-    return (numberValue(UDS_FILE_TYPE) & QT_STAT_MASK) == QT_STAT_DIR;
+    return Utils::isDirMask(numberValue(UDS_FILE_TYPE));
 }
 
 bool UDSEntry::isLink() const

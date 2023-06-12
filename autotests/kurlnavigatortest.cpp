@@ -223,13 +223,16 @@ void KUrlNavigatorTest::testRelativePaths()
     const QString tempDirPath = tempDir.path();
     const QString dirA = tempDirPath + QLatin1String("/a");
     const QString dirB = tempDirPath + QLatin1String("/a/b");
+    const QString dirC = tempDirPath + QLatin1String("/.c");
     const QString link = tempDirPath + QLatin1String("/l");
     createTestDirectory(dirA);
     createTestDirectory(dirB);
+    createTestDirectory(dirC);
     createTestSymlink(link, dirA.toLatin1());
 
     QVERIFY(QFile::exists(dirA));
     QVERIFY(QFile::exists(dirB));
+    QVERIFY(QFile::exists(dirC));
     QVERIFY(QFile::exists(link));
 
     const QUrl tempDirUrl = QUrl::fromLocalFile(tempDirPath);
@@ -261,6 +264,20 @@ void KUrlNavigatorTest::testRelativePaths()
     m_navigator->editor()->setCurrentText(QStringLiteral(".."));
     QTest::keyClick(m_navigator->editor(), Qt::Key_Enter);
     QTRY_COMPARE(m_navigator->locationUrl(), tempDirUrl);
+
+    // Replace all the text with ".c"
+    m_navigator->editor()->setCurrentText(QStringLiteral(".c"));
+    QTest::keyClick(m_navigator->editor(), Qt::Key_Enter);
+    QTRY_COMPARE(m_navigator->locationUrl(), QUrl::fromLocalFile(dirC));
+
+    // Back to tempDir
+    m_navigator->setLocationUrl(tempDirUrl);
+    QCOMPARE(m_navigator->locationUrl(), tempDirUrl);
+
+    // Replace all the text with "/a" - make sure this is handled as absolute path
+    m_navigator->editor()->setCurrentText(QStringLiteral("/a"));
+    QTest::keyClick(m_navigator->editor(), Qt::Key_Enter);
+    QTRY_COMPARE(m_navigator->locationUrl(), QUrl::fromLocalFile("/a"));
 
     // Back to tempDir
     m_navigator->setLocationUrl(tempDirUrl);

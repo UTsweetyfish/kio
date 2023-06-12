@@ -14,7 +14,7 @@
 
 #include "kfilewidget.h"
 
-#include "../pathhelpers_p.h" // concatPaths() and isAbsoluteLocalPath()
+#include "../utils_p.h"
 #include "kfilebookmarkhandler_p.h"
 #include "kfileplacesmodel.h"
 #include "kfileplacesview.h"
@@ -22,33 +22,45 @@
 #include "kfilewidgetdocktitlebar_p.h"
 #include "kurlcombobox.h"
 #include "kurlnavigator.h"
-#include <KActionCollection>
-#include <KActionMenu>
-#include <KConfigGroup>
-#include <KDirLister>
-#include <KFileItem>
-#include <KLocalizedString>
-#include <KSharedConfig>
-#include <KToolBar>
+
 #include <config-kiofilewidgets.h>
+
 #include <defaults-kfile.h>
 #include <kdiroperator.h>
 #include <kfilefiltercombo.h>
 #include <kfileitemdelegate.h>
-#include <kimagefilepreview.h>
 #include <kio/job.h>
 #include <kio/jobuidelegate.h>
-#include <kio/scheduler.h>
+#include <kio/statjob.h>
 #include <kprotocolmanager.h>
 #include <krecentdirs.h>
 #include <krecentdocument.h>
+#include <kurlauthorized.h>
 #include <kurlcompletion.h>
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+#include <KActionCollection>
+#endif
+
+#include <KActionMenu>
+#include <KConfigGroup>
+#include <KDirLister>
+#include <KFileItem>
+#include <KFilePlacesModel>
+#include <KIconLoader>
+#include <KJobWidgets>
+#include <KLocalizedString>
+#include <KMessageBox>
+#include <KMessageWidget>
+#include <KSharedConfig>
+#include <KShell>
+#include <KStandardAction>
+#include <KToolBar>
 
 #include <QAbstractProxyModel>
 #include <QApplication>
 #include <QCheckBox>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QDockWidget>
 #include <QHelpEvent>
 #include <QIcon>
@@ -59,15 +71,10 @@
 #include <QMenu>
 #include <QMimeDatabase>
 #include <QPushButton>
+#include <QScreen>
 #include <QSplitter>
 #include <QStandardPaths>
 #include <QTimer>
-
-#include <KIconLoader>
-#include <KJobWidgets>
-#include <KMessageBox>
-#include <KShell>
-#include <kurlauthorized.h>
 
 #include <algorithm>
 #include <array>
@@ -85,9 +92,6 @@ public:
 
     ~KFileWidgetPrivate()
     {
-        m_iconSizeSlider->removeEventFilter(q);
-        m_locationEdit->removeEventFilter(q);
-
         delete m_bookmarkHandler; // Should be deleted before m_ops!
         // Must be deleted before m_ops, otherwise the unit test crashes due to the
         // connection to the QDockWidget::visibilityChanged signal, which may get
@@ -96,6 +100,17 @@ public:
         delete m_ops;
     }
 
+    QSize screenSize() const
+    {
+        return q->parentWidget() ? q->parentWidget()->screen()->availableGeometry().size() //
+                                 : QGuiApplication::primaryScreen()->availableGeometry().size();
+    }
+
+    void initDirOpWidgets();
+    void initToolbar();
+    void initZoomWidget();
+    void initLocationWidget();
+    void initFilterWidget();
     void updateLocationWhatsThis();
     void updateAutoSelectExtension();
     void initPlacesPanel();
@@ -173,8 +188,13 @@ public:
     void slotAutoSelectExtClicked();
     void placesViewSplitterMoved(int, int);
     void activateUrlNavigator();
-    void zoomOutIconsSize();
-    void zoomInIconsSize();
+
+    enum ZoomState {
+        ZoomOut,
+        ZoomIn,
+    };
+    void changeIconsSize(ZoomState zoom);
+    void slotDirOpIconSizeChanged(int size);
     void slotIconSizeSliderMoved(int);
     void slotIconSizeChanged(int);
     void slotViewDoubleClicked(const QModelIndex &);
@@ -206,9 +226,11 @@ public:
 
     QLabel *m_locationLabel = nullptr;
     QWidget *m_opsWidget = nullptr;
+    QVBoxLayout *m_opsWidgetLayout = nullptr;
 
     QLabel *m_filterLabel = nullptr;
     KUrlNavigator *m_urlNavigator = nullptr;
+    KMessageWidget *m_messageWidget = nullptr;
     QPushButton *m_okButton = nullptr;
     QPushButton *m_cancelButton = nullptr;
     QDockWidget *m_placesDock = nullptr;
@@ -263,12 +285,16 @@ public:
     bool m_confirmOverwrite = false;
     bool m_differentHierarchyLevelItemsEntered = false;
 
-    const std::array<KIconLoader::StdSizes, 6> m_stdIconSizes = {KIconLoader::SizeSmall,
-                                                                 KIconLoader::SizeSmallMedium,
-                                                                 KIconLoader::SizeMedium,
-                                                                 KIconLoader::SizeLarge,
-                                                                 KIconLoader::SizeHuge,
-                                                                 KIconLoader::SizeEnormous};
+    const std::array<short, 8> m_stdIconSizes = {
+        KIconLoader::SizeSmall,
+        KIconLoader::SizeSmallMedium,
+        KIconLoader::SizeMedium,
+        KIconLoader::SizeLarge,
+        KIconLoader::SizeHuge,
+        KIconLoader::SizeEnormous,
+        256,
+        512,
+    };
 
     QSlider *m_iconSizeSlider = nullptr;
     QAction *m_zoomOutAction = nullptr;
@@ -278,6 +304,9 @@ public:
     // files and urls. Visual settings (view mode, sorting criteria...) are not
     // app-specific and are stored in kdeglobals
     KConfigGroup m_configGroup;
+
+    KToggleAction *m_toggleBookmarksAction = nullptr;
+    KToggleAction *m_togglePlacesPanelAction = nullptr;
 };
 
 Q_GLOBAL_STATIC(QUrl, lastDirectory) // to set the start path
@@ -314,7 +343,7 @@ static bool containsProtocolSection(const QString &string)
 // without the http-prepending that QUrl::fromUserInput does.
 static QUrl urlFromString(const QString &str)
 {
-    if (isAbsoluteLocalPath(str)) {
+    if (Utils::isAbsoluteLocalPath(str)) {
         return QUrl::fromLocalFile(str);
     }
     QUrl url(str);
@@ -342,190 +371,36 @@ KFileWidget::KFileWidget(const QUrl &_startDir, QWidget *parent)
     d->m_okButton->hide();
     d->m_cancelButton->hide();
 
-    d->m_opsWidget = new QWidget(this);
-    QVBoxLayout *opsWidgetLayout = new QVBoxLayout(d->m_opsWidget);
-    opsWidgetLayout->setContentsMargins(0, 0, 0, 0);
-    opsWidgetLayout->setSpacing(0);
-    // d->m_toolbar = new KToolBar(this, true);
-    d->m_toolbar = new KToolBar(d->m_opsWidget, true);
-    d->m_toolbar->setObjectName(QStringLiteral("KFileWidget::toolbar"));
-    d->m_toolbar->setMovable(false);
-    opsWidgetLayout->addWidget(d->m_toolbar);
-
-    d->m_model = new KFilePlacesModel(this);
+    d->initDirOpWidgets();
 
     // Resolve this now so that a 'kfiledialog:' URL, if specified,
     // does not get inserted into the urlNavigator history.
     d->m_url = getStartUrl(startDir, d->m_fileClass, filename);
     startDir = d->m_url;
 
-    // Don't pass startDir to the KUrlNavigator at this stage: as well as
-    // the above, it may also contain a file name which should not get
-    // inserted in that form into the old-style navigation bar history.
-    // Wait until the KIO::stat has been done later.
-    //
-    // The stat cannot be done before this point, bug 172678.
-    d->m_urlNavigator = new KUrlNavigator(d->m_model, QUrl(), d->m_opsWidget); // d->m_toolbar);
-    d->m_urlNavigator->setPlacesSelectorVisible(false);
-    opsWidgetLayout->addWidget(d->m_urlNavigator);
-
-    d->m_ops = new KDirOperator(QUrl(), d->m_opsWidget);
-    d->m_ops->installEventFilter(this);
-    d->m_ops->setObjectName(QStringLiteral("KFileWidget::ops"));
-    d->m_ops->setIsSaving(d->m_operationMode == Saving);
-    d->m_ops->setNewFileMenuSelectDirWhenAlreadyExist(true);
-    d->m_ops->showOpenWithActions(true);
-    opsWidgetLayout->addWidget(d->m_ops);
-    connect(d->m_ops, &KDirOperator::urlEntered, this, [this](const QUrl &url) {
-        d->urlEntered(url);
-    });
-    connect(d->m_ops, &KDirOperator::fileHighlighted, this, [this](const KFileItem &item) {
-        d->fileHighlighted(item);
-    });
-    connect(d->m_ops, &KDirOperator::fileSelected, this, [this](const KFileItem &item) {
-        d->fileSelected(item);
-    });
-    connect(d->m_ops, &KDirOperator::finishedLoading, this, [this]() {
-        d->slotLoadingFinished();
-    });
-    connect(d->m_ops, &KDirOperator::keyEnterReturnPressed, this, [this]() {
-        d->slotViewKeyEnterReturnPressed();
-    });
-
-    d->m_ops->setupMenu(KDirOperator::SortActions | KDirOperator::FileActions | KDirOperator::ViewActions);
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
     KActionCollection *coll = d->m_ops->actionCollection();
     coll->addAssociatedWidget(this);
+#else
+    const auto operatorActions = d->m_ops->allActions();
+    for (QAction *action : operatorActions) {
+        addAction(action);
+    }
+#endif
 
-    // add nav items to the toolbar
-    //
-    // NOTE:  The order of the button icons here differs from that
-    // found in the file manager and web browser, but has been discussed
-    // and agreed upon on the kde-core-devel mailing list:
-    //
-    // http://lists.kde.org/?l=kde-core-devel&m=116888382514090&w=2
+    QAction *goToNavigatorAction = new QAction(this);
 
-    coll->action(QStringLiteral("up"))
-        ->setWhatsThis(i18n("<qt>Click this button to enter the parent folder.<br /><br />"
-                            "For instance, if the current location is file:/home/konqi clicking this "
-                            "button will take you to file:/home.</qt>"));
-
-    coll->action(QStringLiteral("back"))->setWhatsThis(i18n("Click this button to move backwards one step in the browsing history."));
-    coll->action(QStringLiteral("forward"))->setWhatsThis(i18n("Click this button to move forward one step in the browsing history."));
-
-    coll->action(QStringLiteral("reload"))->setWhatsThis(i18n("Click this button to reload the contents of the current location."));
-    coll->action(QStringLiteral("mkdir"))->setShortcuts(KStandardShortcut::createFolder());
-    coll->action(QStringLiteral("mkdir"))->setWhatsThis(i18n("Click this button to create a new folder."));
-
-    QAction *goToNavigatorAction = coll->addAction(QStringLiteral("gotonavigator"), this, [this]() {
+    connect(goToNavigatorAction, &QAction::triggered, this, [this]() {
         d->activateUrlNavigator();
     });
+
     goToNavigatorAction->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_L));
 
-    KToggleAction *showSidebarAction = new KToggleAction(i18n("Show Places Panel"), this);
-    coll->addAction(QStringLiteral("togglePlacesPanel"), showSidebarAction);
-    showSidebarAction->setShortcut(QKeySequence(Qt::Key_F9));
-    connect(showSidebarAction, &QAction::toggled, this, [this](bool show) {
-        d->togglePlacesPanel(show);
-    });
-
-    KToggleAction *showBookmarksAction = new KToggleAction(i18n("Show Bookmarks Button"), this);
-    coll->addAction(QStringLiteral("toggleBookmarks"), showBookmarksAction);
-    connect(showBookmarksAction, &QAction::toggled, this, [this](bool show) {
-        d->toggleBookmarks(show);
-    });
-
-    // Build the settings menu
-    KActionMenu *menu = new KActionMenu(QIcon::fromTheme(QStringLiteral("configure")), i18n("Options"), this);
-    coll->addAction(QStringLiteral("extra menu"), menu);
-    menu->setWhatsThis(
-        i18n("<qt>This is the preferences menu for the file dialog. "
-             "Various options can be accessed from this menu including: <ul>"
-             "<li>how files are sorted in the list</li>"
-             "<li>types of view, including icon and list</li>"
-             "<li>showing of hidden files</li>"
-             "<li>the Places panel</li>"
-             "<li>file previews</li>"
-             "<li>separating folders from files</li></ul></qt>"));
-
-    menu->addAction(coll->action(QStringLiteral("allow expansion")));
-    menu->addSeparator();
-    menu->addAction(coll->action(QStringLiteral("show hidden")));
-    menu->addAction(showSidebarAction);
-    menu->addAction(showBookmarksAction);
-    menu->addAction(coll->action(QStringLiteral("preview")));
-
-    menu->setPopupMode(QToolButton::InstantPopup);
-    connect(menu->menu(), &QMenu::aboutToShow, d->m_ops, &KDirOperator::updateSelectionDependentActions);
-
-    d->m_iconSizeSlider = new QSlider(this);
-    d->m_iconSizeSlider->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
-    d->m_iconSizeSlider->setMinimumWidth(40);
-    d->m_iconSizeSlider->setOrientation(Qt::Horizontal);
-    d->m_iconSizeSlider->setMinimum(KIconLoader::SizeSmall);
-    d->m_iconSizeSlider->setMaximum(KIconLoader::SizeEnormous);
-    d->m_iconSizeSlider->installEventFilter(this);
-
-    connect(d->m_iconSizeSlider, &QAbstractSlider::valueChanged, this, [this](int value) {
-        d->slotIconSizeChanged(value);
-    });
-
-    connect(d->m_iconSizeSlider, &QAbstractSlider::sliderMoved, this, [this](int value) {
-        d->slotIconSizeSliderMoved(value);
-    });
-
-    connect(d->m_ops, &KDirOperator::currentIconSizeChanged, this, [this](int value) {
-        d->m_iconSizeSlider->setValue(value);
-        d->m_zoomOutAction->setDisabled(value <= d->m_iconSizeSlider->minimum());
-        d->m_zoomInAction->setDisabled(value >= d->m_iconSizeSlider->maximum());
-    });
-
-    d->m_zoomOutAction = new QAction(QIcon::fromTheme(QStringLiteral("file-zoom-out")), i18n("Zoom out"), this);
-    connect(d->m_zoomOutAction, &QAction::triggered, this, [this]() {
-        d->zoomOutIconsSize();
-    });
-
-    d->m_zoomInAction = new QAction(QIcon::fromTheme(QStringLiteral("file-zoom-in")), i18n("Zoom in"), this);
-    connect(d->m_zoomInAction, &QAction::triggered, this, [this]() {
-        d->zoomInIconsSize();
-    });
-
-    d->m_bookmarkButton = new KActionMenu(QIcon::fromTheme(QStringLiteral("bookmarks")), i18n("Bookmarks"), this);
-    d->m_bookmarkButton->setPopupMode(QToolButton::InstantPopup);
-    coll->addAction(QStringLiteral("bookmark"), d->m_bookmarkButton);
-    d->m_bookmarkButton->setWhatsThis(
-        i18n("<qt>This button allows you to bookmark specific locations. "
-             "Click on this button to open the bookmark menu where you may add, "
-             "edit or select a bookmark.<br /><br />"
-             "These bookmarks are specific to the file dialog, but otherwise operate "
-             "like bookmarks elsewhere in KDE.</qt>"));
-
-    QWidget *midSpacer = new QWidget(this);
-    midSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    d->m_toolbar->addAction(coll->action(QStringLiteral("back")));
-    d->m_toolbar->addAction(coll->action(QStringLiteral("forward")));
-    d->m_toolbar->addAction(coll->action(QStringLiteral("up")));
-    d->m_toolbar->addAction(coll->action(QStringLiteral("reload")));
-    d->m_toolbar->addSeparator();
-    d->m_toolbar->addAction(coll->action(QStringLiteral("icons view")));
-    d->m_toolbar->addAction(coll->action(QStringLiteral("compact view")));
-    d->m_toolbar->addAction(coll->action(QStringLiteral("details view")));
-    d->m_toolbar->addSeparator();
-    d->m_toolbar->addAction(coll->action(QStringLiteral("inline preview")));
-    d->m_toolbar->addAction(coll->action(QStringLiteral("sorting menu")));
-    d->m_toolbar->addAction(d->m_bookmarkButton);
-
-    d->m_toolbar->addWidget(midSpacer);
-
-    d->m_toolbar->addAction(d->m_zoomOutAction);
-    d->m_toolbar->addWidget(d->m_iconSizeSlider);
-    d->m_toolbar->addAction(d->m_zoomInAction);
-    d->m_toolbar->addSeparator();
-    d->m_toolbar->addAction(coll->action(QStringLiteral("mkdir")));
-    d->m_toolbar->addAction(menu);
-
-    d->m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
-    d->m_toolbar->setMovable(false);
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("gotonavigator"), goToNavigatorAction);
+#else
+    addAction(goToNavigatorAction);
+#endif
 
     KUrlComboBox *pathCombo = d->m_urlNavigator->editor();
     KUrlCompletion *pathCompletionObj = new KUrlCompletion(KUrlCompletion::DirCompletion);
@@ -537,51 +412,11 @@ KFileWidget::KFileWidget(const QUrl &_startDir, QWidget *parent)
     });
     connect(d->m_urlNavigator, &KUrlNavigator::returnPressed, d->m_ops, qOverload<>(&QWidget::setFocus));
 
-    // the Location label/edit
-    d->m_locationLabel = new QLabel(i18n("&Name:"), this);
-    d->m_locationEdit = new KUrlComboBox(KUrlComboBox::Files, true, this);
-    d->m_locationEdit->installEventFilter(this);
-    // Properly let the dialog be resized (to smaller). Otherwise we could have
-    // huge dialogs that can't be resized to smaller (it would be as big as the longest
-    // item in this combo box). (ereslibre)
-    d->m_locationEdit->setSizeAdjustPolicy(QComboBox::AdjustToContentsOnFirstShow);
-    connect(d->m_locationEdit, &KUrlComboBox::editTextChanged, this, [this](const QString &text) {
-        d->slotLocationChanged(text);
-    });
+    // Location, "Name:", line-edit and label
+    d->initLocationWidget();
 
-    d->updateLocationWhatsThis();
-    d->m_locationLabel->setBuddy(d->m_locationEdit);
-
-    KUrlCompletion *fileCompletionObj = new KUrlCompletion(KUrlCompletion::FileCompletion);
-    d->m_locationEdit->setCompletionObject(fileCompletionObj);
-    d->m_locationEdit->setAutoDeleteCompletionObject(true);
-    connect(fileCompletionObj, &KUrlCompletion::match, this, [this](const QString &match) {
-        d->fileCompletion(match);
-    });
-
-    connect(d->m_locationEdit, qOverload<const QString &>(&KUrlComboBox::returnPressed), this, [this](const QString &text) {
-        d->locationAccepted(text);
-    });
-
-    // the Filter label/edit
-    d->m_filterLabel = new QLabel(this);
-    d->m_filterWidget = new KFileFilterCombo(this);
-    d->updateFilterText();
-    // Properly let the dialog be resized (to smaller). Otherwise we could have
-    // huge dialogs that can't be resized to smaller (it would be as big as the longest
-    // item in this combo box). (ereslibre)
-    d->m_filterWidget->setSizeAdjustPolicy(QComboBox::AdjustToContentsOnFirstShow);
-    d->m_filterLabel->setBuddy(d->m_filterWidget);
-    connect(d->m_filterWidget, &KFileFilterCombo::filterChanged, this, [this]() {
-        d->slotFilterChanged();
-    });
-
-    d->m_filterDelayTimer.setSingleShot(true);
-    d->m_filterDelayTimer.setInterval(300);
-    connect(d->m_filterWidget, &QComboBox::editTextChanged, &d->m_filterDelayTimer, qOverload<>(&QTimer::start));
-    connect(&d->m_filterDelayTimer, &QTimer::timeout, this, [this]() {
-        d->slotFilterChanged();
-    });
+    // "Filter:" line-edit and label
+    d->initFilterWidget();
 
     // the Automatically Select Extension checkbox
     // (the text, visibility etc. is set in updateAutoSelectExtension(), which is called by readConfig())
@@ -598,12 +433,12 @@ KFileWidget::KFileWidget(const QUrl &_startDir, QWidget *parent)
     KConfigGroup group(config, ConfigGroup);
     readConfig(group);
 
-    coll->action(QStringLiteral("inline preview"))->setChecked(d->m_ops->isInlinePreviewShown());
-    d->m_iconSizeSlider->setValue(d->m_ops->iconSize());
+    d->m_ops->action(KDirOperator::ShowPreview)->setChecked(d->m_ops->isInlinePreviewShown());
+    d->slotDirOpIconSizeChanged(d->m_ops->iconSize());
 
     KFilePreviewGenerator *pg = d->m_ops->previewGenerator();
     if (pg) {
-        coll->action(QStringLiteral("inline preview"))->setChecked(pg->isPreviewShown());
+        d->m_ops->action(KDirOperator::ShowPreview)->setChecked(pg->isPreviewShown());
     }
 
     // getStartUrl() above will have resolved the startDir parameter into
@@ -648,6 +483,20 @@ KFileWidget::KFileWidget(const QUrl &_startDir, QWidget *parent)
     }
 
     d->m_locationEdit->setFocus();
+
+    const QAction *showHiddenAction = d->m_ops->action(KDirOperator::ShowHiddenFiles);
+    Q_ASSERT(showHiddenAction);
+    d->m_urlNavigator->setShowHiddenFolders(showHiddenAction->isChecked());
+    connect(showHiddenAction, &QAction::toggled, this, [this](bool checked) {
+        d->m_urlNavigator->setShowHiddenFolders(checked);
+    });
+
+    const QAction *hiddenFilesLastAction = d->m_ops->action(KDirOperator::SortHiddenFilesLast);
+    Q_ASSERT(hiddenFilesLastAction);
+    d->m_urlNavigator->setSortHiddenFoldersLast(hiddenFilesLastAction->isChecked());
+    connect(hiddenFilesLastAction, &QAction::toggled, this, [this](bool checked) {
+        d->m_urlNavigator->setSortHiddenFoldersLast(checked);
+    });
 }
 
 KFileWidget::~KFileWidget()
@@ -655,7 +504,6 @@ KFileWidget::~KFileWidget()
     KSharedConfig::Ptr config = KSharedConfig::openConfig();
     config->sync();
     d->m_ops->removeEventFilter(this);
-    d->m_iconSizeSlider->removeEventFilter(this);
     d->m_locationEdit->removeEventFilter(this);
 }
 
@@ -757,11 +605,11 @@ QUrl KFileWidgetPrivate::getCompleteUrl(const QString &_url) const
     const QString url = KShell::tildeExpand(_url);
     QUrl u;
 
-    if (isAbsoluteLocalPath(url)) {
+    if (Utils::isAbsoluteLocalPath(url)) {
         u = QUrl::fromLocalFile(url);
     } else {
         QUrl relativeUrlTest(m_ops->url());
-        relativeUrlTest.setPath(concatPaths(relativeUrlTest.path(), url));
+        relativeUrlTest.setPath(Utils::concatPaths(relativeUrlTest.path(), url));
         if (!m_ops->dirLister()->findByUrl(relativeUrlTest).isNull() || !KProtocolInfo::isKnownProtocol(relativeUrlTest)) {
             u = relativeUrlTest;
         } else {
@@ -782,9 +630,9 @@ QSize KFileWidget::sizeHint() const
 {
     int fontSize = fontMetrics().height();
     const QSize goodSize(48 * fontSize, 30 * fontSize);
-    const QSize screenSize = QApplication::desktop()->availableGeometry(this).size();
-    const QSize minSize(screenSize / 2);
-    const QSize maxSize(screenSize * qreal(0.9));
+    const QSize scrnSize = d->screenSize();
+    const QSize minSize(scrnSize / 2);
+    const QSize maxSize(scrnSize * qreal(0.9));
     return (goodSize.expandedTo(minSize).boundedTo(maxSize));
 }
 
@@ -830,7 +678,7 @@ void KFileWidget::slotOk()
     // the user about it
     if (locationEditCurrentTextList.count() > 1) {
         if (mode & KFile::File) {
-            KMessageBox::sorry(this, i18n("You can only select one file"), i18n("More than one file provided"));
+            KMessageBox::error(this, i18n("You can only select one file"), i18n("More than one file provided"));
             return;
         }
 
@@ -931,7 +779,7 @@ void KFileWidget::slotOk()
         // If the protocol doesn't support listing (i.e. http:// ) the user would end up with the dialog
         // showing an "empty directory" which is bad usability wise.
         if (!locationEditCurrentText.isEmpty() && !onlyDirectoryMode
-            && (isAbsoluteLocalPath(locationEditCurrentText) || containsProtocolSection(locationEditCurrentText))) {
+            && (Utils::isAbsoluteLocalPath(locationEditCurrentText) || containsProtocolSection(locationEditCurrentText))) {
             QUrl url = urlFromString(locationEditCurrentText);
             if (KProtocolManager::supportsListing(url)) {
                 QString fileName;
@@ -944,9 +792,7 @@ void KFileWidget::slotOk()
                             fileName = url.fileName();
                             url = url.adjusted(QUrl::RemoveFilename); // keeps trailing slash
                         } else {
-                            if (!url.path().endsWith(QLatin1Char('/'))) {
-                                url.setPath(url.path() + QLatin1Char('/'));
-                            }
+                            Utils::appendSlashToPath(url);
                         }
                     }
                 } else {
@@ -1003,13 +849,13 @@ void KFileWidget::slotOk()
 
         // if we are on local mode, make sure we haven't got a remote base url
         if ((mode & KFile::LocalOnly) && !d->mostLocalUrl(d->m_url).isLocalFile()) {
-            KMessageBox::sorry(this, i18n("You can only select local files"), i18n("Remote files not accepted"));
+            KMessageBox::error(this, i18n("You can only select local files"), i18n("Remote files not accepted"));
             return;
         }
 
         const auto &supportedSchemes = d->m_model->supportedSchemes();
         if (!supportedSchemes.isEmpty() && !supportedSchemes.contains(d->m_url.scheme())) {
-            KMessageBox::sorry(this,
+            KMessageBox::error(this,
                                i18np("The selected URL uses an unsupported scheme. "
                                      "Please use the following scheme: %2",
                                      "The selected URL uses an unsupported scheme. "
@@ -1031,7 +877,7 @@ void KFileWidget::slotOk()
                 KJobWidgets::setWindow(checkStatJob, this);
                 bool res = checkStatJob->exec();
                 if (res && checkStatJob->statResult().isDir()) {
-                    KMessageBox::sorry(this,
+                    KMessageBox::error(this,
                                        i18n("More than one folder has been selected and this dialog does not accept folders, so it is not possible to decide "
                                             "which one to enter. Please select only one folder to list it."),
                                        i18n("More than one folder provided"));
@@ -1063,7 +909,7 @@ void KFileWidget::slotOk()
             }
             filesInList = true;
         } else {
-            KMessageBox::sorry(this, i18n("The file \"%1\" could not be found", url.toDisplayString(QUrl::PreferLocalFile)), i18n("Cannot open file"));
+            KMessageBox::error(this, i18n("The file \"%1\" could not be found", url.toDisplayString(QUrl::PreferLocalFile)), i18n("Cannot open file"));
             return; // do not emit accepted() if we had ExistingOnly flag and stat failed
         }
 
@@ -1324,6 +1170,301 @@ static QString escapeDoubleQuotes(QString &&path)
     return path;
 }
 
+void KFileWidgetPrivate::initDirOpWidgets()
+{
+    m_opsWidget = new QWidget(q);
+    m_opsWidgetLayout = new QVBoxLayout(m_opsWidget);
+    m_opsWidgetLayout->setContentsMargins(0, 0, 0, 0);
+    m_opsWidgetLayout->setSpacing(0);
+
+    m_model = new KFilePlacesModel(q);
+
+    // Don't pass "startDir" (KFileWidget constructor 1st arg) to the
+    // KUrlNavigator at this stage: it may also contain a file name which
+    // should not get inserted in that form into the old-style navigation
+    // bar history. Wait until the KIO::stat has been done later.
+    //
+    // The stat cannot be done before this point, bug 172678.
+    m_urlNavigator = new KUrlNavigator(m_model, QUrl(), m_opsWidget); // d->m_toolbar);
+    m_urlNavigator->setPlacesSelectorVisible(false);
+
+    m_messageWidget = new KMessageWidget(q);
+    m_messageWidget->setMessageType(KMessageWidget::Error);
+    m_messageWidget->hide();
+
+    m_ops = new KDirOperator(QUrl(), m_opsWidget);
+    m_ops->installEventFilter(q);
+    m_ops->setObjectName(QStringLiteral("KFileWidget::ops"));
+    m_ops->setIsSaving(m_operationMode == KFileWidget::Saving);
+    m_ops->setNewFileMenuSelectDirWhenAlreadyExist(true);
+    m_ops->showOpenWithActions(true);
+
+    q->connect(m_ops, &KDirOperator::urlEntered, q, [this](const QUrl &url) {
+        urlEntered(url);
+    });
+    q->connect(m_ops, &KDirOperator::fileHighlighted, q, [this](const KFileItem &item) {
+        fileHighlighted(item);
+    });
+    q->connect(m_ops, &KDirOperator::fileSelected, q, [this](const KFileItem &item) {
+        fileSelected(item);
+    });
+    q->connect(m_ops, &KDirOperator::finishedLoading, q, [this]() {
+        slotLoadingFinished();
+    });
+    q->connect(m_ops, &KDirOperator::keyEnterReturnPressed, q, [this]() {
+        slotViewKeyEnterReturnPressed();
+    });
+    q->connect(m_ops, &KDirOperator::renamingFinished, q, [this](const QList<QUrl> &urls) {
+        // Update file names in location text field after renaming selected files
+        q->setSelectedUrls(urls);
+    });
+
+    m_ops->dirLister()->setAutoErrorHandlingEnabled(false);
+    q->connect(m_ops->dirLister(), &KDirLister::jobError, q, [this](KIO::Job *job) {
+        m_messageWidget->setText(job->errorString());
+        m_messageWidget->animatedShow();
+    });
+
+    m_ops->setupMenu(KDirOperator::SortActions | KDirOperator::FileActions | KDirOperator::ViewActions);
+
+    initToolbar();
+
+    m_opsWidgetLayout->addWidget(m_toolbar);
+    m_opsWidgetLayout->addWidget(m_urlNavigator);
+    m_opsWidgetLayout->addWidget(m_messageWidget);
+    m_opsWidgetLayout->addWidget(m_ops);
+}
+
+void KFileWidgetPrivate::initZoomWidget()
+{
+    m_iconSizeSlider = new QSlider(q);
+    m_iconSizeSlider->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+    m_iconSizeSlider->setMinimumWidth(40);
+    m_iconSizeSlider->setOrientation(Qt::Horizontal);
+    m_iconSizeSlider->setMinimum(0);
+    m_iconSizeSlider->setMaximum(m_stdIconSizes.size() - 1);
+    m_iconSizeSlider->setSingleStep(1);
+    m_iconSizeSlider->setPageStep(1);
+    m_iconSizeSlider->setTickPosition(QSlider::TicksBelow);
+
+    q->connect(m_iconSizeSlider, &QAbstractSlider::valueChanged, q, [this](int step) {
+        slotIconSizeChanged(m_stdIconSizes[step]);
+    });
+
+    q->connect(m_iconSizeSlider, &QAbstractSlider::sliderMoved, q, [this](int step) {
+        slotIconSizeSliderMoved(m_stdIconSizes[step]);
+    });
+
+    q->connect(m_ops, &KDirOperator::currentIconSizeChanged, q, [this](int iconSize) {
+        slotDirOpIconSizeChanged(iconSize);
+    });
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    KActionCollection *coll = m_ops->actionCollection();
+#endif
+
+    m_zoomOutAction = KStandardAction::create(
+        KStandardAction::ZoomOut,
+        q,
+        [this]() {
+            changeIconsSize(ZoomOut);
+        },
+        q);
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("zoom_out"), m_zoomOutAction);
+#else
+    q->addAction(m_zoomOutAction);
+#endif
+
+    m_zoomInAction = KStandardAction::create(
+        KStandardAction::ZoomIn,
+        q,
+        [this]() {
+            changeIconsSize(ZoomIn);
+        },
+        q);
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("zoom_in"), m_zoomInAction);
+#else
+    q->addAction(m_zoomInAction);
+#endif
+}
+
+void KFileWidgetPrivate::initToolbar()
+{
+    m_toolbar = new KToolBar(m_opsWidget, true);
+    m_toolbar->setObjectName(QStringLiteral("KFileWidget::toolbar"));
+    m_toolbar->setMovable(false);
+
+    // add nav items to the toolbar
+    //
+    // NOTE:  The order of the button icons here differs from that
+    // found in the file manager and web browser, but has been discussed
+    // and agreed upon on the kde-core-devel mailing list:
+    //
+    // http://lists.kde.org/?l=kde-core-devel&m=116888382514090&w=2
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    KActionCollection *coll = m_ops->actionCollection();
+#endif
+
+    m_ops->action(KDirOperator::Up)
+        ->setWhatsThis(i18n("<qt>Click this button to enter the parent folder.<br /><br />"
+                            "For instance, if the current location is file:/home/konqi clicking this "
+                            "button will take you to file:/home.</qt>"));
+
+    m_ops->action(KDirOperator::Back)->setWhatsThis(i18n("Click this button to move backwards one step in the browsing history."));
+    m_ops->action(KDirOperator::Forward)->setWhatsThis(i18n("Click this button to move forward one step in the browsing history."));
+
+    m_ops->action(KDirOperator::Reload)->setWhatsThis(i18n("Click this button to reload the contents of the current location."));
+    m_ops->action(KDirOperator::NewFolder)->setShortcuts(KStandardShortcut::createFolder());
+    m_ops->action(KDirOperator::NewFolder)->setWhatsThis(i18n("Click this button to create a new folder."));
+
+    m_togglePlacesPanelAction = new KToggleAction(i18n("Show Places Panel"), q);
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("togglePlacesPanel"), m_togglePlacesPanelAction);
+#else
+    q->addAction(m_togglePlacesPanelAction);
+#endif
+    m_togglePlacesPanelAction->setShortcut(QKeySequence(Qt::Key_F9));
+    q->connect(m_togglePlacesPanelAction, &QAction::toggled, q, [this](bool show) {
+        togglePlacesPanel(show);
+    });
+
+    m_toggleBookmarksAction = new KToggleAction(i18n("Show Bookmarks Button"), q);
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("toggleBookmarks"), m_toggleBookmarksAction);
+#else
+    q->addAction(m_toggleBookmarksAction);
+#endif
+    q->connect(m_toggleBookmarksAction, &QAction::toggled, q, [this](bool show) {
+        toggleBookmarks(show);
+    });
+
+    // Build the settings menu
+    KActionMenu *menu = new KActionMenu(QIcon::fromTheme(QStringLiteral("configure")), i18n("Options"), q);
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("extra menu"), menu);
+#else
+    q->addAction(menu);
+#endif
+    menu->setWhatsThis(
+        i18n("<qt>This is the preferences menu for the file dialog. "
+             "Various options can be accessed from this menu including: <ul>"
+             "<li>how files are sorted in the list</li>"
+             "<li>types of view, including icon and list</li>"
+             "<li>showing of hidden files</li>"
+             "<li>the Places panel</li>"
+             "<li>file previews</li>"
+             "<li>separating folders from files</li></ul></qt>"));
+
+    menu->addAction(m_ops->action(KDirOperator::AllowExpansionInDetailsView));
+    menu->addSeparator();
+    menu->addAction(m_ops->action(KDirOperator::ShowHiddenFiles));
+    menu->addAction(m_togglePlacesPanelAction);
+    menu->addAction(m_toggleBookmarksAction);
+    menu->addAction(m_ops->action(KDirOperator::ShowPreviewPanel));
+
+    menu->setPopupMode(QToolButton::InstantPopup);
+    q->connect(menu->menu(), &QMenu::aboutToShow, m_ops, &KDirOperator::updateSelectionDependentActions);
+
+    m_bookmarkButton = new KActionMenu(QIcon::fromTheme(QStringLiteral("bookmarks")), i18n("Bookmarks"), q);
+    m_bookmarkButton->setPopupMode(QToolButton::InstantPopup);
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    coll->addAction(QStringLiteral("bookmark"), m_bookmarkButton);
+#else
+    q->addAction(m_bookmarkButton);
+#endif
+    m_bookmarkButton->setWhatsThis(
+        i18n("<qt>This button allows you to bookmark specific locations. "
+             "Click on this button to open the bookmark menu where you may add, "
+             "edit or select a bookmark.<br /><br />"
+             "These bookmarks are specific to the file dialog, but otherwise operate "
+             "like bookmarks elsewhere in KDE.</qt>"));
+
+    QWidget *midSpacer = new QWidget(q);
+    midSpacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    m_toolbar->addAction(m_ops->action(KDirOperator::Back));
+    m_toolbar->addAction(m_ops->action(KDirOperator::Forward));
+    m_toolbar->addAction(m_ops->action(KDirOperator::Up));
+    m_toolbar->addAction(m_ops->action(KDirOperator::Reload));
+    m_toolbar->addSeparator();
+    m_toolbar->addAction(m_ops->action(KDirOperator::ViewIconsView));
+    m_toolbar->addAction(m_ops->action(KDirOperator::ViewCompactView));
+    m_toolbar->addAction(m_ops->action(KDirOperator::ViewDetailsView));
+    m_toolbar->addSeparator();
+    m_toolbar->addAction(m_ops->action(KDirOperator::ShowPreview));
+    m_toolbar->addAction(m_ops->action(KDirOperator::SortMenu));
+    m_toolbar->addAction(m_bookmarkButton);
+
+    m_toolbar->addWidget(midSpacer);
+
+    initZoomWidget();
+    m_toolbar->addAction(m_zoomOutAction);
+    m_toolbar->addWidget(m_iconSizeSlider);
+    m_toolbar->addAction(m_zoomInAction);
+    m_toolbar->addSeparator();
+
+    m_toolbar->addAction(m_ops->action(KDirOperator::NewFolder));
+    m_toolbar->addAction(menu);
+
+    m_toolbar->setToolButtonStyle(Qt::ToolButtonIconOnly);
+    m_toolbar->setMovable(false);
+}
+
+void KFileWidgetPrivate::initLocationWidget()
+{
+    m_locationLabel = new QLabel(i18n("&Name:"), q);
+    m_locationEdit = new KUrlComboBox(KUrlComboBox::Files, true, q);
+    m_locationEdit->installEventFilter(q);
+    // Properly let the dialog be resized (to smaller). Otherwise we could have
+    // huge dialogs that can't be resized to smaller (it would be as big as the longest
+    // item in this combo box). (ereslibre)
+    m_locationEdit->setSizeAdjustPolicy(QComboBox::AdjustToContentsOnFirstShow);
+    q->connect(m_locationEdit, &KUrlComboBox::editTextChanged, q, [this](const QString &text) {
+        slotLocationChanged(text);
+    });
+
+    updateLocationWhatsThis();
+    m_locationLabel->setBuddy(m_locationEdit);
+
+    KUrlCompletion *fileCompletionObj = new KUrlCompletion(KUrlCompletion::FileCompletion);
+    m_locationEdit->setCompletionObject(fileCompletionObj);
+    m_locationEdit->setAutoDeleteCompletionObject(true);
+    q->connect(fileCompletionObj, &KUrlCompletion::match, q, [this](const QString &match) {
+        fileCompletion(match);
+    });
+
+    q->connect(m_locationEdit, qOverload<const QString &>(&KUrlComboBox::returnPressed), q, [this](const QString &text) {
+        locationAccepted(text);
+    });
+}
+
+void KFileWidgetPrivate::initFilterWidget()
+{
+    m_filterLabel = new QLabel(q);
+    m_filterWidget = new KFileFilterCombo(q);
+    updateFilterText();
+    // Properly let the dialog be resized (to smaller). Otherwise we could have
+    // huge dialogs that can't be resized to smaller (it would be as big as the longest
+    // item in this combo box). (ereslibre)
+    m_filterWidget->setSizeAdjustPolicy(QComboBox::AdjustToContentsOnFirstShow);
+    m_filterLabel->setBuddy(m_filterWidget);
+    q->connect(m_filterWidget, &KFileFilterCombo::filterChanged, q, [this]() {
+        slotFilterChanged();
+    });
+
+    m_filterDelayTimer.setSingleShot(true);
+    m_filterDelayTimer.setInterval(300);
+    q->connect(m_filterWidget, &QComboBox::editTextChanged, &m_filterDelayTimer, qOverload<>(&QTimer::start));
+    q->connect(&m_filterDelayTimer, &QTimer::timeout, q, [this]() {
+        slotFilterChanged();
+    });
+}
+
 void KFileWidgetPrivate::setLocationText(const QList<QUrl> &urlList)
 {
     const QUrl currUrl = m_ops->url();
@@ -1390,6 +1531,11 @@ void KFileWidgetPrivate::initPlacesPanel()
     m_placesView->setObjectName(QStringLiteral("url bar"));
     QObject::connect(m_placesView, &KFilePlacesView::urlChanged, q, [this](const QUrl &url) {
         enterUrl(url);
+    });
+
+    QObject::connect(qobject_cast<KFilePlacesModel *>(m_placesView->model()), &KFilePlacesModel::errorMessage, q, [this](const QString &errorMessage) {
+        m_messageWidget->setText(errorMessage);
+        m_messageWidget->animatedShow();
     });
 
     // need to set the current url of the urlbar manually (not via urlEntered()
@@ -1545,6 +1691,8 @@ void KFileWidgetPrivate::urlEntered(const QUrl &url)
     if (m_placesView) {
         m_placesView->setUrl(url);
     }
+
+    m_messageWidget->hide();
 }
 
 void KFileWidgetPrivate::locationAccepted(const QString &url)
@@ -1561,9 +1709,7 @@ void KFileWidgetPrivate::enterUrl(const QUrl &url)
     // append '/' if needed: url combo does not add it
     // tokenize() expects it because it uses QUrl::adjusted(QUrl::RemoveFilename)
     QUrl u(url);
-    if (!u.path().isEmpty() && !u.path().endsWith(QLatin1Char('/'))) {
-        u.setPath(u.path() + QLatin1Char('/'));
-    }
+    Utils::appendSlashToPath(u);
     q->setUrl(u);
 
     // We need to check window()->focusWidget() instead of m_locationEdit->hasFocus
@@ -1662,7 +1808,7 @@ void KFileWidgetPrivate::slotLoadingFinished()
     if (currentText.startsWith(QLatin1Char('/'))) {
         u.setPath(currentText);
     } else {
-        u.setPath(concatPaths(m_ops->url().path(), currentText));
+        u.setPath(Utils::concatPaths(m_ops->url().path(), currentText));
     }
     m_ops->setCurrentItem(u);
     m_ops->blockSignals(false);
@@ -1737,9 +1883,7 @@ QList<QUrl> KFileWidgetPrivate::tokenize(const QString &line) const
 
     QList<QUrl> urls;
     QUrl u(m_ops->url().adjusted(QUrl::RemoveFilename));
-    if (!u.path().endsWith(QLatin1Char('/'))) {
-        u.setPath(u.path() + QLatin1Char('/'));
-    }
+    Utils::appendSlashToPath(u);
 
     // A helper that creates, validates and appends a new url based
     // on the given filename.
@@ -1818,7 +1962,7 @@ QString KFileWidget::selectedFile() const
         if (url.isLocalFile()) {
             return url.toLocalFile();
         } else {
-            KMessageBox::sorry(const_cast<KFileWidget *>(this), i18n("You can only select local files."), i18n("Remote Files Not Accepted"));
+            KMessageBox::error(const_cast<KFileWidget *>(this), i18n("You can only select local files."), i18n("Remote Files Not Accepted"));
         }
     }
     return QString();
@@ -1872,8 +2016,7 @@ void KFileWidget::showEvent(QShowEvent *event)
     if (!d->m_hasView) { // delayed view-creation
         Q_ASSERT(d);
         Q_ASSERT(d->m_ops);
-        d->m_ops->setView(KFile::Default);
-        d->m_ops->view()->setSizePolicy(QSizePolicy(QSizePolicy::Maximum, QSizePolicy::Maximum));
+        d->m_ops->setViewMode(KFile::Default);
         d->m_hasView = true;
 
         connect(d->m_ops->view(), &QAbstractItemView::doubleClicked, this, [this](const QModelIndex &index) {
@@ -1890,33 +2033,18 @@ bool KFileWidget::eventFilter(QObject *watched, QEvent *event)
     const bool res = QWidget::eventFilter(watched, event);
 
     QKeyEvent *keyEvent = dynamic_cast<QKeyEvent *>(event);
-    if (keyEvent) {
-        if (watched == d->m_iconSizeSlider) {
-            if (keyEvent->key() == Qt::Key_Left || keyEvent->key() == Qt::Key_Up || keyEvent->key() == Qt::Key_Right || keyEvent->key() == Qt::Key_Down) {
-                d->slotIconSizeSliderMoved(d->m_iconSizeSlider->value());
-            }
-        } else if (watched == d->m_locationEdit && event->type() == QEvent::KeyPress) {
-            if (keyEvent->modifiers() & Qt::AltModifier) {
-                switch (keyEvent->key()) {
-                case Qt::Key_Up:
-                    d->m_ops->actionCollection()->action(QStringLiteral("up"))->trigger();
-                    break;
-                case Qt::Key_Left:
-                    d->m_ops->actionCollection()->action(QStringLiteral("back"))->trigger();
-                    break;
-                case Qt::Key_Right:
-                    d->m_ops->actionCollection()->action(QStringLiteral("forward"))->trigger();
-                    break;
-                default:
-                    break;
-                }
-            }
-        } else if (watched == d->m_ops && event->type() == QEvent::KeyPress && (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)) {
-            // ignore return events from the KDirOperator
-            // they are not needed, activated is used to handle this case
-            event->accept();
-            return true;
-        }
+    if (!keyEvent) {
+        return res;
+    }
+
+    const auto type = event->type();
+    const auto key = keyEvent->key();
+
+    if (watched == d->m_ops && type == QEvent::KeyPress && (key == Qt::Key_Return || key == Qt::Key_Enter)) {
+        // ignore return events from the KDirOperator
+        // they are not needed, activated is used to handle this case
+        event->accept();
+        return true;
     }
 
     return res;
@@ -2083,7 +2211,8 @@ void KFileWidget::setOperationMode(OperationMode mode)
         d->m_okButton->setText(i18n("&Open"));
         d->m_okButton->setIcon(QIcon::fromTheme(QStringLiteral("document-open")));
         // hide the new folder actions...usability team says they shouldn't be in open file dialog
-        actionCollection()->removeAction(actionCollection()->action(QStringLiteral("mkdir")));
+        d->m_ops->action(KDirOperator::NewFolder)->setEnabled(false);
+        d->m_toolbar->removeAction(d->m_ops->action(KDirOperator::NewFolder));
     } else if (mode == Saving) {
         KGuiItem::assign(d->m_okButton, KStandardGuiItem::save());
         d->setNonExtSelection();
@@ -2146,66 +2275,48 @@ void KFileWidgetPrivate::activateUrlNavigator()
     }
 }
 
-void KFileWidgetPrivate::zoomOutIconsSize()
+void KFileWidgetPrivate::slotDirOpIconSizeChanged(int size)
 {
-    const int currValue = m_ops->iconSize();
-
-    // Jump to the nearest standard size
-    auto r_itEnd = m_stdIconSizes.crend();
-    auto it = std::find_if(m_stdIconSizes.crbegin(), r_itEnd, [currValue](KIconLoader::StdSizes size) {
-        return size < currValue;
-    });
-
-    Q_ASSERT(it != r_itEnd);
-
-    const int nearestSize = *it;
-
-    m_iconSizeSlider->setValue(nearestSize);
-    slotIconSizeSliderMoved(nearestSize);
+    auto beginIt = m_stdIconSizes.cbegin();
+    auto endIt = m_stdIconSizes.cend();
+    auto it = std::lower_bound(beginIt, endIt, size);
+    const int sliderStep = it != endIt ? it - beginIt : 0;
+    m_iconSizeSlider->setValue(sliderStep);
+    m_zoomOutAction->setDisabled(it == beginIt);
+    m_zoomInAction->setDisabled(it == (endIt - 1));
 }
 
-void KFileWidgetPrivate::zoomInIconsSize()
+void KFileWidgetPrivate::changeIconsSize(ZoomState zoom)
 {
-    const int currValue = m_ops->iconSize();
+    int step = m_iconSizeSlider->value();
 
-    // Jump to the nearest standard size
-    auto itEnd = m_stdIconSizes.cend();
-    auto it = std::find_if(m_stdIconSizes.cbegin(), itEnd, [currValue](KIconLoader::StdSizes size) {
-        return size > currValue;
-    });
+    if (zoom == ZoomOut) {
+        if (step == 0) {
+            return;
+        }
+        --step;
+    } else { // ZoomIn
+        if (step == static_cast<int>(m_stdIconSizes.size() - 1)) {
+            return;
+        }
+        ++step;
+    }
 
-    Q_ASSERT(it != itEnd);
-
-    const int nearestSize = *it;
-
-    m_iconSizeSlider->setValue(nearestSize);
-    slotIconSizeSliderMoved(nearestSize);
+    m_iconSizeSlider->setValue(step);
+    slotIconSizeSliderMoved(m_stdIconSizes[step]);
 }
 
 void KFileWidgetPrivate::slotIconSizeChanged(int _value)
 {
     m_ops->setIconSize(_value);
-
-    switch (_value) {
-    case KIconLoader::SizeSmall:
-    case KIconLoader::SizeSmallMedium:
-    case KIconLoader::SizeMedium:
-    case KIconLoader::SizeLarge:
-    case KIconLoader::SizeHuge:
-    case KIconLoader::SizeEnormous:
-        m_iconSizeSlider->setToolTip(i18n("Icon size: %1 pixels (standard size)", _value));
-        break;
-    default:
-        m_iconSizeSlider->setToolTip(i18n("Icon size: %1 pixels", _value));
-        break;
-    }
+    m_iconSizeSlider->setToolTip(i18n("Icon size: %1 pixels", _value));
 }
 
-void KFileWidgetPrivate::slotIconSizeSliderMoved(int _value)
+void KFileWidgetPrivate::slotIconSizeSliderMoved(int size)
 {
     // Force this to be called in case this slot is called first on the
     // slider move.
-    slotIconSizeChanged(_value);
+    slotIconSizeChanged(size);
 
     QPoint global(m_iconSizeSlider->rect().topLeft());
     global.ry() += m_iconSizeSlider->height() / 2;
@@ -2619,10 +2730,12 @@ KFileFilterCombo *KFileWidget::filterWidget() const
     return d->m_filterWidget;
 }
 
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
 KActionCollection *KFileWidget::actionCollection() const
 {
     return d->m_ops->actionCollection();
 }
+#endif
 
 void KFileWidgetPrivate::togglePlacesPanel(bool show, QObject *sender)
 {
@@ -2640,7 +2753,7 @@ void KFileWidgetPrivate::togglePlacesPanel(bool show, QObject *sender)
             QUrl url = model->url(index);
 
             if (homeURL.matches(url, QUrl::StripTrailingSlash)) {
-                m_toolbar->removeAction(m_ops->actionCollection()->action(QStringLiteral("home")));
+                m_toolbar->removeAction(m_ops->action(KDirOperator::Home));
                 break;
             }
         }
@@ -2655,8 +2768,8 @@ void KFileWidgetPrivate::togglePlacesPanel(bool show, QObject *sender)
             m_placesDock->hide();
         }
 
-        QAction *homeAction = m_ops->actionCollection()->action(QStringLiteral("home"));
-        QAction *reloadAction = m_ops->actionCollection()->action(QStringLiteral("reload"));
+        QAction *homeAction = m_ops->action(KDirOperator::Home);
+        QAction *reloadAction = m_ops->action(KDirOperator::Reload);
         if (!m_toolbar->actions().contains(homeAction)) {
             m_toolbar->insertAction(reloadAction, homeAction);
         }
@@ -2665,7 +2778,7 @@ void KFileWidgetPrivate::togglePlacesPanel(bool show, QObject *sender)
         m_lafBox->setColumnMinimumWidth(0, 0);
     }
 
-    static_cast<KToggleAction *>(q->actionCollection()->action(QStringLiteral("togglePlacesPanel")))->setChecked(show);
+    m_togglePlacesPanelAction->setChecked(show);
 
     // if we don't show the places panel, at least show the places menu
     m_urlNavigator->setPlacesSelectorVisible(!show);
@@ -2692,7 +2805,7 @@ void KFileWidgetPrivate::toggleBookmarks(bool show)
         m_bookmarkButton->setVisible(show);
     }
 
-    static_cast<KToggleAction *>(q->actionCollection()->action(QStringLiteral("toggleBookmarks")))->setChecked(show);
+    m_toggleBookmarksAction->setChecked(show);
 }
 
 // static, overloaded
@@ -2732,11 +2845,12 @@ QUrl KFileWidget::getStartUrl(const QUrl &startDir, QString &recentDirClass, QSt
                 fileName = urlFile;
             }
 
-            if (startDir.query() == QLatin1String("global")) {
-                recentDirClass = QStringLiteral("::%1").arg(keyword);
-            } else {
-                recentDirClass = QStringLiteral(":%1").arg(keyword);
-            }
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 96)
+            const QLatin1String query(startDir.query() == QLatin1String("global") ? "::%1" : ":%1");
+#else
+            const QLatin1String query(":%1");
+#endif
+            recentDirClass = query.arg(keyword);
 
             ret = QUrl::fromLocalFile(KRecentDirs::dir(recentDirClass));
         } else { // not special "kfiledialog" URL
@@ -2939,15 +3053,15 @@ QSize KFileWidget::dialogSizeHint() const
 {
     int fontSize = fontMetrics().height();
     QSize goodSize(48 * fontSize, 30 * fontSize);
-    QSize screenSize = QApplication::desktop()->availableGeometry(this).size();
-    QSize minSize(screenSize / 2);
-    QSize maxSize(screenSize * qreal(0.9));
+    const QSize scrnSize = d->screenSize();
+    QSize minSize(scrnSize / 2);
+    QSize maxSize(scrnSize * qreal(0.9));
     return (goodSize.expandedTo(minSize).boundedTo(maxSize));
 }
 
 void KFileWidget::setViewMode(KFile::FileView mode)
 {
-    d->m_ops->setView(mode);
+    d->m_ops->setViewMode(mode);
     d->m_hasView = true;
 }
 
@@ -2955,7 +3069,7 @@ void KFileWidget::setSupportedSchemes(const QStringList &schemes)
 {
     d->m_model->setSupportedSchemes(schemes);
     d->m_ops->setSupportedSchemes(schemes);
-    d->m_urlNavigator->setCustomProtocols(schemes);
+    d->m_urlNavigator->setSupportedSchemes(schemes);
 }
 
 QStringList KFileWidget::supportedSchemes() const

@@ -46,8 +46,10 @@ static QUrl cleanupUrl(const QUrl &url)
     QUrl u = url;
     u.setPath(QDir::cleanPath(u.path())); // remove double slashes in the path, simplify "foo/." to "foo/", etc.
     u = u.adjusted(QUrl::StripTrailingSlash); // KDirLister does this too, so we remove the slash before comparing with the root node url.
-    u.setQuery(QString());
-    u.setFragment(QString());
+    if (u.scheme().startsWith(QStringLiteral("ksvn")) || u.scheme().startsWith(QStringLiteral("svn"))) {
+        u.setQuery(QString());
+        u.setFragment(QString());
+    }
     return u;
 }
 
@@ -59,37 +61,41 @@ public:
     KDirModelNode(KDirModelDirNode *parent, const KFileItem &item)
         : m_item(item)
         , m_parent(parent)
-        , m_preview()
     {
     }
-    virtual ~KDirModelNode()
-    {
-        // Required, code will delete ptrs to this or a subclass.
-    }
+
+    virtual ~KDirModelNode() = default; // Required, code will delete ptrs to this or a subclass.
+
     // m_item is KFileItem() for the root item
     const KFileItem &item() const
     {
         return m_item;
     }
+
     void setItem(const KFileItem &item)
     {
         m_item = item;
     }
+
     KDirModelDirNode *parent() const
     {
         return m_parent;
     }
+
     // linear search
     int rowNumber() const; // O(n)
+
     QIcon preview() const
     {
         return m_preview;
     }
+
     void setPreview(const QPixmap &pix)
     {
         m_preview = QIcon();
         m_preview.addPixmap(pix);
     }
+
     void setPreview(const QIcon &icn)
     {
         m_preview = icn;
@@ -107,7 +113,6 @@ class KDirModelDirNode : public KDirModelNode
 public:
     KDirModelDirNode(KDirModelDirNode *parent, const KFileItem &item)
         : KDirModelNode(parent, item)
-        , m_childNodes()
         , m_childCount(KDirModel::ChildCountUnknown)
         , m_populated(false)
     {
@@ -123,34 +128,40 @@ public:
     {
         return m_childNodes.isEmpty() ? m_childCount : m_childNodes.count();
     }
+
     void setChildCount(int count)
     {
         m_childCount = count;
     }
+
     bool isPopulated() const
     {
         return m_populated;
     }
+
     void setPopulated(bool populated)
     {
         m_populated = populated;
     }
+
     bool isSlow() const
     {
         return item().isSlow();
     }
 
     // For removing all child urls from the global hash.
-    void collectAllChildUrls(QList<QUrl> &urls) const
+    QList<QUrl> collectAllChildUrls() const
     {
+        QList<QUrl> urls;
         urls.reserve(urls.size() + m_childNodes.size());
         for (KDirModelNode *node : m_childNodes) {
             const KFileItem &item = node->item();
             urls.append(cleanupUrl(item.url()));
             if (item.isDir()) {
-                static_cast<KDirModelDirNode *>(node)->collectAllChildUrls(urls);
+                urls += static_cast<KDirModelDirNode *>(node)->collectAllChildUrls();
             }
         }
+        return urls;
     }
 
 private:
@@ -171,12 +182,9 @@ int KDirModelNode::rowNumber() const
 class KDirModelPrivate
 {
 public:
-    explicit KDirModelPrivate(KDirModel *model)
-        : q(model)
-        , m_dirLister(nullptr)
+    explicit KDirModelPrivate(KDirModel *qq)
+        : q(qq)
         , m_rootNode(new KDirModelDirNode(nullptr, KFileItem()))
-        , m_dropsAllowed(KDirModel::NoDrops)
-        , m_jobTransfersVisible(false)
     {
     }
     ~KDirModelPrivate()
@@ -198,6 +206,7 @@ public:
         m_rootNode = new KDirModelDirNode(nullptr, KFileItem());
         m_showNodeForListedUrl = false;
     }
+
     // Emit expand for each parent and then return the
     // last known parent if there is no node for this url
     KDirModelNode *expandAllParentsUntil(const QUrl &url) const;
@@ -217,10 +226,12 @@ public:
         }
         return parent;
     }
+
     bool isDir(KDirModelNode *node) const
     {
         return (node == m_rootNode) || node->item().isDir();
     }
+
     QUrl urlForNode(KDirModelNode *node) const
     {
         /**
@@ -236,12 +247,15 @@ public:
         } else {
             url = node->item().url();
         }
-        if (url.hasQuery() || url.hasFragment()) { // avoid detach if not necessary.
-            url.setQuery(QString());
-            url.setFragment(QString()); // kill ref (#171117)
+        if (url.scheme().startsWith(QStringLiteral("ksvn")) || url.scheme().startsWith(QStringLiteral("svn"))) {
+            if (url.hasQuery() || url.hasFragment()) { // avoid detach if not necessary.
+                url.setQuery(QString());
+                url.setFragment(QString()); // kill ref (#171117)
+            }
         }
         return url;
     }
+
     void removeFromNodeHash(KDirModelNode *node, const QUrl &url);
     void clearAllPreviews(KDirModelDirNode *node);
 #ifndef NDEBUG
@@ -250,10 +264,10 @@ public:
     Q_DISABLE_COPY(KDirModelPrivate)
 
     KDirModel *const q;
-    KDirLister *m_dirLister;
-    KDirModelDirNode *m_rootNode;
-    KDirModel::DropsAllowed m_dropsAllowed;
-    bool m_jobTransfersVisible;
+    KDirLister *m_dirLister = nullptr;
+    KDirModelDirNode *m_rootNode = nullptr;
+    KDirModel::DropsAllowed m_dropsAllowed = KDirModel::NoDrops;
+    bool m_jobTransfersVisible = false;
     bool m_showNodeForListedUrl = false;
     // key = current known parent node (always a KDirModelDirNode but KDirModelNode is more convenient),
     // value = final url[s] being fetched
@@ -274,9 +288,8 @@ KDirModelNode *KDirModelPrivate::nodeForUrl(const QUrl &_url) const // O(1), wel
 void KDirModelPrivate::removeFromNodeHash(KDirModelNode *node, const QUrl &url)
 {
     if (node->item().isDir()) {
-        QList<QUrl> urls;
-        static_cast<KDirModelDirNode *>(node)->collectAllChildUrls(urls);
-        for (const QUrl &u : std::as_const(urls)) {
+        const QList<QUrl> urls = static_cast<KDirModelDirNode *>(node)->collectAllChildUrls();
+        for (const QUrl &u : urls) {
             m_nodeHash.remove(u);
         }
     }
@@ -318,7 +331,7 @@ KDirModelNode *KDirModelPrivate::expandAllParentsUntil(const QUrl &_url) const /
             nodePath += QLatin1Char('/');
         }
         if (!pathStr.startsWith(nodePath)) {
-            qCWarning(category) << "The kioslave for" << url.scheme() << "violates the hierarchy structure:"
+            qCWarning(category) << "The KIO worker for" << url.scheme() << "violates the hierarchy structure:"
                                 << "I arrived at node" << nodePath << ", but" << pathStr << "does not start with that path.";
             return nullptr;
         }
@@ -706,7 +719,7 @@ void KDirModelPrivate::_k_slotRefreshItems(const QList<QPair<KFileItem, KFileIte
     Q_EMIT q->dataChanged(topLeft, bottomRight);
 }
 
-// Called when a kioslave redirects (e.g. smb:/Workgroup -> smb://workgroup)
+// Called when a KIO worker redirects (e.g. smb:/Workgroup -> smb://workgroup)
 // and when renaming a directory.
 void KDirModelPrivate::_k_slotRedirection(const QUrl &oldUrl, const QUrl &newUrl)
 {
@@ -847,7 +860,20 @@ QVariant KDirModel::data(const QModelIndex &index, int role) const
                 }
                 Q_ASSERT(!item.isNull());
                 // qDebug() << item->url() << " overlays=" << item->overlays();
-                return KIconUtils::addOverlays(QIcon::fromTheme(item.iconName(), QIcon::fromTheme(QStringLiteral("unknown"))), item.overlays());
+                static const QIcon fallbackIcon = QIcon::fromTheme(QStringLiteral("unknown"));
+
+                const QString iconName(item.iconName());
+                QIcon icon;
+
+                if (QDir::isAbsolutePath(iconName)) {
+                    icon = QIcon(iconName);
+                }
+                if (icon.isNull()
+                    || (!(iconName.endsWith(QLatin1String(".svg")) || iconName.endsWith(QLatin1String(".svgz"))) && icon.availableSizes().isEmpty())) {
+                    icon = QIcon::fromTheme(iconName, fallbackIcon);
+                }
+
+                return KIconUtils::addOverlays(icon, item.overlays());
             }
             break;
         case Qt::TextAlignmentRole:
@@ -1066,17 +1092,22 @@ QList<QUrl> KDirModel::simplifiedUrlList(const QList<QUrl> &urls)
     QList<QUrl> ret(urls);
     std::sort(ret.begin(), ret.end());
 
-    QList<QUrl>::iterator it = ret.begin();
-    QUrl url = *it;
-    ++it;
-    while (it != ret.end()) {
-        if (url.isParentOf(*it) || url == *it) {
-            it = ret.erase(it);
+    QUrl url;
+
+    auto filterFunc = [&url](const QUrl &u) {
+        if (url == u || url.isParentOf(u)) {
+            return true;
         } else {
-            url = *it;
-            ++it;
+            url = u;
+            return false;
         }
-    }
+    };
+
+    auto beginIt = ret.begin();
+    url = *beginIt;
+    ++beginIt;
+    auto it = std::remove_if(beginIt, ret.end(), filterFunc);
+    ret.erase(it, ret.end());
 
     return ret;
 }
@@ -1095,9 +1126,9 @@ QMimeData *KDirModel::mimeData(const QModelIndexList &indexes) const
     bool canUseMostLocalUrls = true;
     for (const QModelIndex &index : indexes) {
         const KFileItem &item = d->nodeForIndex(index)->item();
-        urls << item.url();
-        bool isLocal;
-        mostLocalUrls << item.mostLocalUrl(&isLocal);
+        urls.append(item.url());
+        const auto [url, isLocal] = item.isMostLocalUrl();
+        mostLocalUrls.append(url);
         if (!isLocal) {
             canUseMostLocalUrls = false;
         }
@@ -1216,7 +1247,7 @@ bool KDirModel::hasChildren(const QModelIndex &parent) const
             filters |= QDir::Files | QDir::System;
         }
 
-        if (d->m_dirLister->showingDotFiles()) {
+        if (d->m_dirLister->showHiddenFiles()) {
             filters |= QDir::Hidden;
         }
 
@@ -1378,6 +1409,17 @@ bool KDirModel::removeRows(int, int, const QModelIndex &)
 bool KDirModel::removeColumns(int, int, const QModelIndex &)
 {
     return false;
+}
+
+QHash<int, QByteArray> KDirModel::roleNames() const
+{
+    auto super = QAbstractItemModel::roleNames();
+
+    super[AdditionalRoles::FileItemRole] = "fileItem";
+    super[AdditionalRoles::ChildCountRole] = "childCount";
+    super[AdditionalRoles::HasJobRole] = "hasJob";
+
+    return super;
 }
 
 #include "moc_kdirmodel.cpp"

@@ -1,4 +1,4 @@
-/*
+﻿/*
     This file is part of the KDE project
     SPDX-FileCopyrightText: 1999-2011 David Faure <faure@kde.org>
     SPDX-FileCopyrightText: 2001 Carsten Pfeiffer <pfeiffer@kde.org>
@@ -14,7 +14,7 @@
 #include "../aclhelpers_p.h"
 #endif
 
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 #include "kiocoredebug.h"
 #include "kioglobal_p.h"
 
@@ -36,6 +36,7 @@
 #endif
 #include <KFileSystemType>
 #include <KProtocolManager>
+#include <KShell>
 
 #define KFILEITEM_DEBUG 0
 
@@ -229,7 +230,7 @@ void KFileItemPrivate::init() const
             m_entry.replace(KIO::UDSEntry::UDS_INODE, buf.st_ino);
 
             mode_t mode = buf.st_mode;
-            if ((buf.st_mode & QT_STAT_MASK) == QT_STAT_LNK) {
+            if (Utils::isLinkMask(buf.st_mode)) {
                 m_bLink = true;
                 if (QT_STAT(pathBA.constData(), &buf) == 0) {
                     mode = buf.st_mode;
@@ -306,7 +307,7 @@ void KFileItemPrivate::readUDSEntry(bool _urlIsDirectory)
     m_hidden = hiddenVal == 1 ? Hidden : (hiddenVal == 0 ? Shown : Auto);
 
     if (_urlIsDirectory && !UDS_URL_seen && !m_strName.isEmpty() && m_strName != QLatin1String(".")) {
-        m_url.setPath(concatPaths(m_url.path(), m_strName));
+        m_url.setPath(Utils::concatPaths(m_url.path(), m_strName));
     }
 
     m_iconName.clear();
@@ -374,7 +375,7 @@ QDateTime KFileItemPrivate::time(KFileItem::FileTimes mappedWhich) const
     if (uds > 0) {
         const long long fieldVal = m_entry.numberValue(uds, -1);
         if (fieldVal != -1) {
-            return QDateTime::fromMSecsSinceEpoch(1000 * fieldVal);
+            return QDateTime::fromSecsSinceEpoch(fieldVal);
         }
     }
 
@@ -497,7 +498,7 @@ inline QString KFileItemPrivate::parsePermissions(mode_t perm) const
     if (m_bLink) {
         buffer[0] = 'l';
     } else if (m_fileMode != KFileItem::Unknown) {
-        if ((m_fileMode & QT_STAT_MASK) == QT_STAT_DIR) {
+        if (Utils::isDirMask(m_fileMode)) {
             buffer[0] = 'd';
         }
 #ifdef Q_OS_UNIX
@@ -581,7 +582,7 @@ KFileItem::KFileItem(mode_t mode, mode_t permissions, const QUrl &url, bool dela
 KFileItem::KFileItem(const QUrl &url, const QString &mimeType, mode_t mode)
     : d(new KFileItemPrivate(KIO::UDSEntry(), mode, KFileItem::Unknown, url, false, false, KFileItem::NormalMimeTypeDetermination))
 {
-    d->m_bMimeTypeKnown = !mimeType.isEmpty();
+    d->m_bMimeTypeKnown = !mimeType.simplified().isEmpty();
     if (d->m_bMimeTypeKnown) {
         QMimeDatabase db;
         d->m_mimeType = db.mimeTypeForName(mimeType);
@@ -863,8 +864,7 @@ QMimeType KFileItem::determineMimeType() const
         if (isDir()) {
             d->m_mimeType = db.mimeTypeForName(QStringLiteral("inode/directory"));
         } else {
-            bool isLocalUrl;
-            const QUrl url = mostLocalUrl(&isLocalUrl);
+            const auto [url, isLocalUrl] = isMostLocalUrl();
             d->determineMimeTypeHelper(url);
 
             // was:  d->m_mimeType = KMimeType::findByUrl( url, d->m_fileMode, isLocalUrl );
@@ -934,8 +934,7 @@ QString KFileItem::mimeComment() const
         return displayType;
     }
 
-    bool isLocalUrl;
-    QUrl url = mostLocalUrl(&isLocalUrl);
+    const auto [url, isLocalUrl] = isMostLocalUrl();
 
     QMimeType mime = currentMimeType();
     // This cannot move to kio_file (with UDS_DISPLAY_TYPE) because it needs
@@ -951,7 +950,7 @@ QString KFileItem::mimeComment() const
     // Support for .directory file in directories
     if (isLocalUrl && isDir() && !d->isSlow() && isDirectoryMounted(url)) {
         QUrl u(url);
-        u.setPath(concatPaths(u.path(), QStringLiteral(".directory")));
+        u.setPath(Utils::concatPaths(u.path(), QStringLiteral(".directory")));
         const KDesktopFile cfg(u.toLocalFile());
         const QString comment = cfg.readComment();
         if (!comment.isEmpty()) {
@@ -1041,8 +1040,7 @@ QString KFileItem::iconName() const
         return d->m_iconName;
     }
 
-    bool isLocalUrl;
-    QUrl url = mostLocalUrl(&isLocalUrl);
+    const auto [url, isLocalUrl] = isMostLocalUrl();
 
     QMimeDatabase db;
     QMimeType mime;
@@ -1094,10 +1092,8 @@ QString KFileItem::iconName() const
  */
 static bool checkDesktopFile(const KFileItem &item, bool _determineMimeType)
 {
-    // only local files
-    bool isLocalUrl;
-    item.mostLocalUrl(&isLocalUrl);
-    if (!isLocalUrl) {
+    // Only local files
+    if (!item.isMostLocalUrl().local) {
         return false;
     }
 
@@ -1165,8 +1161,7 @@ QStringList KFileItem::overlays() const
     }
 #ifndef Q_OS_WIN
     if (isDir()) {
-        bool isLocalUrl;
-        const QUrl url = mostLocalUrl(&isLocalUrl);
+        const auto [url, isLocalUrl] = isMostLocalUrl();
         if (isLocalUrl) {
             const QString path = url.toLocalFile();
             if (KSambaShare::instance()->isDirectoryShared(path) || KNFSShare::instance()->isDirectoryShared(path)) {
@@ -1262,7 +1257,7 @@ bool KFileItem::isHidden() const
         return false;
     }
 
-    // The kioslave can specify explicitly that a file is hidden or shown
+    // The KIO worker can specify explicitly that a file is hidden or shown
     if (d->m_hidden != KFileItemPrivate::Auto) {
         return d->m_hidden == KFileItemPrivate::Hidden;
     }
@@ -1288,6 +1283,10 @@ bool KFileItem::isDir() const
         return false;
     }
 
+    if (d->m_bMimeTypeKnown && d->m_mimeType.isValid()) {
+        return d->m_mimeType.inherits(QStringLiteral("inode/directory"));
+    }
+
     if (d->m_bSkipMimeTypeFromContent) {
         return false;
     }
@@ -1299,7 +1298,7 @@ bool KFileItem::isDir() const
         // qDebug() << d << url() << "can't say -> false";
         return false; // can't say for sure, so no
     }
-    return (d->m_fileMode & QT_STAT_MASK) == QT_STAT_DIR;
+    return Utils::isDirMask(d->m_fileMode);
 }
 
 bool KFileItem::isFile() const
@@ -1343,19 +1342,30 @@ QString KFileItem::getStatusBarInfo() const
         return QString();
     }
 
+    auto toDisplayUrl = [this](const QUrl &url) {
+        QString dest;
+        if (url.isLocalFile()) {
+            dest = KShell::tildeCollapse(url.toLocalFile());
+        } else {
+            dest = targetUrl().toDisplayString();
+        }
+        return dest;
+    };
+
     QString text = d->m_strText;
     const QString comment = mimeComment();
 
     if (d->m_bLink) {
         text += QLatin1Char(' ');
+        QString linkText = toDisplayUrl(QUrl::fromUserInput(linkDest()));
         if (comment.isEmpty()) {
-            text += i18n("(Symbolic Link to %1)", linkDest());
+            text += i18n("(Symbolic Link to %1)", linkText);
         } else {
-            text += i18n("(%1, Link to %2)", comment, linkDest());
+            text += i18n("(%1, Link to %2)", comment, linkText);
         }
     } else if (targetUrl() != url()) {
-        text += i18n(" (Points to %1)", targetUrl().toDisplayString());
-    } else if ((d->m_fileMode & QT_STAT_MASK) == QT_STAT_REG) {
+        text += i18n(" (Points to %1)", toDisplayUrl(targetUrl()));
+    } else if (Utils::isRegFileMask(d->m_fileMode)) {
         text += QStringLiteral(" (%1, %2)").arg(comment, KIO::convertSize(size()));
     } else {
         text += QStringLiteral(" (%1)").arg(comment);
@@ -1472,21 +1482,14 @@ void KFileItem::assign(const KFileItem &item)
 QUrl KFileItem::mostLocalUrl(bool *local) const
 {
     if (!d) {
-        return QUrl();
+        return {};
     }
 
-    const QString local_path = localPath();
-    if (!local_path.isEmpty()) {
-        if (local) {
-            *local = true;
-        }
-        return QUrl::fromLocalFile(local_path);
-    } else {
-        if (local) {
-            *local = d->m_bIsLocalUrl;
-        }
-        return d->m_url;
+    const auto [url, isLocal] = isMostLocalUrl();
+    if (local) {
+        *local = isLocal;
     }
+    return url;
 }
 
 KFileItem::MostLocalUrlResult KFileItem::isMostLocalUrl() const
@@ -1766,7 +1769,7 @@ bool KFileItem::isRegularFile() const
 
     d->ensureInitialized();
 
-    return (d->m_fileMode & QT_STAT_MASK) == QT_STAT_REG;
+    return Utils::isRegFileMask(d->m_fileMode);
 }
 
 QDebug operator<<(QDebug stream, const KFileItem &item)

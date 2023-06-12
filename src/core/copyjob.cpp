@@ -9,7 +9,7 @@
 */
 
 #include "copyjob.h"
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 #include "deletejob.h"
 #include "filecopyjob.h"
 #include "global.h"
@@ -28,7 +28,6 @@
 #include <KLocalizedString>
 
 #include "kprotocolmanager.h"
-#include "scheduler.h"
 #include "slave.h"
 #include <KDirWatch>
 
@@ -115,7 +114,7 @@ enum CopyJobState {
 static QUrl addPathToUrl(const QUrl &url, const QString &relPath)
 {
     QUrl u(url);
-    u.setPath(concatPaths(url.path(), relPath));
+    u.setPath(Utils::concatPaths(url.path(), relPath));
     return u;
 }
 
@@ -310,6 +309,7 @@ public:
     QUrl m_currentDestURL;
 
     std::set<QString> m_parentDirs;
+    bool m_ignoreSourcePermissions = false;
 
     void statCurrentSrc();
     void statNextSrc();
@@ -354,7 +354,7 @@ public:
     void slotResultSettingDirAttributes(KJob *job);
     void setNextDirAttribute();
 
-    void startRenameJob(const QUrl &slave_url);
+    void startRenameJob(const QUrl &workerUrl);
     bool shouldOverwriteDir(const QString &path) const;
     bool shouldOverwriteFile(const QString &path) const;
     bool shouldSkip(const QString &path) const;
@@ -448,10 +448,7 @@ void CopyJobPrivate::slotStart()
     if (m_mode == CopyJob::CopyMode::Move) {
         for (const QUrl &url : std::as_const(m_srcList)) {
             if (m_dest.scheme() == url.scheme() && m_dest.host() == url.host()) {
-                QString srcPath = url.path();
-                if (!srcPath.endsWith(QLatin1Char('/'))) {
-                    srcPath += QLatin1Char('/');
-                }
+                const QString srcPath = Utils::slashAppended(url.path());
                 if (m_dest.path().startsWith(srcPath)) {
                     q->setError(KIO::ERR_CANNOT_MOVE_INTO_ITSELF);
                     q->emitResult();
@@ -488,7 +485,7 @@ void CopyJobPrivate::slotStart()
     // Stat the dest
     state = STATE_STATING;
     const QUrl dest = m_asMethod ? m_dest.adjusted(QUrl::RemoveFilename) : m_dest;
-    // We need isDir() and UDS_LOCAL_PATH (for slaves who set it). Let's assume the latter is part of StatBasic too.
+    // We need isDir() and UDS_LOCAL_PATH (for workers who set it). Let's assume the latter is part of StatBasic too.
     KIO::Job *job = KIO::statDetails(dest, StatJob::DestinationSide, KIO::StatBasic | KIO::StatResolveSymlink, KIO::HideProgressInfo);
     qCDebug(KIO_COPYJOB_DEBUG) << "CopyJob: stating the dest" << dest;
     q->addSubjob(job);
@@ -533,7 +530,8 @@ void CopyJobPrivate::slotResultStating(KJob *job)
     }
 
     // Keep copy of the stat result
-    const UDSEntry entry = static_cast<StatJob *>(job)->statResult();
+    auto statJob = static_cast<StatJob *>(job);
+    const UDSEntry entry = statJob->statResult();
 
     if (destinationState == DEST_NOT_STATED) {
         const bool isGlobalDest = m_dest == m_globalDest;
@@ -546,7 +544,7 @@ void CopyJobPrivate::slotResultStating(KJob *job)
             const bool isDir = entry.isDir();
 
             // Check for writability, before spending time stat'ing everything (#141564).
-            // This assumes all kioslaves set permissions correctly...
+            // This assumes all KIO workers set permissions correctly...
             const int permissions = entry.numberValue(KIO::UDSEntry::UDS_ACCESS, -1);
             const bool isWritable = (permissions != -1) && (permissions & S_IWUSR);
             if (!m_privilegeExecutionEnabled && !isWritable) {
@@ -566,7 +564,7 @@ void CopyJobPrivate::slotResultStating(KJob *job)
             }
 
             const QString sLocalPath = entry.stringValue(KIO::UDSEntry::UDS_LOCAL_PATH);
-            if (!sLocalPath.isEmpty() && kio_resolve_local_urls) {
+            if (!sLocalPath.isEmpty() && kio_resolve_local_urls && statJob->url().scheme() != QStringLiteral("trash")) {
                 const QString fileName = m_dest.fileName();
                 m_dest = QUrl::fromLocalFile(sLocalPath);
                 if (m_asMethod) {
@@ -608,7 +606,7 @@ void CopyJobPrivate::slotResultStating(KJob *job)
 
 void CopyJobPrivate::sourceStated(const UDSEntry &entry, const QUrl &sourceUrl)
 {
-    const QString sLocalPath = entry.stringValue(KIO::UDSEntry::UDS_LOCAL_PATH);
+    const QString sLocalPath = sourceUrl.scheme() != QStringLiteral("trash") ? entry.stringValue(KIO::UDSEntry::UDS_LOCAL_PATH) : QString();
     const bool isDir = entry.isDir();
 
     // We were stating the current source URL
@@ -817,9 +815,9 @@ void CopyJobPrivate::addCopyInfoFromUDSEntry(const UDSEntry &entry, const QUrl &
     info.permissions = entry.numberValue(KIO::UDSEntry::UDS_ACCESS, -1);
     const auto timeVal = entry.numberValue(KIO::UDSEntry::UDS_MODIFICATION_TIME, -1);
     if (timeVal != -1) {
-        info.mtime = QDateTime::fromMSecsSinceEpoch(1000 * timeVal, Qt::UTC);
+        info.mtime = QDateTime::fromSecsSinceEpoch(timeVal, Qt::UTC);
     }
-    info.ctime = QDateTime::fromMSecsSinceEpoch(1000 * entry.numberValue(KIO::UDSEntry::UDS_CREATION_TIME, -1), Qt::UTC);
+    info.ctime = QDateTime::fromSecsSinceEpoch(entry.numberValue(KIO::UDSEntry::UDS_CREATION_TIME, -1), Qt::UTC);
     info.size = static_cast<KIO::filesize_t>(entry.numberValue(KIO::UDSEntry::UDS_SIZE, -1));
     const bool isDir = entry.isDir();
 
@@ -834,7 +832,7 @@ void CopyJobPrivate::addCopyInfoFromUDSEntry(const UDSEntry &entry, const QUrl &
     if (!urlStr.isEmpty()) {
         url = QUrl(urlStr);
     }
-    QString localPath = entry.stringValue(KIO::UDSEntry::UDS_LOCAL_PATH);
+    QString localPath = srcUrl.scheme() != QStringLiteral("trash") ? entry.stringValue(KIO::UDSEntry::UDS_LOCAL_PATH) : QString();
     info.linkDest = entry.stringValue(KIO::UDSEntry::UDS_LINK_DEST);
 
     if (fileName != QLatin1String("..") && fileName != QLatin1String(".")) {
@@ -871,7 +869,7 @@ void CopyJobPrivate::addCopyInfoFromUDSEntry(const UDSEntry &entry, const QUrl &
                 for (int n = 0; n < numberOfSlashes + 1; ++n) {
                     pos = path.lastIndexOf(QLatin1Char('/'), pos - 1);
                     if (pos == -1) { // error
-                        qCWarning(KIO_CORE) << "kioslave bug: not enough slashes in UDS_URL" << path << "- looking for" << numberOfSlashes << "slashes";
+                        qCWarning(KIO_CORE) << "KIO worker bug: not enough slashes in UDS_URL" << path << "- looking for" << numberOfSlashes << "slashes";
                         break;
                     }
                 }
@@ -952,6 +950,8 @@ void CopyJobPrivate::statCurrentSrc()
     if (m_currentStatSrc != m_srcList.constEnd()) {
         m_currentSrcURL = (*m_currentStatSrc);
         m_bURLDirty = true;
+        m_ignoreSourcePermissions = !KProtocolManager::supportsListing(m_currentSrcURL) || m_currentSrcURL.scheme() == QLatin1String("trash");
+
         if (m_mode == CopyJob::Link) {
             // Skip the "stating the source" stage, we don't need it for linking
             m_currentDest = m_dest;
@@ -988,9 +988,10 @@ void CopyJobPrivate::statCurrentSrc()
         const KFileItem cachedItem = KCoreDirLister::cachedItemForUrl(m_currentSrcURL);
         if (!cachedItem.isNull()) {
             entry = cachedItem.entry();
-            if (destinationState != DEST_DOESNT_EXIST) { // only resolve src if we could resolve dest (#218719)
-                bool dummyIsLocal;
-                m_currentSrcURL = cachedItem.mostLocalUrl(&dummyIsLocal); // #183585
+            if (destinationState != DEST_DOESNT_EXIST
+                && m_currentSrcURL.scheme() != QStringLiteral("trash")) { // only resolve src if we could resolve dest (#218719)
+
+                m_currentSrcURL = cachedItem.mostLocalUrl(); // #183585
             }
         }
 
@@ -1029,7 +1030,10 @@ void CopyJobPrivate::statCurrentSrc()
         if (entry.contains(KIO::UDSEntry::UDS_NAME)) {
             qCDebug(KIO_COPYJOB_DEBUG) << "fast path! found info about" << m_currentSrcURL << "in KCoreDirLister";
             // sourceStated(entry, m_currentSrcURL); // don't recurse, see #319747, use queued invokeMethod instead
-            QMetaObject::invokeMethod(q, "sourceStated", Qt::QueuedConnection, Q_ARG(KIO::UDSEntry, entry), Q_ARG(QUrl, m_currentSrcURL));
+            auto srcStatedFunc = [this, entry]() {
+                sourceStated(entry, m_currentSrcURL);
+            };
+            QMetaObject::invokeMethod(q, srcStatedFunc, Qt::QueuedConnection);
             return;
         }
 
@@ -1071,7 +1075,7 @@ void CopyJobPrivate::statCurrentSrc()
     }
 }
 
-void CopyJobPrivate::startRenameJob(const QUrl &slave_url)
+void CopyJobPrivate::startRenameJob(const QUrl &workerUrl)
 {
     Q_Q(CopyJob);
 
@@ -1108,7 +1112,7 @@ void CopyJobPrivate::startRenameJob(const QUrl &slave_url)
 #endif
 
     KIO_ARGS << m_currentSrcURL << dest << (qint8) false /*no overwrite*/;
-    SimpleJob *newJob = SimpleJobPrivate::newJobNoUi(slave_url, CMD_RENAME, packedArgs);
+    SimpleJob *newJob = SimpleJobPrivate::newJobNoUi(workerUrl, CMD_RENAME, packedArgs);
     newJob->setParentJob(q);
     q->addSubjob(newJob);
     if (m_currentSrcURL.adjusted(QUrl::RemoveFilename) != dest.adjusted(QUrl::RemoveFilename)) { // For the user, moving isn't renaming. Only renaming is.
@@ -1177,18 +1181,13 @@ void CopyJobPrivate::renameDirectory(const QList<CopyInfo>::iterator &it, const 
     Q_Q(CopyJob);
     Q_EMIT q->renamed(q, (*it).uDest, newUrl); // for e.g. KPropertiesDialog
 
-    QString oldPath = (*it).uDest.path();
-    if (!oldPath.endsWith(QLatin1Char('/'))) {
-        oldPath += QLatin1Char('/');
-    }
+    const QString oldPath = Utils::slashAppended((*it).uDest.path());
 
     // Change the current one and strip the trailing '/'
     (*it).uDest = newUrl.adjusted(QUrl::StripTrailingSlash);
 
-    QString newPath = newUrl.path(); // With trailing slash
-    if (!newPath.endsWith(QLatin1Char('/'))) {
-        newPath += QLatin1Char('/');
-    }
+    const QString newPath = Utils::slashAppended(newUrl.path()); // With trailing slash
+
     QList<CopyInfo>::Iterator renamedirit = it;
     ++renamedirit;
     // Change the name of subdirectories inside the directory
@@ -1240,10 +1239,7 @@ void CopyJobPrivate::slotResultCreatingDirs(KJob *job)
             // Should we skip automatically ?
             if (m_bAutoSkipDirs) {
                 // We don't want to copy files in this directory, so we put it on the skip list
-                QString path = oldURL.path();
-                if (!path.endsWith(QLatin1Char('/'))) {
-                    path += QLatin1Char('/');
-                }
+                const QString path = Utils::slashAppended(oldURL.path());
                 m_skipList.append(path);
                 skip(oldURL, true);
                 dirs.erase(it); // Move on to next dir
@@ -1259,7 +1255,7 @@ void CopyJobPrivate::slotResultCreatingDirs(KJob *job)
                         const QUrl destDirectory = (*it).uDest.adjusted(QUrl::RemoveFilename | QUrl::StripTrailingSlash);
                         const QString newName = KFileUtils::suggestName(destDirectory, (*it).uDest.fileName());
                         QUrl newUrl(destDirectory);
-                        newUrl.setPath(concatPaths(newUrl.path(), newName));
+                        newUrl.setPath(Utils::concatPaths(newUrl.path(), newName));
                         renameDirectory(it, newUrl);
                     } else {
                         if (!KIO::delegateExtension<AskUserActionInterface *>(q)) {
@@ -1329,8 +1325,8 @@ void CopyJobPrivate::slotResultConflictCreatingDirs(KJob *job)
             options |= RenameDialog_OverwriteItself;
         } else {
             options |= RenameDialog_Overwrite;
-            destmtime = QDateTime::fromMSecsSinceEpoch(1000 * entry.numberValue(KIO::UDSEntry::UDS_MODIFICATION_TIME, -1), Qt::UTC);
-            destctime = QDateTime::fromMSecsSinceEpoch(1000 * entry.numberValue(KIO::UDSEntry::UDS_CREATION_TIME, -1), Qt::UTC);
+            destmtime = QDateTime::fromSecsSinceEpoch(entry.numberValue(KIO::UDSEntry::UDS_MODIFICATION_TIME, -1), Qt::UTC);
+            destctime = QDateTime::fromSecsSinceEpoch(entry.numberValue(KIO::UDSEntry::UDS_CREATION_TIME, -1), Qt::UTC);
         }
     }
 
@@ -1561,7 +1557,7 @@ void CopyJobPrivate::slotResultCopyingFiles(KJob *job)
                     QUrl destDirectory = (*it).uDest.adjusted(QUrl::RemoveFilename | QUrl::StripTrailingSlash);
                     const QString newName = KFileUtils::suggestName(destDirectory, (*it).uDest.fileName());
                     QUrl newDest(destDirectory);
-                    newDest.setPath(concatPaths(newDest.path(), newName));
+                    newDest.setPath(Utils::concatPaths(newDest.path(), newName));
                     Q_EMIT q->renamed(q, (*it).uDest, newDest); // for e.g. kpropsdlg
                     (*it).uDest = newDest;
 
@@ -1712,8 +1708,8 @@ void CopyJobPrivate::slotResultErrorCopyingFiles(KJob *job)
                     }
                 } else {
                     // These timestamps are used only when RenameDialog_Overwrite is set.
-                    destmtime = QDateTime::fromMSecsSinceEpoch(1000 * destMTimeStamp, Qt::UTC);
-                    destctime = QDateTime::fromMSecsSinceEpoch(1000 * entry.numberValue(KIO::UDSEntry::UDS_CREATION_TIME, -1), Qt::UTC);
+                    destmtime = QDateTime::fromSecsSinceEpoch(destMTimeStamp, Qt::UTC);
+                    destctime = QDateTime::fromSecsSinceEpoch(entry.numberValue(KIO::UDSEntry::UDS_CREATION_TIME, -1), Qt::UTC);
 
                     options = RenameDialog_Overwrite;
                 }
@@ -1727,7 +1723,7 @@ void CopyJobPrivate::slotResultErrorCopyingFiles(KJob *job)
                 options = RenameDialog_Options(options | RenameDialog_MultipleItems | RenameDialog_Skip);
             }
 
-            const QString caption = !isDir ? i18n("File Already Exists") : i18n("Already Exists as Folder");
+            const QString title = !isDir ? i18n("File Already Exists") : i18n("Already Exists as Folder");
 
             auto renameSignal = &KIO::AskUserActionInterface::askUserRenameResult;
             QObject::connect(askUserActionInterface, renameSignal, q, [=](RenameDialog_Result result, const QUrl &newUrl, KJob *parentJob) {
@@ -1738,7 +1734,7 @@ void CopyJobPrivate::slotResultErrorCopyingFiles(KJob *job)
             });
 
             /* clang-format off */
-            askUserActionInterface->askUserRename(q, caption,
+            askUserActionInterface->askUserRename(q, title,
                                                   (*it).uSource, (*it).uDest,
                                                   options,
                                                   (*it).size, destsize,
@@ -2083,9 +2079,8 @@ void CopyJobPrivate::processCopyNextFile(const QList<CopyInfo>::Iterator &it, in
 
     // If source isn't local and target is local, we ignore the original permissions
     // Otherwise, files downloaded from HTTP end up with -r--r--r--
-    const bool remoteSource = !KProtocolManager::supportsListing(uSource) || uSource.scheme() == QLatin1String("trash");
     int permissions = (*it).permissions;
-    if (m_defaultPermissions || (remoteSource && uDest.isLocalFile())) {
+    if (m_defaultPermissions || (m_ignoreSourcePermissions && uDest.isLocalFile())) {
         permissions = -1;
     }
     const JobFlags flags = bOverwrite ? Overwrite : DefaultFlags;
@@ -2335,7 +2330,7 @@ void CopyJobPrivate::slotResultRenaming(KJob *job)
                 const QString newName = KFileUtils::suggestName(destDirectory, m_currentDestURL.fileName());
 
                 m_dest = destDirectory;
-                m_dest.setPath(concatPaths(m_dest.path(), newName));
+                m_dest.setPath(Utils::concatPaths(m_dest.path(), newName));
                 Q_EMIT q->renamed(q, dest, m_dest);
                 KIO::Job *job = KIO::statDetails(m_dest, StatJob::DestinationSide, KIO::StatDefaultDetails, KIO::HideProgressInfo);
                 state = STATE_STATING;
@@ -2418,10 +2413,10 @@ void CopyJobPrivate::slotResultRenaming(KJob *job)
                         processDirectRenamingConflictResult(result, isDir, destIsDir, mtimeSrc, mtimeDest, dest, newUrl);
                     });
 
-                    const QString caption = err != ERR_DIR_ALREADY_EXIST ? i18n("File Already Exists") : i18n("Already Exists as Folder");
+                    const QString title = err != ERR_DIR_ALREADY_EXIST ? i18n("File Already Exists") : i18n("Already Exists as Folder");
 
                     /* clang-format off */
-                    askUserActionInterface->askUserRename(q, caption,
+                    askUserActionInterface->askUserRename(q, title,
                                                           m_currentSrcURL, dest,
                                                           options,
                                                           sizeSrc, sizeDest,

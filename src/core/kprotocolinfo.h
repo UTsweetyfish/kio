@@ -23,7 +23,7 @@
  * KDE supports. In addition you can find out lots of information
  * about a certain protocol. All of the functionality is provided by the static
  * methods.
- * The implementation scans the *.protocol files of all installed kioslaves to get
+ * The implementation scans the *.protocol files of all installed KIO workers to get
  * this information and stores the result into an internal cache.
  *
  * *.protocol files are installed in the "services" resource.
@@ -79,7 +79,7 @@ public:
      * @see outputType
      */
     enum Type {
-        T_STREAM, ///< stream of data (e.g. single file)
+        T_STREAM, ///< stream of data (e.g.\ single file)
         T_FILESYSTEM, ///< structured directory
         T_NONE, ///< no information about the type available
         T_ERROR, ///< used to signal an error
@@ -185,6 +185,7 @@ public:
      */
     static QString config(const QString &protocol);
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Returns the soft limit on the number of slaves for this protocol.
      * This limits the number of slaves used for a single operation, note
@@ -196,9 +197,13 @@ public:
      *
      * @param protocol the protocol to check
      * @return the maximum number of slaves, or 1 if unknown
+     *
+     * @deprecated Since 5.101, use maxWorkers(const QString &)
      */
-    static int maxSlaves(const QString &protocol);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use maxWorkers(const QString&)") int maxSlaves(const QString &protocol);
+#endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Returns the limit on the number of slaves for this protocol per host.
      *
@@ -209,8 +214,39 @@ public:
      * @return the maximum number of slaves, or 1 if unknown
      *
      * @since 4.4
+     * @deprecated Since 5.101, use maxWorkersPerHost(const QString &)
      */
-    static int maxSlavesPerHost(const QString &protocol);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use maxWorkersPerHost(const QString&)") int maxSlavesPerHost(const QString &protocol);
+#endif
+
+    /**
+     * Returns the soft limit on the number of KIO workers for this protocol.
+     * This limits the number of workers used for a single operation, note
+     * that multiple operations may result in a number of instances that
+     * exceeds this soft limit.
+     *
+     * This corresponds to the "maxInstances=" field in the protocol's worker metadata.
+     * The default is 1.
+     *
+     * @param protocol the protocol to check
+     * @return the maximum number of workers, or 1 if unknown
+     *
+     * @since 5.101
+     */
+    static int maxWorkers(const QString &protocol);
+
+    /**
+     * Returns the limit on the number of KIO workers for this protocol per host.
+     *
+     * This corresponds to the "maxInstancesPerHost=" field in the protocol's worker metadata.
+     * The default is 0 which means there is no per host limit.
+     *
+     * @param protocol the protocol to check
+     * @return the maximum number of workers, or 1 if unknown
+     *
+     * @since 5.101
+     */
+    static int maxWorkersPerHost(const QString &protocol);
 
     /**
      * Returns whether MIME types can be determined based on extension for this
@@ -276,17 +312,17 @@ public:
     static bool showFilePreview(const QString &protocol);
 
     /**
-     * Returns the list of capabilities provided by the kioslave implementing
+     * Returns the list of capabilities provided by the KIO worker implementing
      * this protocol.
      *
      * This corresponds to the "Capabilities=" field in the protocol description file.
      *
      * The capability names are not defined globally, they are up to each
-     * slave implementation. For example when adding support for a new
+     * worker implementation. For example when adding support for a new
      * special command for mounting, one would add the string "Mount" to the
      * capabilities list, and applications could check for that string
      * before sending a special() command that would otherwise do nothing
-     * on older kioslave implementations.
+     * on older KIO worker implementations.
      *
      * @param protocol the protocol to check
      * @return the list of capabilities.
@@ -294,7 +330,7 @@ public:
     static QStringList capabilities(const QString &protocol);
 
     /**
-     * Returns the list of archive MIME types handled by the kioslave implementing
+     * Returns the list of archive MIME types handled by the KIO worker implementing
      * this protocol.
      *
      * This corresponds to the "archiveMimetype=" field in the protocol description file.
@@ -305,6 +341,7 @@ public:
      */
     static QStringList archiveMimetypes(const QString &protocol);
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Returns the list of notification types the kioslave implementing this
      * protocol will produce on its own, making it unnecessary for job
@@ -315,8 +352,10 @@ public:
      * This corresponds to "slaveHandlesNotify=" in the protocol description file.
      *
      * @since 5.20
+     * @deprecated Since 5.101, no known users
      */
-    static QStringList slaveHandlesNotify(const QString &protocol);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "No known users") QStringList slaveHandlesNotify(const QString &protocol);
+#endif
 
     /**
      * Returns the name of the protocol through which the request

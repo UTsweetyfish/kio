@@ -19,7 +19,7 @@ class QUrl;
 /**
  * @class KNameAndUrlInputDialog knameandurlinputdialog.h <KNameAndUrlInputDialog>
  *
- * Dialog to ask for a name (e.g. filename) and a URL
+ * Dialog to ask for a name (e.g.\ filename) and a URL
  * Basically a merge of KLineEditDlg and KUrlRequesterDlg ;)
  * @since 4.5
  * @author David Faure <faure@kde.org>
@@ -66,9 +66,6 @@ public:
     QString urlText() const;
 
 private:
-    Q_PRIVATE_SLOT(d, void _k_slotNameTextChanged(const QString &))
-    Q_PRIVATE_SLOT(d, void _k_slotURLTextChanged(const QString &))
-
     std::unique_ptr<KNameAndUrlInputDialogPrivate> const d;
 };
 

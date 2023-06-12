@@ -4,12 +4,15 @@ Name=Baidu
 Name[ar]=بايدو
 Name[ast]=Baidu
 Name[az]=Baidu
+Name[be]=Baidu
+Name[be@latin]=Baidu
 Name[bg]=Търсене в Baidu
 Name[bn]=বাইডু
 Name[bs]=Bajdu
 Name[ca]=Baidu
 Name[ca@valencia]=Baidu
 Name[cs]=Baidu
+Name[cy]=Baidu
 Name[da]=Baidu
 Name[de]=Baidu
 Name[el]=Baidu
@@ -31,8 +34,10 @@ Name[hr]=Baidu
 Name[hu]=Baidu
 Name[ia]=Baidu
 Name[id]=Baidu
+Name[ie]=Baidu
 Name[is]=Baidu
 Name[it]=Baidu
+Name[ka]=Baidu
 Name[kk]=Baidu
 Name[km]=Baidu
 Name[kn]=ಬೈಡು
@@ -47,7 +52,7 @@ Name[nb]=Baidu
 Name[nds]=Baidu
 Name[nl]=Baidu
 Name[nn]=Baidu
-Name[pa]=ਬਿਦੂ
+Name[pa]=ਬਾਇਡੂ
 Name[pl]=Baidu
 Name[pt]=Baidu
 Name[pt_BR]=Baidu
@@ -63,6 +68,7 @@ Name[sr@latin]=Baidu
 Name[sv]=Baidu
 Name[tg]=Baidu
 Name[th]=Baidu
+Name[tok]=ilo alasa Baidu
 Name[tr]=Baidu
 Name[ug]=Baidu
 Name[uk]=Baidu
@@ -74,15 +80,20 @@ Name[zh_TW]=百度
 Keys=baidu
 Query=https://www.baidu.com/s?wd=\\{@}
 Query[ar]=https://www.baidu.com/s?wd=\\{@}
-Query[ast]=https://www.baidu.com/s?wd=\\{@}
 Query[az]=https://www.baidu.com/s?wd=\\{@}
+Query[be]=https://www.baidu.com/s?wd=\\{@}
+Query[be@latin]=https://www.baidu.com/s?wd=\\{@}
+Query[bg]=https://www.baidu.com/s?wd=\\{@}
+Query[bs]=https://www.baidu.com/s?wd=\\{@}
 Query[ca]=https://www.baidu.com/s?wd=\\{@}
 Query[ca@valencia]=https://www.baidu.com/s?wd=\\{@}
 Query[cs]=https://www.baidu.com/s?wd=\\{@}
+Query[cy]=https://www.baidu.com/s?wd=\\{@}
 Query[da]=https://www.baidu.com/s?wd=\\{@}
 Query[de]=https://www.baidu.com/s?wd=\\{@}
 Query[el]=https://www.baidu.com/s?wd=\\{@}
 Query[en_GB]=https://www.baidu.com/s?wd=\\{@}
+Query[eo]=https://www.baidu.com/s?wd=\\{@}
 Query[es]=https://www.baidu.com/s?wd=\\{@}
 Query[et]=https://www.baidu.com/s?wd=\\{@}
 Query[eu]=https://www.baidu.com/s?wd=\\{@}
@@ -92,13 +103,16 @@ Query[gl]=https://www.baidu.com/s?wd=\\{@}
 Query[hu]=https://www.baidu.com/s?wd=\\{@}
 Query[ia]=https://www.baidu.com/s?wd=\\{@}
 Query[id]=https://www.baidu.com/s?wd=\\{@}
+Query[ie]=https://www.baidu.com/s?wd=\\{@}
 Query[is]=https://www.baidu.com/s?wd=\\{@}
 Query[it]=https://www.baidu.com/s?wd=\\{@}
+Query[ka]=https://www.baidu.com/s?wd=\\{@}
 Query[ko]=https://www.baidu.com/s?wd=\\{@}
 Query[lt]=https://www.baidu.com/s?wd=\\{@}
 Query[my]=https://www.baidu.com/s?wd=\\{@}
 Query[nl]=https://www.baidu.com/s?wd=\\{@}
 Query[nn]=https://www.baidu.com/s?wd=\\{@}
+Query[pa]=https://www.baidu.com/s?wd=\\{@}
 Query[pl]=https://www.baidu.com/s?wd=\\{@}
 Query[pt]=https://www.baidu.com/s?wd=\\{@}
 Query[pt_BR]=https://www.baidu.com/s?wd=\\{@}
@@ -108,6 +122,8 @@ Query[sk]=https://www.baidu.com/s?wd=\\{@}
 Query[sl]=https://www.baidu.com/s?wd=\\{@}
 Query[sv]=https://www.baidu.com/s?wd=\\{@}
 Query[tg]=https://www.baidu.com/s?wd=\\{@}
+Query[tok]=https://www.baidu.com/s?wd=\\{@}
+Query[tr]=https://www.baidu.com/s?wd=\\{@}
 Query[uk]=https://www.baidu.com/s?wd=\\{@}
 Query[vi]=https://www.baidu.com/s?wd=\\{@}
 Query[x-test]=xxhttps://www.baidu.com/s?wd=\\{@}xx

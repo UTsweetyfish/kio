@@ -1,6 +1,7 @@
 /*
     This file is part of the KDE libraries
     SPDX-FileCopyrightText: 2020 David Faure <faure@kde.org>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 */
@@ -21,6 +22,7 @@
 #include <KConfigGroup>
 #include <KDesktopFile>
 #include <KLocalizedString>
+#include <KSandbox>
 #include <KUrlAuthorized>
 #include <QFileInfo>
 
@@ -31,6 +33,9 @@
 #include <QMimeDatabase>
 #include <QOperatingSystemVersion>
 #include <mimetypefinderjob.h>
+
+// For unit test purposes, to test both code paths in externalBrowser()
+KIOGUI_EXPORT bool openurljob_force_use_browserapp_kdeglobals = false;
 
 class KIO::OpenUrlJobPrivate
 {
@@ -132,11 +137,6 @@ void KIO::OpenUrlJob::setFollowRedirections(bool b)
     d->m_followRedirections = b;
 }
 
-static bool checkNeedPortalSupport()
-{
-    return !(QStandardPaths::locate(QStandardPaths::RuntimeLocation, QLatin1String("flatpak-info")).isEmpty() || qEnvironmentVariableIsSet("SNAP"));
-}
-
 void KIO::OpenUrlJob::start()
 {
     if (!d->m_url.isValid() || d->m_url.scheme().isEmpty()) {
@@ -150,15 +150,28 @@ void KIO::OpenUrlJob::start()
         d->emitAccessDenied();
         return;
     }
-    if (d->m_externalBrowserEnabled && checkNeedPortalSupport()) {
-        // Use the function from QDesktopServices as it handles portals correctly
-        // Note that it falls back to "normal way" if the portal service isn't running.
+
+    auto qtOpenUrl = [this]() {
         if (!QDesktopServices::openUrl(d->m_url)) {
             // Is this an actual error, or USER_CANCELED?
             setError(KJob::UserDefinedError);
             setErrorText(i18n("Failed to open %1", d->m_url.toDisplayString()));
         }
         emitResult();
+    };
+
+#if defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+    if (d->m_externalBrowserEnabled) {
+        // For Windows and MacOS, the mimetypes handling is different, so use QDesktopServices
+        qtOpenUrl();
+        return;
+    }
+#endif
+
+    if (d->m_externalBrowserEnabled && KSandbox::isInside()) {
+        // Use the function from QDesktopServices as it handles portals correctly
+        // Note that it falls back to "normal way" if the portal service isn't running.
+        qtOpenUrl();
         return;
     }
 
@@ -211,13 +224,16 @@ QString KIO::OpenUrlJobPrivate::externalBrowser() const
         return QString();
     }
 
-    KService::Ptr externalBrowser = KApplicationTrader::preferredService(QStringLiteral("x-scheme-handler/https"));
-    if (!externalBrowser) {
-        externalBrowser = KApplicationTrader::preferredService(QStringLiteral("x-scheme-handler/http"));
+    if (!openurljob_force_use_browserapp_kdeglobals) {
+        KService::Ptr externalBrowser = KApplicationTrader::preferredService(QStringLiteral("x-scheme-handler/https"));
+        if (!externalBrowser) {
+            externalBrowser = KApplicationTrader::preferredService(QStringLiteral("x-scheme-handler/http"));
+        }
+        if (externalBrowser) {
+            return externalBrowser->storageId();
+        }
     }
-    if (externalBrowser) {
-        return externalBrowser->storageId();
-    }
+
     const QString browserApp = KConfigGroup(KSharedConfig::openConfig(), "General").readEntry("BrowserApplication");
     return browserApp;
 }

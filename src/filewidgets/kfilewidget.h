@@ -67,13 +67,15 @@ public:
      *             to start in the directory last used by a filedialog in the same
      *             application that specified the same keyword, and to initially
      *             select the specified filename.
-     *         @li A URL of the form @c kfiledialog:///&lt;keyword&gt;?global to start
+     *         @li Deprecated: A URL of the form @c kfiledialog:///&lt;keyword&gt;?global to start
      *             in the directory last used by a filedialog in any application that
      *             specified the same keyword.
-     *         @li A URL of the form @c kfiledialog:///&lt;keyword&gt;/&lt;filename&gt;?global
+     *         @li Deprecated: A URL of the form @c kfiledialog:///&lt;keyword&gt;/&lt;filename&gt;?global
      *             to start in the directory last used by a filedialog in any
      *             application that specified the same keyword, and to initially
      *             select the specified filename.
+     *
+     * @note Since 5.96, the "?global" syntax is deprecated, for lack of usage.
      *
      * @param parent The parent widget of this widget
      *
@@ -384,11 +386,15 @@ public:
      */
     KFileFilterCombo *filterWidget() const;
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 100)
     /**
      * @returns a pointer to the action collection, holding all the used
      * KActions.
+     * @deprecated since 5.100, no known users.
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 100, "No known users")
     KActionCollection *actionCollection() const;
+#endif
 
     /**
      * This method implements the logic to determine the user's default directory
@@ -440,7 +446,7 @@ public:
      * Set a custom widget that should be added to the file dialog.
      * @param widget A widget, or a widget of widgets, for displaying custom
      *               data in the file widget. This can be used, for example, to
-     *               display a check box with the caption "Open as read-only".
+     *               display a check box with the title "Open as read-only".
      *               When creating this widget, you don't need to specify a parent,
      *               since the widget's parent will be set automatically by KFileWidget.
      */
@@ -560,7 +566,7 @@ Q_SIGNALS:
     void selectionChanged();
 
     /**
-     * Emitted when the filter changed, i.e. the user entered an own filter
+     * Emitted when the filter changed, i.e.\ the user entered an own filter
      * or chose one of the predefined set via setFilter().
      *
      * @param filter contains the new filter (only the extension part,

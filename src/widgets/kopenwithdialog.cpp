@@ -15,6 +15,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QDialogButtonBox>
+#include <QIcon>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLayout>
@@ -30,6 +31,7 @@
 #include <KCollapsibleGroupBox>
 #include <KDesktopFile>
 #include <KHistoryComboBox>
+#include <KIO/CommandLauncherJob>
 #include <KLineEdit>
 #include <KLocalizedString>
 #include <KMessageBox>
@@ -390,12 +392,9 @@ bool QTreeViewProxyFilter::filterAcceptsRow(int sourceRow, const QModelIndex &pa
         return false;
     }
 
-    // Match the regexp only on leaf nodes
-    if (!sourceModel()->hasChildren(index) && index.data().toString().contains(filterRegExp())) {
-        return true;
-    }
-
-    return false;
+    // Match only on leaf nodes, using plain text, not regex
+    return !sourceModel()->hasChildren(index) //
+        && index.data().toString().contains(filterRegularExpression().pattern(), Qt::CaseInsensitive);
 }
 
 class KApplicationViewPrivate
@@ -527,8 +526,9 @@ public:
     bool checkAccept();
 
     // slots
-    void _k_slotDbClick();
-    void _k_slotFileSelected();
+    void slotDbClick();
+    void slotFileSelected();
+    void discoverButtonClicked();
 
     bool saveNewApps;
     bool m_terminaldirty;
@@ -678,7 +678,7 @@ void KOpenWithDialogPrivate::init(const QString &_text, const QString &_value)
         combo->setLineEdit(lineEdit);
         combo->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
         combo->setDuplicatesEnabled(false);
-        KConfigGroup cg(KSharedConfig::openConfig(), QStringLiteral("Open-with settings"));
+        KConfigGroup cg(KSharedConfig::openStateConfig(), QStringLiteral("Open-with settings"));
         int max = cg.readEntry("Maximum history", 15);
         combo->setMaxCount(max);
         int mode = cg.readEntry("CompletionMode", int(KCompletion::CompletionNone));
@@ -717,7 +717,7 @@ void KOpenWithDialogPrivate::init(const QString &_text, const QString &_value)
 
     QObject::connect(edit, &KUrlRequester::textChanged, q, &KOpenWithDialog::slotTextChanged);
     QObject::connect(edit, &KUrlRequester::urlSelected, q, [this]() {
-        _k_slotFileSelected();
+        slotFileSelected();
     });
 
     view = new KApplicationView(q);
@@ -725,7 +725,6 @@ void KOpenWithDialogPrivate::init(const QString &_text, const QString &_value)
     KApplicationModel *appModel = new KApplicationModel(proxyModel);
     proxyModel->setSourceModel(appModel);
     proxyModel->setFilterKeyColumn(0);
-    proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
     proxyModel->setRecursiveFilteringEnabled(true);
     view->setModels(appModel, proxyModel);
     topLayout->addWidget(view);
@@ -734,12 +733,16 @@ void KOpenWithDialogPrivate::init(const QString &_text, const QString &_value)
     QObject::connect(view, &KApplicationView::selected, q, &KOpenWithDialog::slotSelected);
     QObject::connect(view, &KApplicationView::highlighted, q, &KOpenWithDialog::slotHighlighted);
     QObject::connect(view, &KApplicationView::doubleClicked, q, [this]() {
-        _k_slotDbClick();
+        slotDbClick();
     });
 
     if (!qMimeType.isNull()) {
-        remember = new QCheckBox(i18n("&Remember application association for all files of type\n\"%1\" (%2)", qMimeTypeComment, qMimeType));
-        //    remember->setChecked(true);
+        if (!qMimeTypeComment.isEmpty()) {
+            remember = new QCheckBox(i18n("&Remember application association for all files of type\n\"%1\" (%2)", qMimeTypeComment, qMimeType));
+        } else {
+            remember = new QCheckBox(i18n("&Remember application association for all files of type\n\"%1\"", qMimeType));
+        }
+
         topLayout->addWidget(remember);
     } else {
         remember = nullptr;
@@ -788,6 +791,14 @@ void KOpenWithDialogPrivate::init(const QString &_text, const QString &_value)
 
     topLayout->addWidget(dialogExtension);
 
+    if (!qMimeType.isNull() && KService::serviceByDesktopName(QStringLiteral("org.kde.discover"))) {
+        QPushButton *discoverButton = new QPushButton(QIcon::fromTheme(QStringLiteral("plasmadiscover")), i18n("Get more Apps from Discover"));
+        QObject::connect(discoverButton, &QPushButton::clicked, q, [this]() {
+            discoverButtonClicked();
+        });
+        topLayout->addWidget(discoverButton);
+    }
+
     buttonBox = new QDialogButtonBox(q);
     buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     q->connect(buttonBox, &QDialogButtonBox::accepted, q, &QDialog::accept);
@@ -801,6 +812,13 @@ void KOpenWithDialogPrivate::init(const QString &_text, const QString &_value)
     q->resize(q->minimumWidth(), 0.6 * q->screen()->availableGeometry().height());
     edit->setFocus();
     q->slotTextChanged();
+}
+
+void KOpenWithDialogPrivate::discoverButtonClicked()
+{
+    KIO::CommandLauncherJob *job = new KIO::CommandLauncherJob(QStringLiteral("plasma-discover"), {QStringLiteral("--mime"), qMimeType});
+    job->setDesktopName(QStringLiteral("org.kde.discover"));
+    job->start();
 }
 
 // ----------------------------------------------------------------------
@@ -843,8 +861,9 @@ void KOpenWithDialog::slotTextChanged()
     }
     d->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(!d->edit->text().isEmpty() || d->curService);
 
-    // Update the filter regexp with the new text in the lineedit
-    d->view->proxyModel()->setFilterFixedString(d->edit->text());
+    // escape() because we want plain text matching; the matching is case-insensitive,
+    // see QTreeViewProxyFilter::filterAcceptsRow()
+    d->view->proxyModel()->setFilterRegularExpression(QRegularExpression::escape(d->edit->text()));
 
     // Expand all the nodes when the search string is 3 characters long
     // If the search string doesn't match anything there will be no nodes to expand
@@ -877,7 +896,7 @@ void KOpenWithDialog::slotTerminalToggled(bool)
 
 // ----------------------------------------------------------------------
 
-void KOpenWithDialogPrivate::_k_slotDbClick()
+void KOpenWithDialogPrivate::slotDbClick()
 {
     // check if a directory is selected
     if (view->isDirSel()) {
@@ -886,7 +905,7 @@ void KOpenWithDialogPrivate::_k_slotDbClick()
     q->accept();
 }
 
-void KOpenWithDialogPrivate::_k_slotFileSelected()
+void KOpenWithDialogPrivate::slotFileSelected()
 {
     // quote the path to avoid unescaped whitespace, backslashes, etc.
     edit->setText(KShell::quoteArg(edit->text()));
@@ -900,12 +919,12 @@ void KOpenWithDialog::setSaveNewApplications(bool b)
 static QString simplifiedExecLineFromService(const QString &fullExec)
 {
     QString exec = fullExec;
-    exec.remove(QStringLiteral("%u"), Qt::CaseInsensitive);
-    exec.remove(QStringLiteral("%f"), Qt::CaseInsensitive);
-    exec.remove(QStringLiteral("-caption %c"));
-    exec.remove(QStringLiteral("-caption \"%c\""));
-    exec.remove(QStringLiteral("%i"));
-    exec.remove(QStringLiteral("%m"));
+    exec.remove(QLatin1String("%u"), Qt::CaseInsensitive);
+    exec.remove(QLatin1String("%f"), Qt::CaseInsensitive);
+    exec.remove(QLatin1String("-caption %c"));
+    exec.remove(QLatin1String("-caption \"%c\""));
+    exec.remove(QLatin1String("%i"));
+    exec.remove(QLatin1String("%m"));
     return exec.simplified();
 }
 
@@ -1011,12 +1030,11 @@ bool KOpenWithDialogPrivate::checkAccept()
             // QStandardPaths::findExecutable does not find non-executable files.
             // Give a better error message for the case of a existing but non-executable file.
             // https://bugs.kde.org/show_bug.cgi?id=437880
-            if (QFileInfo::exists(binaryName)) {
-                KMessageBox::error(q, xi18nc("@info", "<filename>%1</filename> does not appear to be an executable program.", binaryName));
-            } else {
-                KMessageBox::error(q, xi18nc("@info", "<filename>%1</filename> was not found; please enter a valid path to an executable program.", binaryName));
-            }
+            const QString msg = QFileInfo::exists(binaryName)
+                ? xi18nc("@info", "<filename>%1</filename> does not appear to be an executable program.", binaryName)
+                : xi18nc("@info", "<filename>%1</filename> was not found; please enter a valid path to an executable program.", binaryName);
 
+            KMessageBox::error(q, msg);
             return false;
         }
     }
@@ -1085,7 +1103,19 @@ bool KOpenWithDialogPrivate::checkAccept()
             KDesktopFile desktopFile(newPath);
             KConfigGroup cg = desktopFile.desktopGroup();
             cg.writeEntry("Type", "Application");
-            cg.writeEntry("Name", initialServiceName);
+
+            // For the user visible name, use the executable name with any
+            // arguments appended, but with desktop-file specific expansion
+            // arguments removed. This is done to more clearly communicate the
+            // actual command used to the user and makes it easier to
+            // distinguish things like "qdbus".
+            QString name = KIO::DesktopExecParser::executableName(fullExec);
+            auto view = QStringView{fullExec}.trimmed();
+            int index = view.indexOf(QLatin1Char(' '));
+            if (index > 0) {
+                name.append(view.mid(index));
+            }
+            cg.writeEntry("Name", simplifiedExecLineFromService(name));
 
             // if we select a binary for a scheme handler, then it's safe to assume it can handle URLs
             if (qMimeType.startsWith(QLatin1String("x-scheme-handler/"))) {
@@ -1184,7 +1214,7 @@ void KOpenWithDialogPrivate::saveComboboxHistory()
     if (combo) {
         combo->addToHistory(edit->text());
 
-        KConfigGroup cg(KSharedConfig::openConfig(), QStringLiteral("Open-with settings"));
+        KConfigGroup cg(KSharedConfig::openStateConfig(), QStringLiteral("Open-with settings"));
         cg.writeEntry("History", combo->historyItems());
         writeEntry(cg, "CompletionMode", combo->completionMode());
         // don't store the completion-list, as it contains all of KUrlCompletion's

@@ -42,7 +42,7 @@ public:
         StoredTransferJob *job = new StoredTransferJob(*new StoredTransferJobPrivate(url, command, packedArgs, staticData));
         job->setUiDelegate(KIO::createDefaultJobUiDelegate());
         if (!(flags & HideProgressInfo)) {
-            JobPrivate::setTransient(job);
+            job->setFinishedNotificationHidden();
             KIO::getJobTracker()->registerJob(job);
         }
         if (!(flags & NoPrivilegeExecution)) {
@@ -57,7 +57,7 @@ public:
         StoredTransferJob *job = new StoredTransferJob(*new StoredTransferJobPrivate(url, command, packedArgs, ioDevice));
         job->setUiDelegate(KIO::createDefaultJobUiDelegate());
         if (!(flags & HideProgressInfo)) {
-            JobPrivate::setTransient(job);
+            job->setFinishedNotificationHidden();
             KIO::getJobTracker()->registerJob(job);
         }
         if (!(flags & NoPrivilegeExecution)) {
@@ -342,7 +342,9 @@ TransferJob *KIO::http_post(const QUrl &url, const QByteArray &postData, JobFlag
     job = TransferJobPrivate::newJob(_url, CMD_SPECIAL, packedArgs, postData, flags);
 
     if (redirection) {
-        QTimer::singleShot(0, job, SLOT(slotPostRedirection()));
+        QTimer::singleShot(0, job, [job]() {
+            Q_EMIT job->redirection(job, job->url());
+        });
     }
 
     return job;
@@ -374,7 +376,9 @@ TransferJob *KIO::http_post(const QUrl &url, QIODevice *ioDevice, qint64 size, J
     job = TransferJobPrivate::newJob(_url, CMD_SPECIAL, packedArgs, ioDevice, flags);
 
     if (redirection) {
-        QTimer::singleShot(0, job, SLOT(slotPostRedirection()));
+        QTimer::singleShot(0, job, [job]() {
+            Q_EMIT job->redirection(job, job->url());
+        });
     }
 
     return job;
@@ -433,7 +437,7 @@ StoredTransferJob *KIO::storedHttpPost(QIODevice *ioDevice, const QUrl &url, qin
 
 // http post got redirected from http://host to http://host/ by TransferJob
 // We must do this redirection ourselves because redirections by the
-// slave change post jobs into get jobs.
+// worker change post jobs into get jobs.
 void TransferJobPrivate::slotPostRedirection()
 {
     Q_Q(TransferJob);

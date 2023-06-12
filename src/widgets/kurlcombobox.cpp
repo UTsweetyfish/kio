@@ -7,7 +7,7 @@
 
 #include "kurlcombobox.h"
 
-#include "../pathhelpers_p.h" // isAbsoluteLocalPath()
+#include "../utils_p.h"
 
 #include <QApplication>
 #include <QDir>
@@ -21,7 +21,6 @@
 #include <kio/global.h>
 
 #include <algorithm>
-#include <memory>
 #include <vector>
 
 class KUrlComboBoxPrivate
@@ -51,7 +50,7 @@ public:
     QIcon getIcon(const QUrl &url) const;
     void updateItem(const KUrlComboItem *item, int index, const QIcon &icon);
 
-    void _k_slotActivated(int);
+    void slotActivated(int);
 
     KUrlComboBox *const m_parent;
     QIcon dirIcon;
@@ -76,9 +75,7 @@ QString KUrlComboBoxPrivate::textForItem(const KUrlComboItem *item) const
     QUrl url = item->url;
 
     if (myMode == KUrlComboBox::Directories) {
-        if (!url.path().isEmpty() && !url.path().endsWith(QLatin1Char('/'))) {
-            url.setPath(url.path() + QLatin1Char('/'));
-        }
+        Utils::appendSlashToPath(url);
     } else {
         url = url.adjusted(QUrl::StripTrailingSlash);
     }
@@ -121,7 +118,7 @@ void KUrlComboBoxPrivate::init(KUrlComboBox::Mode mode)
     opendirIcon = QIcon::fromTheme(QStringLiteral("folder-open"));
 
     m_parent->connect(m_parent, qOverload<int>(&KUrlComboBox::activated), m_parent, [this](int index) {
-        _k_slotActivated(index);
+        slotActivated(index);
     });
 }
 
@@ -133,7 +130,7 @@ QStringList KUrlComboBox::urls() const
     for (int i = static_cast<int>(d->defaultList.size()); i < count(); i++) {
         url = itemText(i);
         if (!url.isEmpty()) {
-            if (isAbsoluteLocalPath(url)) {
+            if (Utils::isAbsoluteLocalPath(url)) {
                 list.append(QUrl::fromLocalFile(url).toString());
             } else {
                 list.append(url);
@@ -215,7 +212,7 @@ void KUrlComboBox::setUrls(const QStringList &_urls, OverLoadResolving remove)
             continue;
         }
         QUrl u;
-        if (isAbsoluteLocalPath(*it)) {
+        if (Utils::isAbsoluteLocalPath(*it)) {
             u = QUrl::fromLocalFile(*it);
         } else {
             u.setUrl(*it);
@@ -296,7 +293,7 @@ void KUrlComboBox::setUrl(const QUrl &url)
     blockSignals(blocked);
 }
 
-void KUrlComboBoxPrivate::_k_slotActivated(int index)
+void KUrlComboBoxPrivate::slotActivated(int index)
 {
     auto item = itemMapper.value(index);
 

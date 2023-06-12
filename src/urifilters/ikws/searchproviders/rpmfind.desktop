@@ -4,15 +4,14 @@ Name=RPM-Find
 Name[af]=RPM-Vind
 Name[ar]=بحث حزم RPM
 Name[as]=RPM-Find
-Name[ast]=RPM-Find
 Name[az]=RPM-Find
 Name[be]=Пошук RPM
-Name[be@latin]=Pošuk pakunka „RPM”
+Name[be@latin]=Pošuk RPM
 Name[bg]=Търсене на пакети RPM
 Name[bn]=RPM-Find
 Name[bn_IN]=RPM-Find
 Name[br]=RPM-Find
-Name[bs]=RPM‑traženje
+Name[bs]=RPM-Pronađite
 Name[ca]=RPM-Find
 Name[ca@valencia]=RPM-Find
 Name[cs]=RPM-Find
@@ -22,7 +21,7 @@ Name[da]=RPM-Find
 Name[de]=RPM-Suche
 Name[el]=RPM-Αναζήτηση
 Name[en_GB]=RPM-Find
-Name[eo]=RPM-trovilo
+Name[eo]=RPM-Trovilo
 Name[es]=RPM-Find
 Name[et]=RPM-Find
 Name[eu]=RPM bilatzailea
@@ -42,8 +41,10 @@ Name[hsb]=RPM-Find
 Name[hu]=RPM-Find
 Name[ia]=RPM-Find
 Name[id]=RPM-Find
+Name[ie]=RPM-Find
 Name[is]=RPM-leit
 Name[it]=Ricerca di RPM
+Name[ka]=RPM-Find
 Name[kk]=RPM-ды табу
 Name[km]=រក RPM
 Name[kn]=RPM-ಹುಡುಕಾಟ
@@ -67,7 +68,7 @@ Name[pa]=RPM-Find
 Name[pl]=Rpmfind - wyszukiwarka pakietów RPM
 Name[pt]=RPM-Find
 Name[pt_BR]=RPM-Find
-Name[ro]=Căutare pachete RPM
+Name[ro]=RPM-Find
 Name[ru]=Поиск RPM
 Name[se]=RPM-Find
 Name[si]=RPM-සෙවුම
@@ -81,6 +82,7 @@ Name[sv]=RPM-Find
 Name[te]=RPM-Find
 Name[tg]=Ёфтани RPM
 Name[th]=บริการค้นหา RPM
+Name[tok]=ilo alasa pi poki RPM
 Name[tr]=RPM-Find
 Name[ug]=RPM-Find
 Name[uk]=RPM-Find
@@ -95,15 +97,20 @@ Name[zh_TW]=RPM-Find
 Keys=rf,rpmfind
 Query=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[ar]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
-Query[ast]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[az]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[be]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[be@latin]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[bg]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[bs]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[ca]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[ca@valencia]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[cs]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[cy]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[da]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[de]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[el]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[en_GB]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[eo]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[es]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[et]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[eu]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
@@ -113,21 +120,27 @@ Query[gl]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[hu]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[ia]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[id]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[ie]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[is]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[it]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[ka]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[ko]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[lt]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[my]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[nl]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[nn]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[pa]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[pl]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[pt]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[pt_BR]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[ro]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[ru]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[sk]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[sl]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[sv]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[tg]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[tok]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
+Query[tr]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[uk]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[vi]=https://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}
 Query[x-test]=xxhttps://www.rpmfind.net/linux/rpm2html/search.php?query=\\{@}xx

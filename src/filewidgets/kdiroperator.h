@@ -80,7 +80,7 @@ class KDirOperatorPrivate;
  *
  *   KConfigGroup grp(KSharedConfig::openConfig(),"Your KDiroperator ConfigGroup" );
  *   op->readConfig( &grp);
- *   op->setView(KFile::Default);
+ *   op->setViewMode(KFile::Default);
  * \endcode
  *
  * This will create a childwidget of 'this' showing the directory contents
@@ -105,6 +105,122 @@ public:
         NavActions = 4,
         FileActions = 8,
         AllActions = 15,
+    };
+
+    /**
+     * Actions provided by KDirOperator that can be accessed from the outside using action()
+     */
+    enum Action {
+        /**
+         * An ActionMenu presenting a popupmenu with all actions
+         */
+        PopupMenu,
+        /**
+         * Changes to the parent directory
+         */
+        Up,
+        /**
+         * Goes back to the previous directory
+         */
+        Back,
+        /**
+         * Goes forward in the history
+         */
+        Forward,
+        /**
+         * Changes to the user's home directory
+         */
+        Home,
+        /**
+         * Reloads the current directory
+         */
+        Reload,
+        /*
+         * A KNewFileMenu
+         */
+        New,
+        /**
+         * Opens a dialog box to create a directory
+         */
+        NewFolder,
+        Rename,
+        Trash,
+        /**
+         * Deletes the selected files/directories
+         */
+        Delete,
+        /**
+         * An ActionMenu containing all sort-options
+         */
+        SortMenu,
+        /**
+         * Sorts by name
+         */
+        SortByName,
+        /**
+         * Sorts by size
+         */
+        SortBySize,
+        /**
+         * Sorts by date
+         */
+        SortByDate,
+        /**
+         * Sorts by type
+         */
+        SortByType,
+        /**
+         * Changes sort order to ascending
+         */
+        SortAscending,
+        /**
+         * Changes sort order to descending
+         */
+        SortDescending,
+        /**
+         * Sorts folders before files
+         */
+        SortFoldersFirst,
+        /**
+         * Sorts hidden files last
+         */
+        SortHiddenFilesLast,
+        /**
+         *  an ActionMenu containing all actions concerning the view
+         */
+        ViewModeMenu,
+        ViewIconsView,
+        ViewCompactView,
+        ViewDetailsView,
+        DecorationMenu,
+        DecorationAtTop,
+        DecorationAtLeft,
+        /**
+         * Shows a simple fileview
+         */
+        ShortView,
+        /**
+         * Shows a detailed fileview (dates, permissions ,...)
+         */
+        DetailedView,
+
+        TreeView,
+        DetailedTreeView,
+        AllowExpansionInDetailsView,
+        /**
+         * shows hidden files
+         */
+        ShowHiddenFiles,
+        /**
+         * shows a preview next to the fileview
+         */
+        ShowPreviewPanel,
+        ShowPreview,
+        OpenContainingFolder,
+        /**
+         * Shows a KPropertiesDialog for the selected files
+         */
+        Properties,
     };
 
     /**
@@ -256,14 +372,20 @@ public:
      */
     void setCurrentItems(const KFileItemList &items);
 
+    // Not _ENABLED_ because this is a virtual method
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
     /**
      * Sets a new view to be used for showing and browsing files.
      * Note: this will read the current url() to fill the view.
      *
      * @see KFileTreeView
      * @see view
+     *
+     * @deprecated since 5.100, no known users.
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 100, "No known users.")
     virtual void setView(QAbstractItemView *view);
+#endif
 
     /**
      * @returns the currently used view.
@@ -271,11 +393,24 @@ public:
      */
     QAbstractItemView *view() const;
 
+    // Not _ENABLED_ because this is a virtual method
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
     /**
      * Sets one of the predefined fileviews.
      * @see KFile::FileView
+     * @deprecated Since 5.100, use setViewMode(KFile::FileView).
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION_BELATED(5, 103, 5, 100, "Use setViewMode(KFile::FileView)")
     virtual void setView(KFile::FileView viewKind);
+#endif
+
+    /**
+     * Set the view mode to one of the predefined modes.
+     * @see KFile::FileView
+     *
+     * @since 5.100
+     */
+    void setViewMode(KFile::FileView viewKind);
 
     /**
      * Returns the current view mode.
@@ -378,6 +513,7 @@ public:
      */
     KCompletion *dirCompletionObject() const;
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 100)
     /**
      * an accessor to a collection of all available Actions. The actions
      * are static, they will be there all the time (no need to connect to
@@ -418,8 +554,36 @@ public:
      * its parent directory.
      *
      * @returns all available Actions
+     *
+     * @deprecated since 5.100, use action() or allActions() instead.
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 100, "Use action() or allActions() instead")
     KActionCollection *actionCollection() const;
+#endif
+
+    /**
+     * Obtain a given action from the KDirOperator's set of actions.
+     *
+     * You can e.g. use
+     * \code
+     * dirOperator->action(KDirOperator::Up)->plug(someToolBar);
+     * \endcode
+     * to add a button into a toolbar, which makes the dirOperator change to
+     * its parent directory.
+     *
+     *  @since 5.100
+     */
+    QAction *action(KDirOperator::Action action) const;
+
+    /**
+     * A list of all actions for this KDirOperator.
+     *
+     * See action()
+     *
+     * @since 5.100
+     *
+     */
+    QList<QAction *> allActions() const;
 
     /**
      * Sets the config object and the to be used group in KDirOperator. This
@@ -447,11 +611,11 @@ public:
     KConfigGroup *viewConfigGroup() const;
 
     /**
-     * Reads the default settings for a view, i.e. the default KFile::FileView.
+     * Reads the default settings for a view, i.e.\ the default KFile::FileView.
      * Also reads the sorting and whether hidden files should be shown.
      * Note: the default view will not be set - you have to call
      * \code
-     * setView( KFile::Default )
+     * setViewMode( KFile::Default )
      * \endcode
      * to apply it.
      *
@@ -824,6 +988,7 @@ public Q_SLOTS:
     /**
      * Initiates a rename operation on the currently selected files/directories,
      * prompting the user to choose a new name(s) for the currently selected items
+     * @see renamingFinished
      * @since 5.67
      */
     void renameSelected();
@@ -991,7 +1156,16 @@ Q_SIGNALS:
      */
     void keyEnterReturnPressed();
 
+    /**
+     * Emitted when renaming selected files has finished.
+     *
+     * @param urls URL list of the renamed files
+     * @since 5.96
+     */
+    void renamingFinished(const QList<QUrl> &urls);
+
 private:
+    void setViewInternal(QAbstractItemView *view);
     friend class KDirOperatorPrivate;
     std::unique_ptr<KDirOperatorPrivate> d;
 };

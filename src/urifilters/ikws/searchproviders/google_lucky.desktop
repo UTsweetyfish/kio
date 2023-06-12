@@ -6,21 +6,20 @@ Name[ar]=جوجل (باستخدام ميزة ضربة حظ)
 Name[as]=Google (I'm Feeling Lucky)
 Name[az]=Google Mən Xöşbəxtəm
 Name[be]=Google (Мне пашанцуе)
-Name[be@latin]=Google („Mnie pašancuje”)
 Name[bg]=Google ("Чувствам се късметлия")
 Name[bn]=গুগল্ (ভাগ্যবান মনে করছি)
 Name[bn_IN]=Google (I'm Feeling Lucky)
-Name[bs]=Google (Osjećam se sretnim)
+Name[bs]=Gugl (Iz prve ruke)
 Name[ca]=Google (Avui tinc sort!)
 Name[ca@valencia]=Google (Hui tinc sort!)
 Name[cs]=Google (Zkusím štěstí)
 Name[csb]=Google - "Szczestlëwé trafienié"
-Name[cy]=Google(Dwi'n Teimlo'n Lwcus)
+Name[cy]=Google (Dwi'n Teimlo'n Lwcus)
 Name[da]=Google (Jeg føler mig heldig)
 Name[de]=Google („Auf gut Glück!“)
 Name[el]=Google (Αισθάνομαι τυχερός)
 Name[en_GB]=Google (I'm Feeling Lucky)
-Name[eo]=Google (mi bonŝancas)
+Name[eo]=Guglo (Mi Sentas Bonŝanca)
 Name[es]=Google (Voy a tener suerte)
 Name[et]=Google (Ehk veab)
 Name[eu]=Google-ren 'Baietz lehenengoan'
@@ -40,8 +39,10 @@ Name[hsb]=Google (I'm Feeling Lucky)
 Name[hu]=Google (Jó napom van)
 Name[ia]=Google (Io sente me fortunate)
 Name[id]=Google (Saya Lagi Beruntung)
-Name[is]=Google (Ég er heppin(n) í dag)
+Name[ie]=Google (I'm Feeling Lucky)
+Name[is]=Google (freista gæfunnar)
 Name[it]=Google (mi sento fortunato)
+Name[ka]=Google (გავრისკავ)
 Name[kk]=Google (Сәтті сынап көрелік)
 Name[km]=ហ្គូហ្គល (ខ្ញុំ​មាន​អារម្មណ៍​ថា​សំណាង)
 Name[kn]=ಗೂಗಲ್ (ಅದೃಷ್ಟ ಚೆನ್ನಾಗಿದ್ದಂತಿದೆ)
@@ -80,6 +81,7 @@ Name[ta]=கூகுள் (அதிர்ஷ்டம் என் பக்�
 Name[te]=Google (నెరుగా వెబ్ లొ ప్రవేశించు)
 Name[tg]=Google (Корам барор мегирад!)
 Name[th]=กูเกิล (ดีใจจัง ค้นแล้วเจอเลย)
+Name[tok]=ilo Google (pilin musi)
 Name[tr]=Google
 Name[ug]=Google (يا بايدىن يا سايرامدىن)
 Name[uk]=Google (Я — везунчик)
@@ -94,13 +96,15 @@ Name[zh_TW]=Google (好手氣)
 Keys=ggl,gglucky
 Query=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[ar]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
-Query[ast]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[az]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
+Query[be]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
+Query[be@latin]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[bg]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[bs]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[ca]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[ca@valencia]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[cs]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
+Query[cy]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[da]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[de]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[el]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
@@ -117,8 +121,10 @@ Query[hi]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-
 Query[hu]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[ia]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[id]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
+Query[ie]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[is]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[it]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
+Query[ka]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[kk]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[ko]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[lt]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
@@ -143,6 +149,7 @@ Query[sr@latin]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&i
 Query[sv]=https://www.google.se/search?q=\\{@}&btnI=Jag+har+tur&ie=UTF-8&oe=UTF-8
 Query[ta]=https://www.google.com/search?hl=ta&q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[tg]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
+Query[tok]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[tr]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[ug]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8
 Query[uk]=https://www.google.com/search?q=\\{@}&btnI=I%27m+Feeling+Lucky&ie=UTF-8&oe=UTF-8

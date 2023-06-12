@@ -6,6 +6,7 @@
     SPDX-FileCopyrightText: 2000 David Faure <faure@kde.org>
     SPDX-FileCopyrightText: 2003 Waldo Bastian <bastian@kde.org>
     SPDX-FileCopyrightText: 2021 Ahmad Samir <a.samirh78@gmail.com>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
@@ -30,11 +31,61 @@
  */
 
 #include "kpropertiesdialog.h"
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 #include "kio_widgets_debug.h"
 #include "kpropertiesdialog_p.h"
 
 #include <config-kiowidgets.h>
+
+#include <kacl.h>
+#include <kbuildsycocaprogressdialog.h>
+#include <kdirnotify.h>
+#include <kfileitemlistproperties.h>
+#include <kio/chmodjob.h>
+#include <kio/copyjob.h>
+#include <kio/desktopexecparser.h>
+#include <kio/directorysizejob.h>
+#include <kio/global.h>
+#include <kio/jobuidelegate.h>
+#include <kio/renamedialog.h>
+#include <kio/statjob.h>
+#include <kioglobal_p.h>
+#include <kmountpoint.h>
+#include <kprotocolinfo.h>
+#include <kprotocolmanager.h>
+#include <kurlrequester.h>
+
+#include <KApplicationTrader>
+#include <KAuthorized>
+#include <KCapacityBar>
+#include <KColorScheme>
+#include <KCompletion>
+#include <KConfigGroup>
+#include <KDesktopFile>
+#include <KDialogJobUiDelegate>
+#include <KIO/ApplicationLauncherJob>
+#include <KIO/FileSystemFreeSpaceJob>
+#include <KIO/OpenFileManagerWindowJob>
+#include <KIconButton>
+#include <KJobUiDelegate>
+#include <KJobWidgets>
+#include <KLazyLocalizedString>
+#include <KLineEdit>
+#include <KLocalizedString>
+#include <KMessageBox>
+#include <KMessageWidget>
+#include <KMimeTypeChooser>
+#include <KMimeTypeEditor>
+#include <KMimeTypeTrader>
+#include <KPluginFactory>
+#include <KPluginMetaData>
+#include <KSeparator>
+#include <KService>
+#include <KSharedConfig>
+#include <KShell>
+#include <KSqueezedTextLabel>
+#include <KSycoca>
+#include <KWindowConfig>
 
 #include <qplatformdefs.h>
 
@@ -78,53 +129,6 @@ extern "C" {
 #endif
 }
 
-#include <KApplicationTrader>
-#include <KAuthorized>
-#include <KCapacityBar>
-#include <KColorScheme>
-#include <KCompletion>
-#include <KConfigGroup>
-#include <KDesktopFile>
-#include <KDialogJobUiDelegate>
-#include <KIO/ApplicationLauncherJob>
-#include <KIO/FileSystemFreeSpaceJob>
-#include <KIO/OpenFileManagerWindowJob>
-#include <KIconButton>
-#include <KJobUiDelegate>
-#include <KJobWidgets>
-#include <KLazyLocalizedString>
-#include <KLineEdit>
-#include <KLocalizedString>
-#include <KMessageBox>
-#include <KMessageWidget>
-#include <KMimeTypeChooser>
-#include <KMimeTypeEditor>
-#include <KMimeTypeTrader>
-#include <KPluginMetaData>
-#include <KSeparator>
-#include <KService>
-#include <KSharedConfig>
-#include <KShell>
-#include <KSqueezedTextLabel>
-#include <KSycoca>
-#include <KWindowConfig>
-#include <kacl.h>
-#include <kbuildsycocaprogressdialog.h>
-#include <kdirnotify.h>
-#include <kfileitemlistproperties.h>
-#include <kio/chmodjob.h>
-#include <kio/copyjob.h>
-#include <kio/desktopexecparser.h>
-#include <kio/directorysizejob.h>
-#include <kio/global.h>
-#include <kio/job.h>
-#include <kio/jobuidelegate.h>
-#include <kio/renamedialog.h>
-#include <kioglobal_p.h>
-#include <kmountpoint.h>
-#include <kprotocolinfo.h>
-#include <kurlrequester.h>
-
 #include "ui_checksumswidget.h"
 #include "ui_kfilepropspluginwidget.h"
 #include "ui_kpropertiesdesktopadvbase.h"
@@ -133,6 +137,7 @@ extern "C" {
 #include <algorithm>
 #include <cerrno>
 #include <functional>
+#include <vector>
 
 #if HAVE_POSIX_ACL
 #include "kacleditwidget.h"
@@ -146,8 +151,6 @@ extern "C" {
 #warning TODO: port completely to win32
 #endif
 #endif
-
-#include <vector>
 
 using namespace KDEPrivate;
 
@@ -397,7 +400,7 @@ bool KPropertiesDialog::showDialog(const KFileItemList &_items, QWidget *parent,
 {
     if (_items.count() == 1) {
         const KFileItem &item = _items.first();
-        if (item.entry().count() == 0 && item.localPath().isEmpty()) // this remote item wasn't listed by a slave
+        if (item.entry().count() == 0 && item.localPath().isEmpty()) // this remote item wasn't listed by a worker
                                                                      // Let's stat to get more info on the file
         {
             return KPropertiesDialog::showDialog(item.url(), parent, modal);
@@ -654,14 +657,33 @@ void KPropertiesDialogPrivate::insertPages()
         return;
     }
 
+    const auto scheme = item.url().scheme();
     QString query =
         QStringLiteral("(((not exist [X-KDE-Protocol]) and (not exist [X-KDE-Protocols])) or ([X-KDE-Protocol] == '%1') or ('%1' in [X-KDE-Protocols]))")
-            .arg(item.url().scheme());
+            .arg(scheme);
 
     // qDebug() << "trader query: " << query;
 
     QStringList addedPlugins;
-    const auto jsonPlugins = KPluginMetaData::findPlugins(QStringLiteral("kf5/propertiesdialog"));
+    const auto filter = [mimetype, scheme](const KPluginMetaData &metaData) {
+        const auto supportedProtocol = metaData.value(QStringLiteral("X-KDE-Protocol"), QString());
+        if (!supportedProtocol.isEmpty() && supportedProtocol != scheme) {
+            return false;
+        }
+
+        const auto supportedProtocols = metaData.value(QStringLiteral("X-KDE-Protocols"), QStringList());
+        if (!supportedProtocols.isEmpty()) {
+            const auto none = std::none_of(supportedProtocols.cbegin(), supportedProtocols.cend(), [scheme](const auto &protocol) {
+                return !protocol.isEmpty() && protocol == scheme;
+            });
+            if (none) {
+                return false;
+            }
+        }
+
+        return metaData.mimeTypes().isEmpty() || metaData.supportsMimeType(mimetype);
+    };
+    const auto jsonPlugins = KPluginMetaData::findPlugins(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/propertiesdialog"), filter);
     for (const auto &jsonMetadata : jsonPlugins) {
         if (auto plugin = KPluginFactory::instantiatePlugin<KPropertiesDialogPlugin>(jsonMetadata, q).plugin) {
             q->insertPlugin(plugin);
@@ -720,13 +742,13 @@ void KPropertiesDialog::rename(const QString &_name)
     // if we're creating from a template : use currentdir
     if (!d->m_currentDir.isEmpty()) {
         newUrl = d->m_currentDir;
-        newUrl.setPath(concatPaths(newUrl.path(), _name));
+        newUrl.setPath(Utils::concatPaths(newUrl.path(), _name));
     } else {
         // It's a directory, so strip the trailing slash first
         newUrl = d->m_singleUrl.adjusted(QUrl::StripTrailingSlash);
         // Now change the filename
         newUrl = newUrl.adjusted(QUrl::RemoveFilename); // keep trailing slash
-        newUrl.setPath(concatPaths(newUrl.path(), _name));
+        newUrl.setPath(Utils::concatPaths(newUrl.path(), _name));
     }
     updateUrl(newUrl);
 }
@@ -855,9 +877,8 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
 
     // We set this data from the first item, and we'll
     // check that the other items match against it, resetting when not.
-    bool isLocal;
     const KFileItem firstItem = properties->item();
-    QUrl url = firstItem.mostLocalUrl(&isLocal);
+    auto [url, isLocal] = firstItem.isMostLocalUrl();
     bool isReallyLocal = firstItem.url().isLocalFile();
     bool bDesktopFile = firstItem.isDesktopFile();
     mode_t mode = firstItem.mode();
@@ -870,11 +891,13 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
     QString mimeComment = firstItem.mimeComment();
     d->mimeType = firstItem.mimetype();
     KIO::filesize_t totalSize = firstItem.size();
+    QString magicMimeName;
     QString magicMimeComment;
     QMimeDatabase db;
     if (isLocal) {
         QMimeType magicMimeType = db.mimeTypeForFile(url.toLocalFile(), QMimeDatabase::MatchContent);
         if (magicMimeType.isValid() && !magicMimeType.isDefault()) {
+            magicMimeName = magicMimeType.name();
             magicMimeComment = magicMimeType.comment();
         }
     }
@@ -904,7 +927,7 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
             // Extract the full name, but without file: for local files
             path = properties->url().toDisplayString(QUrl::PreferLocalFile);
         } else {
-            path = concatPaths(properties->currentDir().path(), properties->defaultName());
+            path = Utils::concatPaths(properties->currentDir().path(), properties->defaultName());
             directory = properties->currentDir().toDisplayString(QUrl::PreferLocalFile);
         }
 
@@ -961,6 +984,7 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
             if (isLocal && !magicMimeComment.isNull()) {
                 QMimeType magicMimeType = db.mimeTypeForFile(url.toLocalFile(), QMimeDatabase::MatchContent);
                 if (magicMimeType.isValid() && magicMimeType.comment() != magicMimeComment) {
+                    magicMimeName.clear();
                     magicMimeComment.clear();
                 }
             }
@@ -983,7 +1007,7 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
     }
 
     if (!isTrash //
-        && (bDesktopFile || ((mode & QT_STAT_MASK) == QT_STAT_DIR)) //
+        && (bDesktopFile || Utils::isDirMask(mode)) //
         && !d->bMultiple // not implemented for multiple
         && enableIconButton()) {
         d->m_ui->iconLabel->hide();
@@ -1062,6 +1086,7 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
 
     if (!magicMimeComment.isEmpty() && magicMimeComment != mimeComment) {
         d->m_ui->magicMimeCommentLabel->setText(magicMimeComment);
+        d->m_ui->magicMimeCommentLabel->setToolTip(magicMimeName);
     } else {
         d->m_ui->contentLabel->hide();
         d->m_ui->magicMimeCommentLabel->hide();
@@ -1176,6 +1201,9 @@ KFilePropsPlugin::KFilePropsPlugin(KPropertiesDialog *_props)
                 d->m_ui->fsLabel->setText(mp->mountType());
                 d->m_ui->mountPointLabel->setText(mp->mountPoint());
                 d->m_ui->mountSrcLabel->setText(mp->mountedFrom());
+            } else {
+                qCWarning(KIO_WIDGETS) << "Could not find mount point for" << url;
+                d->hideMountPointLabels();
             }
         } else {
             d->hideMountPointLabels();
@@ -1298,12 +1326,14 @@ void KFilePropsPlugin::nameFileChanged(const QString &text)
 
 static QString relativeAppsLocation(const QString &file)
 {
-    const QString canonical = QFileInfo(file).canonicalFilePath();
+    // Don't resolve symlinks, so that editing /usr/share/applications/foo.desktop that is
+    // a symlink works
+    const QString absolute = QFileInfo(file).absoluteFilePath();
     const QStringList dirs = QStandardPaths::standardLocations(QStandardPaths::ApplicationsLocation);
     for (const QString &base : dirs) {
         QDir base_dir = QDir(base);
-        if (base_dir.exists() && canonical.startsWith(base_dir.canonicalPath())) {
-            return canonical.mid(base.length() + 1);
+        if (base_dir.exists() && absolute.startsWith(base_dir.canonicalPath())) {
+            return absolute.mid(base.length() + 1);
         }
     }
     return QString(); // return empty if the file is not in apps
@@ -1394,7 +1424,7 @@ void KFilePropsPlugin::slotSizeStop()
 {
     if (d->dirSizeJob) {
         KIO::filesize_t totalSize = d->dirSizeJob->totalSize();
-        d->m_ui->sizeLabel->setText(i18n("At least %1", KIO::convertSize(totalSize)));
+        d->m_ui->sizeLabel->setText(i18n("At least %1\n", KIO::convertSize(totalSize)));
         d->dirSizeJob->kill();
         d->dirSizeJob = nullptr;
     }
@@ -1440,7 +1470,7 @@ void KFilePropsPlugin::applyChanges()
             n.chop(1);
         }
         if (n.isEmpty()) {
-            KMessageBox::sorry(properties, i18n("The new file name is empty."));
+            KMessageBox::error(properties, i18n("The new file name is empty."));
             properties->abortApplying();
             return;
         }
@@ -1518,7 +1548,7 @@ void KFilePropsPlugin::slotCopyFinished(KJob *job)
 
     if (d->bKDesktopMode && d->bDesktopFile) {
         // Renamed? Update Name field
-        // Note: The desktop ioslave does this as well, but not when
+        // Note: The desktop KIO worker does this as well, but not when
         //       the file is copied from a template.
         if (d->m_bFromTemplate) {
             KIO::StatJob *job = KIO::stat(properties->url());
@@ -1586,7 +1616,7 @@ void KFilePropsPlugin::applyIconChanges()
     if (url.isLocalFile()) {
         QString path;
 
-        if ((properties->item().mode() & QT_STAT_MASK) == QT_STAT_DIR) {
+        if (Utils::isDirMask(properties->item().mode())) {
             path = url.toLocalFile() + QLatin1String("/.directory");
             // don't call updateUrl because the other tabs (i.e. permissions)
             // apply to the directory, not the .directory file.
@@ -1618,7 +1648,7 @@ void KFilePropsPlugin::applyIconChanges()
             if (cfg.desktopGroup().readEntry("Icon") != sIcon) {
                 properties->abortApplying();
 
-                KMessageBox::sorry(nullptr, couldNotSaveMsg(path));
+                KMessageBox::error(nullptr, couldNotSaveMsg(path));
             }
         }
     }
@@ -1632,11 +1662,25 @@ void KFilePropsPlugin::updateDefaultHandler(const QString &mimeType)
     if (!isGeneric && service) {
         const int iconSize = properties->style()->pixelMetric(QStyle::PM_SmallIconSize);
         d->m_ui->defaultHandlerIcon->setPixmap(QIcon::fromTheme(service->icon()).pixmap(iconSize));
+        d->m_ui->defaultHandlerIcon->show();
         d->m_ui->defaultHandlerLabel->setText(service->name());
+        d->m_ui->defaultHandlerLabel->setDisabled(false);
     } else {
         d->m_ui->defaultHandlerIcon->hide();
-        d->m_ui->defaultHandlerLabel->setText(i18n("No associated application"));
+        if (isGeneric) {
+            d->m_ui->defaultHandlerLabel->setText(i18n("No registered file type"));
+        } else {
+            d->m_ui->defaultHandlerLabel->setText(i18n("No associated application"));
+        }
         d->m_ui->defaultHandlerLabel->setDisabled(true);
+    }
+
+    if (isGeneric) {
+        d->m_ui->configureMimeBtn->setText(i18nc("@action:button Create new file type", "Create…"));
+        d->m_ui->configureMimeBtn->setIcon(QIcon::fromTheme(QStringLiteral("document-new")));
+    } else {
+        d->m_ui->configureMimeBtn->setText(i18nc("@action:button", "Change…"));
+        d->m_ui->configureMimeBtn->setIcon(QIcon::fromTheme(QStringLiteral("configure")));
     }
 }
 
@@ -1720,7 +1764,7 @@ KFilePermissionsPropsPlugin::KFilePermissionsPropsPlugin(KPropertiesDialog *_pro
     : KPropertiesDialogPlugin(_props)
     , d(new KFilePermissionsPropsPluginPrivate)
 {
-    bool isLocal = properties->url().isLocalFile();
+    const auto &[localUrl, isLocal] = properties->item().isMostLocalUrl();
     bool isTrash = (properties->url().scheme() == QLatin1String("trash"));
     KUser myself(KUser::UseEffectiveUID);
     const bool IamRoot = myself.isSuperUser();
@@ -2286,16 +2330,18 @@ void KFilePermissionsPropsPlugin::slotShowAdvancedPermissions()
 
 KFilePermissionsPropsPlugin::~KFilePermissionsPropsPlugin() = default;
 
-bool KFilePermissionsPropsPlugin::supports(const KFileItemList & /*_items*/)
+bool KFilePermissionsPropsPlugin::supports(const KFileItemList &items)
 {
-    return true;
+    return std::any_of(items.cbegin(), items.cend(), [](const KFileItem &item) {
+        return KProtocolManager::supportsPermissions(item.url());
+    });
 }
 
 // sets a combo box in the Access Control frame
 void KFilePermissionsPropsPlugin::setComboContent(QComboBox *combo, PermissionsTarget target, mode_t permissions, mode_t partial)
 {
     combo->clear();
-    if (d->isIrregular) { //#176876
+    if (d->isIrregular) { // #176876
         return;
     }
 
@@ -3157,8 +3203,7 @@ bool KUrlPropsPlugin::supports(const KFileItemList &_items)
     }
 
     // open file and check type
-    bool isLocal;
-    QUrl url = item.mostLocalUrl(&isLocal);
+    const auto [url, isLocal] = item.isMostLocalUrl();
     if (!isLocal) {
         return false;
     }
@@ -3175,7 +3220,7 @@ void KUrlPropsPlugin::applyChanges()
     const QUrl url = job->mostLocalUrl();
 
     if (!url.isLocalFile()) {
-        KMessageBox::sorry(nullptr, i18n("Could not save properties. Only entries on local file systems are supported."));
+        KMessageBox::error(nullptr, i18n("Could not save properties. Only entries on local file systems are supported."));
         properties->abortApplying();
         return;
     }
@@ -3183,7 +3228,7 @@ void KUrlPropsPlugin::applyChanges()
     QString path = url.toLocalFile();
     QFile f(path);
     if (!f.open(QIODevice::ReadWrite)) {
-        KMessageBox::sorry(nullptr, couldNotSaveMsg(path));
+        KMessageBox::error(nullptr, couldNotSaveMsg(path));
         properties->abortApplying();
         return;
     }
@@ -3222,6 +3267,7 @@ public:
     {
         delete w;
     }
+    QString command() const;
     Ui_KPropertiesDesktopBase *w;
     QWidget *m_frame = nullptr;
     std::unique_ptr<Ui_KPropertiesDesktopAdvBase> m_uiAdvanced;
@@ -3229,8 +3275,6 @@ public:
     QString m_origCommandStr;
     QString m_terminalOptionStr;
     QString m_suidUserStr;
-    QString m_dbusStartupType;
-    QString m_dbusServiceName;
     QString m_origDesktopFile;
     bool m_terminalBool;
     bool m_suidBool;
@@ -3259,7 +3303,9 @@ KDesktopPropsPlugin::KDesktopPropsPlugin(KPropertiesDialog *_props)
     connect(d->w->nameEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
     connect(d->w->genNameEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
     connect(d->w->commentEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
-    connect(d->w->commandEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
+    connect(d->w->envarsEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
+    connect(d->w->programEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
+    connect(d->w->argumentsEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
     connect(d->w->pathEdit, &KUrlRequester::textChanged, this, &KPropertiesDialogPlugin::changed);
 
     connect(d->w->browseButton, &QAbstractButton::clicked, this, &KDesktopPropsPlugin::slotBrowseExec);
@@ -3332,10 +3378,6 @@ KDesktopPropsPlugin::KDesktopPropsPlugin(KPropertiesDialog *_props)
     } else {
         d->m_startupBool = config.readEntry("X-KDE-StartupNotify", true);
     }
-    d->m_dbusStartupType = config.readEntry("X-DBUS-StartupType").toLower();
-    // ### should there be a GUI for this setting?
-    // At least we're copying it over to the local file, to avoid side effects (#157853)
-    d->m_dbusServiceName = config.readEntry("X-DBUS-ServiceName");
 
     const QStringList mimeTypes = config.readXdgListEntry("MimeType");
 
@@ -3348,7 +3390,31 @@ KDesktopPropsPlugin::KDesktopPropsPlugin(KPropertiesDialog *_props)
     d->w->nameEdit->setText(nameStr);
     d->w->genNameEdit->setText(genNameStr);
     d->w->commentEdit->setText(commentStr);
-    d->w->commandEdit->setText(commandStr);
+
+    QStringList execLine = KShell::splitArgs(commandStr);
+    QStringList enVars = {};
+
+    if (!execLine.isEmpty()) {
+        // check for apps that use the env executable
+        // to set the environment
+        if (execLine[0] == QLatin1String("env")) {
+            execLine.pop_front();
+        }
+        for (auto env : execLine) {
+            if (!env.contains(QLatin1String("="))) {
+                break;
+            }
+            enVars += env;
+            execLine.pop_front();
+        }
+
+        d->w->programEdit->setText(execLine.takeFirst());
+    } else {
+        d->w->programEdit->clear();
+    }
+    d->w->argumentsEdit->setText(KShell::joinArgs(execLine));
+    d->w->envarsEdit->setText(KShell::joinArgs(enVars));
+
     d->w->pathEdit->lineEdit()->setText(pathStr);
 
     // was: d->w->filetypeList->setFullWidth(true);
@@ -3428,10 +3494,8 @@ void KDesktopPropsPlugin::slotDelFiletype()
 
 void KDesktopPropsPlugin::checkCommandChanged()
 {
-    if (KIO::DesktopExecParser::executableName(d->w->commandEdit->text()) != KIO::DesktopExecParser::executableName(d->m_origCommandStr)) {
-        d->m_origCommandStr = d->w->commandEdit->text();
-        d->m_dbusStartupType.clear(); // Reset
-        d->m_dbusServiceName.clear();
+    if (KIO::DesktopExecParser::executableName(d->command()) != KIO::DesktopExecParser::executableName(d->m_origCommandStr)) {
+        d->m_origCommandStr = d->command();
     }
 }
 
@@ -3444,7 +3508,7 @@ void KDesktopPropsPlugin::applyChanges()
     const QUrl url = job->mostLocalUrl();
 
     if (!url.isLocalFile()) {
-        KMessageBox::sorry(nullptr, i18n("Could not save properties. Only entries on local file systems are supported."));
+        KMessageBox::error(nullptr, i18n("Could not save properties. Only entries on local file systems are supported."));
         properties->abortApplying();
         return;
     }
@@ -3455,7 +3519,7 @@ void KDesktopPropsPlugin::applyChanges()
     QDir().mkpath(QFileInfo(path).absolutePath());
     QFile f(path);
     if (!f.open(QIODevice::ReadWrite)) {
-        KMessageBox::sorry(nullptr, couldNotSaveMsg(path));
+        KMessageBox::error(nullptr, couldNotSaveMsg(path));
         properties->abortApplying();
         return;
     }
@@ -3465,14 +3529,14 @@ void KDesktopPropsPlugin::applyChanges()
     checkCommandChanged();
 
     KDesktopFile origConfig(d->m_origDesktopFile);
-    QScopedPointer<KDesktopFile> _config(origConfig.copyTo(path));
+    std::unique_ptr<KDesktopFile> _config(origConfig.copyTo(path));
     KConfigGroup config = _config->desktopGroup();
     config.writeEntry("Type", QStringLiteral("Application"));
     config.writeEntry("Comment", d->w->commentEdit->text());
     config.writeEntry("Comment", d->w->commentEdit->text(), KConfigGroup::Persistent | KConfigGroup::Localized); // for compat
     config.writeEntry("GenericName", d->w->genNameEdit->text());
     config.writeEntry("GenericName", d->w->genNameEdit->text(), KConfigGroup::Persistent | KConfigGroup::Localized); // for compat
-    config.writeEntry("Exec", d->w->commandEdit->text());
+    config.writeEntry("Exec", d->command());
     config.writeEntry("Path", d->w->pathEdit->lineEdit()->text()); // not writePathEntry, see kservice.cpp
 
     // Write mimeTypes
@@ -3508,8 +3572,6 @@ void KDesktopPropsPlugin::applyChanges()
         }
     }
     config.writeEntry("StartupNotify", d->m_startupBool);
-    config.writeEntry("X-DBUS-StartupType", d->m_dbusStartupType);
-    config.writeEntry("X-DBUS-ServiceName", d->m_dbusServiceName);
     config.sync();
 
     // KSycoca update needed?
@@ -3529,13 +3591,13 @@ void KDesktopPropsPlugin::slotBrowseExec()
     }
 
     if (!f.isLocalFile()) {
-        KMessageBox::sorry(d->m_frame, i18n("Only executables on local file systems are supported."));
+        KMessageBox::information(d->m_frame, i18n("Only executables on local file systems are supported."));
         return;
     }
 
     QString path = f.toLocalFile();
     path = KShell::quoteArg(path);
-    d->w->commandEdit->setText(path);
+    d->w->programEdit->setText(path);
 }
 
 void KDesktopPropsPlugin::slotAdvanced()
@@ -3597,16 +3659,6 @@ void KDesktopPropsPlugin::slotAdvanced()
 
     d->m_uiAdvanced->startupInfoCheck->setChecked(d->m_startupBool);
 
-    if (d->m_dbusStartupType == QLatin1String("unique")) {
-        d->m_uiAdvanced->dbusCombo->setCurrentIndex(2);
-    } else if (d->m_dbusStartupType == QLatin1String("multi")) {
-        d->m_uiAdvanced->dbusCombo->setCurrentIndex(1);
-    } else if (d->m_dbusStartupType == QLatin1String("wait")) {
-        d->m_uiAdvanced->dbusCombo->setCurrentIndex(3);
-    } else {
-        d->m_uiAdvanced->dbusCombo->setCurrentIndex(0);
-    }
-
     // Provide username completion up to 1000 users.
     const int maxEntries = 1000;
     QStringList userNames = KUser::allUserNames(maxEntries);
@@ -3626,7 +3678,6 @@ void KDesktopPropsPlugin::slotAdvanced()
     connect(d->m_uiAdvanced->suidEdit, &QLineEdit::textChanged, this, &KPropertiesDialogPlugin::changed);
     connect(d->m_uiAdvanced->discreteGpuCheck, &QAbstractButton::toggled, this, &KPropertiesDialogPlugin::changed);
     connect(d->m_uiAdvanced->startupInfoCheck, &QAbstractButton::toggled, this, &KPropertiesDialogPlugin::changed);
-    connect(d->m_uiAdvanced->dbusCombo, qOverload<int>(&QComboBox::activated), this, &KPropertiesDialogPlugin::changed);
 
     QObject::connect(dlg, &QDialog::accepted, this, [this]() {
         d->m_terminalOptionStr = d->m_uiAdvanced->terminalEdit->text().trimmed();
@@ -3640,21 +3691,6 @@ void KDesktopPropsPlugin::slotAdvanced()
 
         if (d->m_uiAdvanced->terminalCloseCheck->isChecked()) {
             d->m_terminalOptionStr.append(QLatin1String(" --noclose"));
-        }
-
-        switch (d->m_uiAdvanced->dbusCombo->currentIndex()) {
-        case 1:
-            d->m_dbusStartupType = QStringLiteral("multi");
-            break;
-        case 2:
-            d->m_dbusStartupType = QStringLiteral("unique");
-            break;
-        case 3:
-            d->m_dbusStartupType = QStringLiteral("wait");
-            break;
-        default:
-            d->m_dbusStartupType = QStringLiteral("none");
-            break;
         }
     });
 
@@ -3675,14 +3711,24 @@ bool KDesktopPropsPlugin::supports(const KFileItemList &_items)
     }
 
     // open file and check type
-    bool isLocal;
-    QUrl url = item.mostLocalUrl(&isLocal);
+    const auto [url, isLocal] = item.isMostLocalUrl();
     if (!isLocal) {
         return false;
     }
 
     KDesktopFile config(url.toLocalFile());
     return config.hasApplicationType() && KAuthorized::authorize(KAuthorized::RUN_DESKTOP_FILES) && KAuthorized::authorize(KAuthorized::SHELL_ACCESS);
+}
+
+QString KDesktopPropsPlugin::KDesktopPropsPluginPrivate::command() const
+{
+    QStringList execSplit = KShell::splitArgs(w->envarsEdit->text()) + QStringList(w->programEdit->text()) + KShell::splitArgs(w->argumentsEdit->text());
+
+    if (KShell::splitArgs(w->envarsEdit->text()).length()) {
+        execSplit.push_front(QLatin1String("env"));
+    }
+
+    return KShell::joinArgs(execSplit);
 }
 
 #include "moc_kpropertiesdialog.cpp"

@@ -18,8 +18,11 @@
 #include <KIO/JobUiDelegate>
 #include <KLocalizedString>
 #include <KMimeTypeTrader>
+#include <KPluginFactory>
 #include <KPluginMetaData>
+#include <KSandbox>
 #include <KServiceTypeTrader>
+#include <jobuidelegatefactory.h>
 #include <kapplicationtrader.h>
 #include <kdesktopfileactions.h>
 #include <kdirnotify.h>
@@ -198,7 +201,7 @@ void KFileItemActionsPrivate::slotExecuteService(QAction *act)
     if (KAuthorized::authorizeAction(serviceAction.name())) {
         auto *job = new KIO::ApplicationLauncherJob(serviceAction);
         job->setUrls(m_props.urlList());
-        job->setUiDelegate(new KDialogJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, nullptr));
+        job->setUiDelegate(new KDialogJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
         job->start();
     }
 }
@@ -227,7 +230,7 @@ void KFileItemActions::setItemListProperties(const KFileItemListProperties &item
 #if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 79)
 int KFileItemActions::addServiceActionsTo(QMenu *mainMenu)
 {
-    return d->addServiceActionsTo(mainMenu, {}, {}).first;
+    return d->addServiceActionsTo(mainMenu, {}, {}).userItemCount;
 }
 #endif
 
@@ -242,7 +245,7 @@ void KFileItemActions::addActionsTo(QMenu *menu, MenuActionSources sources, cons
 {
     QMenu *actionsMenu = menu;
     if (sources & MenuActionSource::Services) {
-        actionsMenu = d->addServiceActionsTo(menu, additionalActions, excludeList).second;
+        actionsMenu = d->addServiceActionsTo(menu, additionalActions, excludeList).menu;
     } else {
         // Since we didn't call addServiceActionsTo(), we have to add additional actions manually
         for (QAction *action : additionalActions) {
@@ -334,7 +337,7 @@ void KFileItemActionsPrivate::slotRunPreferredApplications()
         const KService::Ptr servicePtr = KService::serviceByStorageId(serviceId); // can be nullptr
         auto *job = new KIO::ApplicationLauncherJob(servicePtr);
         job->setUrls(serviceItems.urlList());
-        job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
+        job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
         job->start();
     }
 }
@@ -368,7 +371,7 @@ void KFileItemActionsPrivate::openWithByMime(const KFileItemList &fileItems)
         // Show Open With dialog
         auto *job = new KIO::ApplicationLauncherJob();
         job->setUrls(mimeItems.urlList());
-        job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
+        job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
         job->start();
     }
 }
@@ -380,7 +383,7 @@ void KFileItemActionsPrivate::slotRunApplication(QAction *act)
     Q_ASSERT(app);
     auto *job = new KIO::ApplicationLauncherJob(app);
     job->setUrls(m_props.urlList());
-    job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
+    job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
     job->start();
 }
 
@@ -390,7 +393,7 @@ void KFileItemActionsPrivate::slotOpenWithDialog()
     Q_EMIT q->openWithDialogAboutToBeShown();
     auto *job = new KIO::ApplicationLauncherJob();
     job->setUrls(m_props.urlList());
-    job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
+    job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, m_parentWidget));
     job->start();
 }
 
@@ -537,7 +540,8 @@ bool KFileItemActionsPrivate::checkTypesMatch(const KConfigGroup &cfg) const
     });
 }
 
-QPair<int, QMenu *> KFileItemActionsPrivate::addServiceActionsTo(QMenu *mainMenu, const QList<QAction *> &additionalActions, const QStringList &excludeList)
+KFileItemActionsPrivate::ServiceActionInfo
+KFileItemActionsPrivate::addServiceActionsTo(QMenu *mainMenu, const QList<QAction *> &additionalActions, const QStringList &excludeList)
 {
     const KFileItemList items = m_props.items();
     const KFileItem &firstItem = items.first();
@@ -549,19 +553,12 @@ QPair<int, QMenu *> KFileItemActionsPrivate::addServiceActionsTo(QMenu *mainMenu
     KIO::PopupServices s;
 
     // TODO KF6 remove mention of "builtin" (deprecated)
-    // 1 - Look for builtin and user-defined services
+    // 1 - Look for builtin services
     if (isSingleLocal && m_props.mimeType() == QLatin1String("application/x-desktop")) {
 #if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 82)
         // Get builtin services, like mount/unmount
         s.builtin = KDesktopFileActions::builtinServices(QUrl::fromLocalFile(firstItem.localPath()));
 #endif
-        const QString path = firstItem.localPath();
-        const KDesktopFile desktopFile(path);
-        const KConfigGroup cfg = desktopFile.desktopGroup();
-        const QString priority = cfg.readEntry("X-KDE-Priority");
-        const QString submenuName = cfg.readEntry("X-KDE-Submenu");
-        ServiceList &list = s.selectList(priority, submenuName);
-        list = KDesktopFileActions::userDefinedServices(KService(path), true /*isLocal*/);
     }
 
     // 2 - Look for "servicemenus" bindings (user-defined services)
@@ -652,13 +649,15 @@ int KFileItemActionsPrivate::addPluginActionsTo(QMenu *mainMenu, QMenu *actionsM
     const KConfigGroup showGroup = m_config.group("Show");
 
     const QMimeDatabase db;
-    const auto jsonPlugins = KPluginMetaData::findPlugins(QStringLiteral("kf5/kfileitemaction"), [&db, commonMimeType](const KPluginMetaData &metaData) {
-        auto mimeType = db.mimeTypeForName(commonMimeType);
-        const QStringList list = metaData.mimeTypes();
-        return std::any_of(list.constBegin(), list.constEnd(), [mimeType](const QString &supportedMimeType) {
-            return mimeType.inherits(supportedMimeType);
-        });
-    });
+    const auto jsonPlugins =
+        KPluginMetaData::findPlugins(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/kfileitemaction"),
+                                     [&db, commonMimeType](const KPluginMetaData &metaData) {
+                                         auto mimeType = db.mimeTypeForName(commonMimeType);
+                                         const QStringList list = metaData.mimeTypes();
+                                         return std::any_of(list.constBegin(), list.constEnd(), [mimeType](const QString &supportedMimeType) {
+                                             return mimeType.inherits(supportedMimeType);
+                                         });
+                                     });
 
     for (const auto &jsonMetadata : jsonPlugins) {
         // The plugin has been disabled
@@ -710,8 +709,8 @@ int KFileItemActionsPrivate::addPluginActionsTo(QMenu *mainMenu, QMenu *actionsM
                 connect(abstractPlugin, &KAbstractFileItemActionPlugin::error, q, &KFileItemActions::error);
                 m_loadedPlugins.insert(service->desktopEntryName(), abstractPlugin);
                 qCWarning(KIO_WIDGETS) << "The" << service->name()
-                                    << "plugin still installs the desktop file for plugin loading. Please use JSON metadata instead, see "
-                                    << "KAbstractFileItemActionPlugin class docs for instructions.";
+                                       << "plugin still installs the desktop file for plugin loading. Please use JSON metadata instead, see "
+                                       << "KAbstractFileItemActionPlugin class docs for instructions.";
             }
         }
         if (abstractPlugin) {
@@ -847,6 +846,36 @@ void KFileItemActionsPrivate::insertOpenWithActionsTo(QAction *before,
         return;
     }
 
+    const auto makeOpenWithAction = [this, isDir] {
+        auto action = new QAction(this);
+        action->setText(isDir ? i18nc("@title:menu", "&Open Folder With...") : i18nc("@title:menu", "&Open With..."));
+        action->setIcon(QIcon::fromTheme(QStringLiteral("system-run")));
+        action->setObjectName(QStringLiteral("openwith_browse")); // For the unittest
+        return action;
+    };
+
+#ifndef KIO_ANDROID_STUB
+    if (KSandbox::isInside() && !m_fileOpenList.isEmpty()) {
+        auto openWithAction = makeOpenWithAction();
+        QObject::connect(openWithAction, &QAction::triggered, this, [this] {
+            const auto &items = m_fileOpenList;
+            for (const auto &fileItem : items) {
+                QDBusMessage message = QDBusMessage::createMethodCall(QLatin1String("org.freedesktop.portal.Desktop"),
+                                                                      QLatin1String("/org/freedesktop/portal/desktop"),
+                                                                      QLatin1String("org.freedesktop.portal.OpenURI"),
+                                                                      QLatin1String("OpenURI"));
+                message << QString() << fileItem.url() << QVariantMap{};
+                QDBusConnection::sessionBus().asyncCall(message);
+            }
+        });
+        topMenu->insertAction(before, openWithAction);
+        return;
+    }
+    if (KSandbox::isInside()) {
+        return;
+    }
+#endif
+
     QStringList serviceIdList = listPreferredServiceIds(m_mimeTypeList, excludedDesktopEntryNames, traderConstraint);
 
     // When selecting files with multiple MIME types, offer either "open with <app for all>"
@@ -878,12 +907,7 @@ void KFileItemActionsPrivate::insertOpenWithActionsTo(QAction *before,
         m_fileOpenList = m_props.items();
     }
 
-    QAction *openWithAct = new QAction(this);
-    openWithAct->setText(
-        isDir ?
-            i18nc("@title:menu", "&Open Folder With...") :
-            i18nc("@title:menu", "&Open With..."));
-    openWithAct->setObjectName(QStringLiteral("openwith_browse")); // For the unittest
+    auto openWithAct = makeOpenWithAction();
     QObject::connect(openWithAct, &QAction::triggered, this, &KFileItemActionsPrivate::slotOpenWithDialog);
 
     if (!offers.isEmpty()) {
@@ -910,7 +934,6 @@ void KFileItemActionsPrivate::insertOpenWithActionsTo(QAction *before,
             subMenu->addAction(openWithAct);
 
             topMenu->insertMenu(before, subMenu);
-            topMenu->insertSeparator(before);
         } else { // No other apps
             topMenu->insertAction(before, openWithAct);
         }
@@ -919,6 +942,32 @@ void KFileItemActionsPrivate::insertOpenWithActionsTo(QAction *before,
         openWithAct->setObjectName(QStringLiteral("openwith")); // For the unittest
         topMenu->insertAction(before, openWithAct);
     }
+
+    if (m_props.mimeType() == QLatin1String("application/x-desktop")) {
+        const QString path = firstItem.localPath();
+        const KDesktopFile desktopFile(path);
+        const KConfigGroup cfg = desktopFile.desktopGroup();
+
+        const ServiceList services = KDesktopFileActions::userDefinedServices(KService(path), true /*isLocal*/);
+
+        for (const KServiceAction &serviceAction : services) {
+            QAction *action = new QAction(this);
+            action->setText(serviceAction.text());
+            action->setIcon(QIcon::fromTheme(serviceAction.icon()));
+
+            connect(action, &QAction::triggered, this, [serviceAction] {
+                if (KAuthorized::authorizeAction(serviceAction.name())) {
+                    auto *job = new KIO::ApplicationLauncherJob(serviceAction);
+                    job->setUiDelegate(new KDialogJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, nullptr));
+                    job->start();
+                }
+            });
+
+            topMenu->addAction(action);
+        }
+    }
+
+    topMenu->insertSeparator(before);
 }
 
 QStringList KFileItemActionsPrivate::serviceMenuFilePaths()
@@ -928,7 +977,10 @@ QStringList KFileItemActionsPrivate::serviceMenuFilePaths()
     // Use old KServiceTypeTrader code path
     std::set<QString> uniqueFileNames;
 #if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 85)
+    QT_WARNING_PUSH
+    QT_WARNING_DISABLE_DEPRECATED
     const KService::List entries = KServiceTypeTrader::self()->query(QStringLiteral("KonqPopupMenu/Plugin"));
+    QT_WARNING_POP
     for (const KServicePtr &entry : entries) {
         filePaths << QStandardPaths::locate(QStandardPaths::GenericDataLocation, QLatin1String("kservices5/") + entry->entryPath());
         uniqueFileNames.insert(entry->entryPath().split(QLatin1Char('/')).last());

@@ -36,8 +36,8 @@ enum RenameDialog_Option {
     RenameDialog_IsDirectory KIOCORE_ENUMERATOR_DEPRECATED_VERSION_BELATED(5, 82, 5, 78, "Use RenameDialog_DestIsDirectory.") =
         128, ///< @deprecated since 5.78, use RenameDialog_DestIsDirectory instead.
 #endif
-    RenameDialog_DestIsDirectory = 128, ///< @since 5.78. The destination is a directory, the dialog updates labels and tooltips accordingly.
-    RenameDialog_SourceIsDirectory = 256, ///< @since 5.78. The source is a directory, the dialog updates labels and tooltips accordingly.
+    RenameDialog_DestIsDirectory = 128, ///< The destination is a directory, the dialog updates labels and tooltips accordingly. @since 5.78
+    RenameDialog_SourceIsDirectory = 256, ///< The source is a directory, the dialog updates labels and tooltips accordingly. @since 5.78
 };
 /**
  * Stores a combination of #RenameDialog_Option values.
@@ -79,7 +79,7 @@ enum SkipDialog_Option {
     /**
      * Set if the current operation involves copying files/folders with certain
      * characters in their names that are not supported by the destination
-     * filesystem (e.g. VFAT and NTFS disallow "*" in file/folder names).
+     * filesystem (e.g.\ VFAT and NTFS disallow "*" in file/folder names).
      *
      * This will make the SkipDialog show a "Replace" button that can be used
      * to instruct the underlying job to replace any problematic character with
@@ -172,7 +172,7 @@ typedef RenameDialog_Result SkipDialog_Result;
  * \li asking what to do in case of a conflict while copying/moving files or directories
  * \li asking what to do in case of an error while copying/moving files or directories
  * \li asking for confirmation before deleting files or directories
- * \li popping up message boxes when the slave requests it
+ * \li popping up message boxes when the worker requests it
  * @since 5.0
  */
 class KIOCORE_EXPORT JobUiDelegateExtension
@@ -195,7 +195,7 @@ public:
      * a result code, as well as the new dest. Much easier to use than the
      * class RenameDialog directly.
      *
-     * @param caption the caption for the dialog box
+     * @param title the title for the dialog box
      * @param src the URL of the file/dir we're trying to copy, as it's part of the text message
      * @param dest the URL of the destination file/dir, i.e. the one that already exists
      * @param options parameters for the dialog (which buttons to show...)
@@ -209,7 +209,7 @@ public:
      * @return the result
      */
     virtual KIO::RenameDialog_Result askFileRename(KJob *job,
-                                                   const QString &caption,
+                                                   const QString &title,
                                                    const QUrl &src,
                                                    const QUrl &dest,
                                                    KIO::RenameDialog_Options options,
@@ -257,41 +257,49 @@ public:
     /**
      * Message box types.
      *
-     * Should be kept in sync with SlaveBase::MessageBoxType.
+     * Should be kept in sync with WorkerBase::MessageBoxType.
      *
      * @since 4.11
      */
     enum MessageBoxType {
-        QuestionYesNo = 1,
-        WarningYesNo = 2,
+        QuestionTwoActions = 1, ///< @since 5.100
+        WarningTwoActions = 2, ///< @since 5.100
         WarningContinueCancel = 3,
-        WarningYesNoCancel = 4,
+        WarningTwoActionsCancel = 4, ///< @since 5.100
         Information = 5,
         SSLMessageBox = 6,
-        // In KMessageBox::DialogType; Sorry = 7, Error = 8, QuestionYesNoCancel = 9
+        // In KMessageBox::DialogType; Sorry = 7, Error = 8, QuestionTwoActionsCancel = 9
         WarningContinueCancelDetailed = 10,
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 100)
+        QuestionYesNo ///< @deprecated Since 5.100, use QuestionTwoActions.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use QuestionTwoActions.") = QuestionTwoActions,
+        WarningYesNo ///< @deprecated Since 5.100, use WarningTwoActions.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use WarningTwoActions.") = WarningTwoActions,
+        WarningYesNoCancel ///< @deprecated Since 5.100, use WarningTwoActionsCancel.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use WarningTwoActionsCancel.") = WarningTwoActionsCancel,
+#endif
     };
 
     /**
-     * This function allows for the delegation user prompts from the ioslaves.
+     * This function allows for the delegation user prompts from the KIO workers.
      *
      * @param type the desired type of message box.
      * @param text the message shown to the user.
-     * @param caption the caption of the message dialog box.
-     * @param buttonYes the text for the YES button.
-     * @param buttonNo the text for the NO button.
-     * @param iconYes the icon shown on the YES button.
-     * @param iconNo the icon shown on the NO button.
+     * @param title the title of the message dialog box.
+     * @param primaryActionText the text for the primary action.
+     * @param secondaryActionText the text for the secondary action.
+     * @param primaryActionIconName the icon shown on the primary action.
+     * @param secondaryActionIconName the icon shown on the secondary action.
      * @param dontAskAgainName the name used to store result from 'Do not ask again' checkbox.
      * @param sslMetaData SSL information used by the SSLMessageBox.
      */
     virtual int requestMessageBox(MessageBoxType type,
                                   const QString &text,
-                                  const QString &caption,
-                                  const QString &buttonYes,
-                                  const QString &buttonNo,
-                                  const QString &iconYes = QString(),
-                                  const QString &iconNo = QString(),
+                                  const QString &title,
+                                  const QString &primaryActionText,
+                                  const QString &secondaryActionText,
+                                  const QString &primaryActionIconName = QString(),
+                                  const QString &secondaryActionIconName = QString(),
                                   const QString &dontAskAgainName = QString(),
                                   const KIO::MetaData &sslMetaData = KIO::MetaData()) = 0;
 

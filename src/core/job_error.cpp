@@ -87,9 +87,6 @@ KIOCORE_EXPORT QString KIO::buildErrorString(int errorCode, const QString &error
     case KIO::ERR_CYCLIC_LINK:
         result = i18n("Found a cyclic link in %1.", errorText);
         break;
-    case KIO::ERR_USER_CANCELED:
-        // Do nothing in this case. The user doesn't need to be told what he just did.
-        break;
     case KIO::ERR_CYCLIC_COPY:
         result = i18n("Found a cyclic link while copying %1.", errorText);
         break;
@@ -156,7 +153,7 @@ KIOCORE_EXPORT QString KIO::buildErrorString(int errorCode, const QString &error
     case KIO::ERR_CANNOT_DELETE:
         result = i18n("Could not delete file %1.", errorText);
         break;
-    case KIO::ERR_SLAVE_DIED:
+    case KIO::ERR_WORKER_DIED:
         result = i18n("The process for the %1 protocol died unexpectedly.", errorText);
         break;
     case KIO::ERR_OUT_OF_MEMORY:
@@ -168,6 +165,9 @@ KIOCORE_EXPORT QString KIO::buildErrorString(int errorCode, const QString &error
     case KIO::ERR_CANNOT_AUTHENTICATE:
         result = i18n("Authorization failed, %1 authentication not supported", errorText);
         break;
+    case KIO::ERR_USER_CANCELED:
+        // Typically no message should be shown to the user in this case;
+        // however the text is set here only for debugging purposes.
     case KIO::ERR_ABORTED:
         result = i18n("User canceled action\n%1", errorText);
         break;
@@ -218,7 +218,9 @@ KIOCORE_EXPORT QString KIO::buildErrorString(int errorCode, const QString &error
     case KIO::ERR_IDENTICAL_FILES:
         result = i18n("The source and destination are the same file.\n%1", errorText);
         break;
-    case KIO::ERR_SLAVE_DEFINED:
+    case KIO::ERR_WORKER_DEFINED:
+        Q_FALLTHROUGH();
+    case KJob::UserDefinedError:
         result = errorText;
         break;
     case KIO::ERR_UPGRADE_REQUIRED:
@@ -239,8 +241,8 @@ KIOCORE_EXPORT QString KIO::buildErrorString(int errorCode, const QString &error
     case KIO::ERR_PASSWD_SERVER:
         result = i18n("Communication with the local password server failed");
         break;
-    case KIO::ERR_CANNOT_CREATE_SLAVE:
-        result = i18n("Unable to create io-slave. %1", errorText);
+    case KIO::ERR_CANNOT_CREATE_WORKER:
+        result = i18n("Unable to create KIO worker. %1", errorText);
         break;
     case KIO::ERR_FILE_TOO_LARGE_FOR_FAT32:
         result = xi18nc("@info",
@@ -250,6 +252,9 @@ KIOCORE_EXPORT QString KIO::buildErrorString(int errorCode, const QString &error
     case KIO::ERR_PRIVILEGE_NOT_REQUIRED:
         result =
             i18n("Privilege escalation is not necessary because \n'%1' is owned by the current user.\nPlease retry after changing permissions.", errorText);
+        break;
+    case KIO::ERR_TRASH_FILE_TOO_LARGE:
+        result = i18n("File is too large to be trashed.");
         break;
     default:
         result = i18n("Unknown error code %1\n%2\nPlease send a full bug report at https://bugs.kde.org.", errorCode, errorText);
@@ -323,14 +328,15 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
     QString domain;
     QString path;
     QString filename;
-    bool isSlaveNetwork = false;
+    bool isWorkerNetwork = false;
     if (reqUrl) {
         url = reqUrl->toDisplayString();
         host = reqUrl->host();
         protocol = reqUrl->scheme();
 
-        if (host.startsWith(QLatin1String("www."))) {
-            domain = host.mid(4);
+        const QLatin1String web("www.");
+        if (host.startsWith(web)) {
+            domain = host.mid(web.size());
         } else {
             domain = host;
         }
@@ -340,7 +346,7 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
 
         // detect if protocol is a network protocol...
         if (!protocol.isEmpty()) {
-            isSlaveNetwork = KProtocolInfo::protocolClass(protocol) == QLatin1String(":internet");
+            isWorkerNetwork = KProtocolInfo::protocolClass(protocol) == QLatin1String(":internet");
         }
     } else {
         // assume that the errorText has the location we are interested in
@@ -493,11 +499,10 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
                       "the server may be incompatible.",
                       protocol);
         solutions << i18n(
-            "You may perform a search on the Internet for a KDE "
-            "program (called a kioslave or ioslave) which supports this protocol. "
-            "Places to search include <a href=\"https://kde-apps.org/\">"
-            "https://kde-apps.org/</a> and <a href=\"http://freshmeat.net/\">"
-            "http://freshmeat.net/</a>.")
+            "You may perform a search on the Internet for a software "
+            "plugin (called a \"KIO worker\") which supports this protocol. "
+            "Places to search include <a href=\"https://store.kde.org/\">"
+            "https://store.kde.org</a>.")
                   << sUpdate << sSysadmin;
         break;
 
@@ -614,7 +619,7 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
             "Retry the request and ensure your authentication details "
             "are entered correctly.")
                   << sSysadmin;
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             solutions << sServeradmin;
         }
         break;
@@ -808,12 +813,12 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
             "reading the contents of the resource.",
             url);
         causes << i18n("You may not have permissions to read from the resource.");
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             causes << cNetwork;
         }
         causes << cHardware;
         solutions << sAccess;
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             solutions << sNetwork;
         }
         solutions << sSysadmin;
@@ -826,12 +831,12 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
             ", was able to be opened, an error occurred while writing to the resource.",
             url);
         causes << i18n("You may not have permissions to write to the resource.");
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             causes << cNetwork;
         }
         causes << cHardware;
         solutions << sAccess;
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             solutions << sNetwork;
         }
         solutions << sSysadmin;
@@ -924,7 +929,7 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
                << i18n(
                       "The location where the folder was to be created "
                       "may not exist.");
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             causes << cProtocol;
         }
         solutions << i18n("Retry the request.") << sAccess;
@@ -937,7 +942,7 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
             "<strong>%1</strong>, failed.",
             path);
         causes << i18n("The specified folder may not exist.") << i18n("The specified folder may not be empty.") << cAccess;
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             causes << cProtocol;
         }
         solutions << i18n(
@@ -968,7 +973,7 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
             "<strong>%1</strong> failed.",
             KStringHandler::csqueeze(url, s_maxFilePathLength));
         causes << cAccess << cExists;
-        if (!isSlaveNetwork) {
+        if (!isWorkerNetwork) {
             causes << cProtocol;
         }
         solutions << sAccess << sExists;
@@ -1004,7 +1009,7 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
         solutions << sAccess << sExists;
         break;
 
-    case KIO::ERR_SLAVE_DIED:
+    case KIO::ERR_WORKER_DIED:
         errorName = i18n("Unexpected Program Termination");
         description = i18n(
             "The program on your computer which provides access "
@@ -1216,8 +1221,8 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
         solutions << i18n("Drop the item into a different file or folder.");
         break;
 
-    // We assume that the slave has all the details
-    case KIO::ERR_SLAVE_DEFINED:
+    // We assume that the worker has all the details
+    case KIO::ERR_WORKER_DEFINED:
         errorName.clear();
         description = errorText;
         break;
@@ -1238,16 +1243,16 @@ KIOCORE_EXPORT QByteArray KIO::rawErrorDetail(int errorCode, const QString &erro
         solutions << i18n("Try restarting your session, or look in the logs for errors from kiod.");
         break;
 
-    case KIO::ERR_CANNOT_CREATE_SLAVE:
+    case KIO::ERR_CANNOT_CREATE_WORKER:
         errorName = i18n("Cannot Initiate the %1 Protocol", protocol);
-        techName = i18n("Unable to Create io-slave");
+        techName = i18n("Unable to Create KIO Worker");
         description = i18n(
-            "The io-slave which provides access "
+            "The KIO worker which provides access "
             "to the <strong>%1</strong> protocol could not be started. This is "
             "usually due to technical reasons.",
             protocol);
         causes << i18n(
-            "klauncher could not find or start the plugin which provides the protocol."
+            "klauncher could not find or start the plugin which provides the protocol. "
             "This means you may have an outdated version of the plugin.");
         solutions << sUpdate << sSysadmin;
         break;

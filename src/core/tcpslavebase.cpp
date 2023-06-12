@@ -26,6 +26,8 @@
 using namespace KIO;
 // using namespace KNetwork;
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
+
 namespace KIO
 {
 Q_DECLARE_OPERATORS_FOR_FLAGS(TCPSlaveBase::SslResult)
@@ -276,9 +278,9 @@ int TCPSlaveBase::connectToHost(const QString &host, quint16 port, QString *erro
     d->socket.setPeerVerifyName(host); // Used for ssl certificate verification (SNI)
 
     //  - leaving SSL - warn before we even connect
-    //### see if it makes sense to move this into the HTTP ioslave which is the only
+    // ### see if it makes sense to move this into the HTTP ioslave which is the only
     //    user.
-    if (metaData(QStringLiteral("main_frame_request")) == QLatin1String("TRUE") //### this looks *really* unreliable
+    if (metaData(QStringLiteral("main_frame_request")) == QLatin1String("TRUE") // ### this looks *really* unreliable
         && metaData(QStringLiteral("ssl_activate_warnings")) == QLatin1String("TRUE") && metaData(QStringLiteral("ssl_was_in_use")) == QLatin1String("TRUE")
         && !d->autoSSL) {
         if (d->sslSettings.warnOnLeave()) {
@@ -332,7 +334,7 @@ int TCPSlaveBase::connectToHost(const QString &host, quint16 port, QString *erro
         }
     }
 
-    //### check for proxyAuthenticationRequiredError
+    // ### check for proxyAuthenticationRequiredError
 
     d->ip = d->socket.peerAddress().toString();
     d->port = d->socket.peerPort();
@@ -364,9 +366,9 @@ void TCPSlaveBase::disconnectFromHost()
         return;
     }
 
-    //### maybe save a session for reuse on SSL shutdown if and when QSslSocket
-    //    does that. QCA::TLS can do it apparently but that is not enough if
-    //    we want to present that as KDE API. Not a big loss in any case.
+    // ### maybe save a session for reuse on SSL shutdown if and when QSslSocket
+    //     does that. QCA::TLS can do it apparently but that is not enough if
+    //     we want to present that as KDE API. Not a big loss in any case.
     d->socket.disconnectFromHost();
     if (d->socket.state() != QAbstractSocket::UnconnectedState) {
         d->socket.waitForDisconnected(-1); // wait for unsent data to be sent
@@ -405,7 +407,7 @@ bool TCPSlaveBase::startSsl()
 TCPSlaveBase::SslResult TCPSlaveBase::TcpSlaveBasePrivate::startTLSInternal(QSsl::SslProtocol sslVersion, int waitForEncryptedTimeout)
 {
     // setMetaData("ssl_session_id", d->kssl->session()->toString());
-    //### we don't support session reuse for now...
+    // ### we don't support session reuse for now...
     usingSSL = true;
 
     // Set the SSL protocol version to use...
@@ -482,12 +484,12 @@ TCPSlaveBase::SslResult TCPSlaveBase::TcpSlaveBasePrivate::startTLSInternal(QSsl
                                            "unless otherwise noted.\nThis means "
                                            "that no third party will be able to "
                                            "easily observe your data in transit."),
-                                      WarningYesNo,
+                                      WarningTwoActions,
                                       i18n("Security Information"),
                                       i18n("Display SSL &Information"),
                                       i18n("C&onnect"),
                                       QStringLiteral("WarnOnEnterSSLMode"));
-        if (msgResult == SlaveBase::Yes) {
+        if (msgResult == SlaveBase::PrimaryAction) {
             q->messageBox(SSLMessageBox /*==the SSL info dialog*/, host);
         }
     }
@@ -521,7 +523,7 @@ TCPSlaveBase::SslResult TCPSlaveBase::verifyServerCertificate()
         return ResultOk | ResultOverridden;
     }
 
-    //### We don't ask to permanently reject the certificate
+    // ### We don't ask to permanently reject the certificate
 
     QString message = i18n("The server failed the authenticity check (%1).\n\n", d->host);
     for (const QSslError &err : std::as_const(d->sslErrors)) {
@@ -532,29 +534,29 @@ TCPSlaveBase::SslResult TCPSlaveBase::verifyServerCertificate()
     int msgResult;
     QDateTime ruleExpiry = QDateTime::currentDateTime();
     do {
-        msgResult = messageBox(WarningYesNoCancel, message, i18n("Server Authentication"), i18n("&Details"), i18n("Co&ntinue"));
+        msgResult = messageBox(WarningTwoActionsCancel, message, i18n("Server Authentication"), i18n("&Details"), i18n("Co&ntinue"));
         switch (msgResult) {
-        case SlaveBase::Yes:
+        case SlaveBase::PrimaryAction:
             // Details was chosen- show the certificate and error details
             messageBox(SSLMessageBox /*the SSL info dialog*/, d->host);
             break;
-        case SlaveBase::No: {
-            // fall through on SlaveBase::No
-            const int result = messageBox(WarningYesNoCancel,
+        case SlaveBase::SecondaryAction: {
+            // fall through on SlaveBase::SecondaryAction
+            const int result = messageBox(WarningTwoActionsCancel,
                                           i18n("Would you like to accept this "
                                                "certificate forever without "
                                                "being prompted?"),
                                           i18n("Server Authentication"),
                                           i18n("&Forever"),
                                           i18n("&Current Session only"));
-            if (result == SlaveBase::Yes) {
+            if (result == SlaveBase::PrimaryAction) {
                 // accept forever ("for a very long time")
                 ruleExpiry = ruleExpiry.addYears(1000);
-            } else if (result == SlaveBase::No) {
+            } else if (result == SlaveBase::SecondaryAction) {
                 // accept "for a short time", half an hour.
                 ruleExpiry = ruleExpiry.addSecs(30 * 60);
             } else {
-                msgResult = SlaveBase::Yes;
+                msgResult = SlaveBase::PrimaryAction;
             }
             break;
         }
@@ -564,7 +566,7 @@ TCPSlaveBase::SslResult TCPSlaveBase::verifyServerCertificate()
             qCWarning(KIO_CORE) << "Unexpected MessageBox response received:" << msgResult;
             return ResultFailed;
         }
-    } while (msgResult == SlaveBase::Yes);
+    } while (msgResult == SlaveBase::PrimaryAction);
 
     // TODO special cases for wildcard domain name in the certificate!
     // rule = KSslCertificateRule(d->socket.peerCertificateChain().first(), whatever);
@@ -607,3 +609,5 @@ void TCPSlaveBase::virtual_hook(int id, void *data)
         SlaveBase::virtual_hook(id, data);
     }
 }
+
+#endif

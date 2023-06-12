@@ -7,7 +7,7 @@
 // This test suite is based on those in ftptest.cpp and uses the same test files.
 
 #include <kio/copyjob.h>
-#include <kio/job.h>
+#include <kio/storedtransferjob.h>
 
 #include <QBuffer>
 #include <QProcess>
@@ -36,7 +36,11 @@ private:
     static void runDaemon(QProcess &proc, const QTemporaryDir &remoteDir)
     {
         QVERIFY(remoteDir.isValid());
-        proc.setProgram("wsgidav");
+        const QString exec = QStandardPaths::findExecutable("wsgidav");
+        if (exec.isEmpty()) {
+            QFAIL("Could not find 'wsgidav' executable in PATH");
+        }
+        proc.setProgram(exec);
         proc.setArguments(
             {QStringLiteral("--host=0.0.0.0"), QString("--port=%1").arg(port), QString("--root=%1").arg(remoteDir.path()), QStringLiteral("--auth=anonymous")});
         proc.setProcessChannelMode(QProcess::ForwardedErrorChannel);
@@ -62,8 +66,8 @@ private:
 private Q_SLOTS:
     void initTestCase()
     {
-        // Force the http/webdav slave from our bindir as first choice. This specifically
-        // works around the fact that kioslave would load the slave from the system
+        // Force the http/webdav worker from our bindir as first choice. This specifically
+        // works around the fact that the kioslave executable would load the worker from the system
         // as first choice instead of the one from the build dir.
         qputenv("QT_PLUGIN_PATH", QCoreApplication::applicationDirPath().toUtf8());
 
@@ -78,7 +82,6 @@ private Q_SLOTS:
         });
 
         QStandardPaths::setTestModeEnabled(true);
-        qputenv("KDE_FORK_SLAVES", "yes");
     }
 
     void cleanupTestCase()

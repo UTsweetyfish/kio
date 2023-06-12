@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 
-set(KF_VERSION "5.90.0") # handled by release scripts
-set(KF_DEP_VERSION "5.90.0") # handled by release scripts
+set(KF_VERSION "5.103.0") # handled by release scripts
+set(KF_DEP_VERSION "5.103.0") # handled by release scripts
 
 project(KIO VERSION ${KF_VERSION})
 
 include(FeatureSummary)
-find_package(ECM 5.90.0 NO_MODULE)
+find_package(ECM 5.103.0 NO_MODULE)
 set_package_properties(ECM PROPERTIES TYPE REQUIRED DESCRIPTION "Extra CMake Modules." URL "https://commits.kde.org/extra-cmake-modules")
 feature_summary(WHAT REQUIRED_PACKAGES_NOT_FOUND FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
@@ -26,6 +26,7 @@ include(ECMAddQch)
 include(ECMMarkNonGuiExecutable)
 include(ECMQtDeclareLoggingCategory)
 include(ECMSourceVersionControl)
+include(ECMDeprecationSettings)
 
 ecm_setup_version(
   PROJECT
@@ -45,7 +46,7 @@ if(DEFINED ENV{JENKINS_SERVER_COOKIE} OR ECM_SOURCE_UNDER_VERSION_CONTROL)
     set(ASSERT_SLAVE_STATES_DEFAULT ON)
 endif()
 option(KIO_ASSERT_SLAVE_STATES
-    "Used to control whether slave state assertions are enabled. When not enabled only warnings are generated."
+    "Used to control whether worker state assertions are enabled. When not enabled only warnings are generated."
     ${ASSERT_SLAVE_STATES_DEFAULT})
 
 # TODO KF6: remove
@@ -57,15 +58,17 @@ add_feature_info(QCH ${BUILD_QCH} "API documentation in QCH format (for e.g. Qt 
 option(BUILD_DESIGNERPLUGIN "Build plugin for Qt Designer" ON)
 add_feature_info(DESIGNERPLUGIN ${BUILD_DESIGNERPLUGIN} "Build plugin for Qt Designer")
 
+option(USE_FTPD_WSGIDAV_UNITTEST "Use ftpd Ruby Gem (for ftptest) and wsgidav Python module (for webdavtest) in unittests. Note that this is a temporary option that will be removed when distros add those packages in their repos." OFF)
+
 find_package(KF5Archive ${KF_DEP_VERSION} REQUIRED)
 find_package(KF5Config ${KF_DEP_VERSION} REQUIRED)
 find_package(KF5CoreAddons ${KF_DEP_VERSION} REQUIRED)
-find_package(KF5Crash ${KF_DEP_VERSION} REQUIRED)
 find_package(KF5I18n ${KF_DEP_VERSION} REQUIRED)
 find_package(KF5Service ${KF_DEP_VERSION} REQUIRED)
 find_package(KF5DocTools ${KF_DEP_VERSION})
 find_package(KF5Solid ${KF_DEP_VERSION} REQUIRED) # for kio_trash
 if (NOT ANDROID)
+    find_package(KF5Crash ${KF_DEP_VERSION} REQUIRED)
     find_package(KF5DBusAddons ${KF_DEP_VERSION} REQUIRED)
 endif()
 
@@ -94,29 +97,38 @@ endif()
 # tell what is missing without doctools
 set_package_properties(KF5DocTools PROPERTIES DESCRIPTION "Provides tools to generate documentation in various format from DocBook files"
                        TYPE OPTIONAL
-                       PURPOSE "Required to build help ioslave and documentation"
+                       PURPOSE "Required to build help KIO worker and documentation"
                       )
 
 set(REQUIRED_QT_VERSION 5.15.2)
-find_package(Qt5 ${REQUIRED_QT_VERSION} CONFIG REQUIRED Widgets Network Concurrent Xml Test)
+find_package(Qt${QT_MAJOR_VERSION} ${REQUIRED_QT_VERSION} CONFIG REQUIRED Widgets Network Concurrent Xml Test)
 if (NOT ANDROID)
-    find_package(Qt5 ${REQUIRED_QT_VERSION} CONFIG REQUIRED DBus)
+    find_package(Qt${QT_MAJOR_VERSION} ${REQUIRED_QT_VERSION} CONFIG REQUIRED DBus)
+endif()
+
+set(_qt6_core_compat_found FALSE)
+if (QT_MAJOR_VERSION STREQUAL "6")
+    find_package(Qt6Core5Compat ${REQUIRED_QT_VERSION} REQUIRED) # QTextCodec
+    set(_qt6_core_compat_found ${Qt6Core5Compat_FOUND})
 endif()
 
 find_package(GSSAPI)
 set_package_properties(GSSAPI PROPERTIES DESCRIPTION "Allows KIO to make use of certain HTTP authentication services"
-                       URL "http://web.mit.edu/kerberos/www"
+                       URL "https://web.mit.edu/kerberos/www/"
                        TYPE OPTIONAL
                        PURPOSE "A MIT or HEIMDAL flavor of GSSAPI can be used"
                       )
 
-if (NOT APPLE AND NOT WIN32)
-    find_package(X11)
-endif()
-
-set(HAVE_X11 ${X11_FOUND})
-if (HAVE_X11)
-    find_package(Qt5 ${REQUIRED_QT_VERSION} CONFIG REQUIRED X11Extras)
+if (NOT APPLE AND NOT WIN32 AND NOT ANDROID)
+    option(WITH_X11 "Build with X11 integration" ON)
+    if(WITH_X11)
+        if (QT_MAJOR_VERSION STREQUAL "5")
+            find_package(Qt5 ${REQUIRED_QT_VERSION} CONFIG REQUIRED X11Extras)
+        else()
+            # qtx11extras_p.h is in Qt6Gui, which is implied by the find_package(QtWidgets) above
+        endif()
+    endif()
+    set(HAVE_X11 ${WITH_X11})
 endif()
 
 find_package(ACL)
@@ -138,16 +150,16 @@ if (ANDROID)
     # and that would still need a decision on how to deal with that
     add_definitions(-DKIO_ANDROID_STUB)
 endif()
-add_definitions(-DQT_DISABLE_DEPRECATED_BEFORE=0x050f02)
-add_definitions(-DKF_DISABLE_DEPRECATED_BEFORE_AND_AT=0x055800)
-# we use KPixmapProvider in public API
-add_definitions(-DKCOMPLETION_DISABLE_DEPRECATED_BEFORE_AND_AT=0x054100)
-# we use KMimeTypeTrader in KFileItemActions
-add_definitions(-DKSERVICE_DISABLE_DEPRECATED_BEFORE_AND_AT=0x055100)
-# KService::createInstance uses deprecated parts of KCoreAddons in the header
-add_definitions(-DKCOREADDONS_DISABLE_DEPRECATED_BEFORE_AND_AT=0x055500)
-# we use KDesktopFile::readDevice
-add_definitions(-DKCONFIGCORE_DISABLE_DEPRECATED_BEFORE_AND_AT=0x055100)
+
+ecm_set_disabled_deprecation_versions(
+    QT 5.15.2
+    KF 5.97
+    KCOMPLETION 5.65 # we use KPixmapProvider in public API
+    KSERVICE 5.81 # we use KMimeTypeTrader in KFileItemActions
+    KCOREADDONS 5.85 # KService::createInstance uses deprecated parts of KCoreAddons in the header
+    KCONFIGCORE 5.81 # we use KDesktopFile::readDevice
+    KWIDGETSADDONS 5.96 # we use KMessageDialog::Sorry
+)
 
 add_definitions(-DTRANSLATION_DOMAIN=\"kio5\")
 ki18n_install(po)
@@ -157,7 +169,7 @@ if (KF5DocTools_FOUND)
 endif()
 
 if (KF5DocTools_FOUND)
-    add_subdirectory(docs)
+     add_subdirectory(docs)
 endif()
 
 include(CheckLibraryExists)
@@ -205,7 +217,7 @@ install(FILES
 install(EXPORT KF5KIOTargets DESTINATION "${CMAKECONFIG_INSTALL_DIR}" FILE KF5KIOTargets.cmake NAMESPACE KF5:: )
 
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/src/kio_version.h
-        DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5} COMPONENT Devel )
+        DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIO COMPONENT Devel)
 
 feature_summary(WHAT ALL   FATAL_ON_MISSING_REQUIRED_PACKAGES)
 

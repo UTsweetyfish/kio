@@ -31,6 +31,7 @@
 #include <KService>
 #include <KUrlMimeData>
 
+#include <QDBusPendingCall>
 #include <QDropEvent>
 #include <QFileInfo>
 #include <QMenu>
@@ -65,6 +66,11 @@ private:
     QAction *m_cancelAction;
 };
 
+static const QString s_applicationSlashXDashKDEDashArkDashDnDExtractDashService = //
+    QStringLiteral("application/x-kde-ark-dndextract-service");
+static const QString s_applicationSlashXDashKDEDashArkDashDnDExtractDashPath = //
+    QStringLiteral("application/x-kde-ark-dndextract-path");
+
 class KIO::DropJobPrivate : public KIO::JobPrivate
 {
 public:
@@ -75,6 +81,8 @@ public:
         , m_dropAction(dropEvent->dropAction())
         , m_relativePos(dropEvent->pos())
         , m_keyboardModifiers(dropEvent->keyboardModifiers())
+        , m_hasArkFormat(m_mimeData->hasFormat(s_applicationSlashXDashKDEDashArkDashDnDExtractDashService)
+                         && m_mimeData->hasFormat(s_applicationSlashXDashKDEDashArkDashDnDExtractDashPath))
         , m_destUrl(destUrl)
         , m_destItem(KCoreDirLister::cachedItemForUrl(destUrl))
         , m_flags(flags)
@@ -88,6 +96,11 @@ public:
         }
         if (m_destItem.isNull() && m_destUrl.isLocalFile()) {
             m_destItem = KFileItem(m_destUrl);
+        }
+
+        if (m_hasArkFormat) {
+            m_remoteArkDBusClient = QString::fromUtf8(m_mimeData->data(s_applicationSlashXDashKDEDashArkDashDnDExtractDashService));
+            m_remoteArkDBusPath = QString::fromUtf8(m_mimeData->data(s_applicationSlashXDashKDEDashArkDashDnDExtractDashPath));
         }
 
         if (!(m_flags & KIO::NoPrivilegeExecution)) {
@@ -126,12 +139,15 @@ public:
     void addPluginActions(KIO::DropMenu *popup, const KFileItemListProperties &itemProps);
     void doCopyToDirectory();
 
-    const QMimeData *m_mimeData;
+    QPointer<const QMimeData> m_mimeData;
     const QList<QUrl> m_urls;
     QMap<QString, QString> m_metaData;
     Qt::DropAction m_dropAction;
     QPoint m_relativePos;
     Qt::KeyboardModifiers m_keyboardModifiers;
+    bool m_hasArkFormat;
+    QString m_remoteArkDBusClient;
+    QString m_remoteArkDBusPath;
     QUrl m_destUrl;
     KFileItem m_destItem; // null for remote URLs not found in the dirlister cache
     const JobFlags m_flags;
@@ -209,7 +225,11 @@ void DropMenu::addExtraActions(const QList<QAction *> &appActions, const QList<Q
 DropJob::DropJob(DropJobPrivate &dd)
     : Job(dd)
 {
-    QTimer::singleShot(0, this, SLOT(slotStart()));
+    Q_D(DropJob);
+
+    QTimer::singleShot(0, this, [d]() {
+        d->slotStart();
+    });
 }
 
 DropJob::~DropJob()
@@ -219,6 +239,27 @@ DropJob::~DropJob()
 void DropJobPrivate::slotStart()
 {
     Q_Q(DropJob);
+
+    if (m_hasArkFormat) {
+        QDBusMessage message = QDBusMessage::createMethodCall(m_remoteArkDBusClient,
+                                                              m_remoteArkDBusPath,
+                                                              QStringLiteral("org.kde.ark.DndExtract"),
+                                                              QStringLiteral("extractSelectedFilesTo"));
+        message.setArguments({m_destUrl.toDisplayString(QUrl::PreferLocalFile)});
+        const auto pending = QDBusConnection::sessionBus().asyncCall(message);
+        auto watcher = std::make_shared<QDBusPendingCallWatcher>(pending);
+        QObject::connect(watcher.get(), &QDBusPendingCallWatcher::finished, q, [this, watcher] {
+            Q_Q(DropJob);
+
+            if (watcher->isError()) {
+                q->setError(KIO::ERR_UNKNOWN);
+            }
+            q->emitResult();
+        });
+
+        return;
+    }
+
     if (!m_urls.isEmpty()) {
         if (destIsDirectory()) {
             handleCopyToDirectory();
@@ -234,7 +275,7 @@ void DropJobPrivate::slotStart()
                 q->emitResult();
             }
         }
-    } else {
+    } else if (m_mimeData) {
         // Dropping raw data
         KIO::PasteJob *job = KIO::PasteJobPrivate::newJob(m_mimeData, m_destUrl, KIO::HideProgressInfo, false /*not clipboard*/);
         QObject::connect(job, &KIO::PasteJob::itemCreated, q, &KIO::DropJob::itemCreated);
@@ -300,7 +341,7 @@ void DropJobPrivate::fillPopupMenu(KIO::DropMenu *popup)
 
 void DropJobPrivate::addPluginActions(KIO::DropMenu *popup, const KFileItemListProperties &itemProps)
 {
-    const QVector<KPluginMetaData> plugin_offers = KPluginMetaData::findPlugins(QStringLiteral("kf5/kio_dnd"));
+    const QVector<KPluginMetaData> plugin_offers = KPluginMetaData::findPlugins(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/kio_dnd"));
     for (const KPluginMetaData &data : plugin_offers) {
         if (auto plugin = KPluginFactory::instantiatePlugin<KIO::DndPopupMenuPlugin>(data).plugin) {
             const auto actions = plugin->setup(itemProps, m_destUrl);

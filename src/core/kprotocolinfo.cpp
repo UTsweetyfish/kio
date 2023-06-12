@@ -3,6 +3,7 @@
     SPDX-FileCopyrightText: 1999 Torben Weis <weis@kde.org>
     SPDX-FileCopyrightText: 2003 Waldo Bastian <bastian@kde.org>
     SPDX-FileCopyrightText: 2012 David Faure <faure@kde.org>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-only
 */
@@ -33,6 +34,7 @@ KProtocolInfoPrivate::KProtocolInfoPrivate(const QString &path)
     m_name = config.readEntry("protocol");
     m_exec = config.readPathEntry("exec", QString());
     m_isSourceProtocol = config.readEntry("source", true);
+    m_supportsPermissions = config.readEntry("permissions", true);
     m_isHelperProtocol = config.readEntry("helper", false);
     m_supportsReading = config.readEntry("reading", false);
     m_supportsWriting = config.readEntry("writing", false);
@@ -66,8 +68,8 @@ KProtocolInfoPrivate::KProtocolInfoPrivate(const QString &path)
     m_archiveMimeTypes = config.readEntry("archiveMimetype", QStringList());
     m_icon = config.readEntry("Icon");
     m_config = config.readEntry("config", m_name);
-    m_maxSlaves = config.readEntry("maxInstances", 1);
-    m_maxSlavesPerHost = config.readEntry("maxInstancesPerHost", 0);
+    m_maxWorkers = config.readEntry("maxInstances", 1);
+    m_maxWorkersPerHost = config.readEntry("maxInstancesPerHost", 0);
 
     QString tmp = config.readEntry("input");
     if (tmp == QLatin1String("filesystem")) {
@@ -122,6 +124,8 @@ KProtocolInfoPrivate::KProtocolInfoPrivate(const QString &name, const QString &e
 {
     // source has fallback true if not set
     m_isSourceProtocol = json.value(QStringLiteral("source")).toBool(true);
+    // true if not set for backwards compatibility
+    m_supportsPermissions = json.value(QStringLiteral("permissions")).toBool(true);
 
     // other bools are fine with default false by toBool
     m_isHelperProtocol = json.value(QStringLiteral("helper")).toBool();
@@ -167,10 +171,10 @@ KProtocolInfoPrivate::KProtocolInfoPrivate(const QString &name, const QString &e
     // config has fallback to name if not set
     m_config = json.value(QStringLiteral("config")).toString(m_name);
 
-    // max slaves has fallback to 1 if not set
-    m_maxSlaves = json.value(QStringLiteral("maxInstances")).toInt(1);
+    // max workers has fallback to 1 if not set
+    m_maxWorkers = json.value(QStringLiteral("maxInstances")).toInt(1);
 
-    m_maxSlavesPerHost = json.value(QStringLiteral("maxInstancesPerHost")).toInt();
+    m_maxWorkersPerHost = json.value(QStringLiteral("maxInstancesPerHost")).toInt();
 
     QString tmp = json.value(QStringLiteral("input")).toString();
     if (tmp == QLatin1String("filesystem")) {
@@ -221,7 +225,9 @@ KProtocolInfoPrivate::KProtocolInfoPrivate(const QString &name, const QString &e
 
     m_capabilities = json.value(QStringLiteral("Capabilities")).toVariant().toStringList();
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
     m_slaveHandlesNotify = json.value(QStringLiteral("slaveHandlesNotify")).toVariant().toStringList();
+#endif
 
     m_proxyProtocol = json.value(QStringLiteral("ProxiedBy")).toString();
 }
@@ -272,24 +278,38 @@ QString KProtocolInfo::config(const QString &_protocol)
     return QStringLiteral("kio_%1rc").arg(prot->m_config);
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 int KProtocolInfo::maxSlaves(const QString &_protocol)
+{
+    return maxWorkers(_protocol);
+}
+#endif
+
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
+int KProtocolInfo::maxSlavesPerHost(const QString &_protocol)
+{
+    return maxWorkersPerHost(_protocol);
+}
+#endif
+
+int KProtocolInfo::maxWorkers(const QString &_protocol)
 {
     KProtocolInfoPrivate *prot = KProtocolInfoFactory::self()->findProtocol(_protocol);
     if (!prot) {
         return 1;
     }
 
-    return prot->m_maxSlaves;
+    return prot->m_maxWorkers;
 }
 
-int KProtocolInfo::maxSlavesPerHost(const QString &_protocol)
+int KProtocolInfo::maxWorkersPerHost(const QString &_protocol)
 {
     KProtocolInfoPrivate *prot = KProtocolInfoFactory::self()->findProtocol(_protocol);
     if (!prot) {
         return 0;
     }
 
-    return prot->m_maxSlavesPerHost;
+    return prot->m_maxWorkersPerHost;
 }
 
 bool KProtocolInfo::determineMimetypeFromExtension(const QString &_protocol)
@@ -380,6 +400,7 @@ QStringList KProtocolInfo::archiveMimetypes(const QString &protocol)
     return prot->m_archiveMimeTypes;
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 QStringList KProtocolInfo::slaveHandlesNotify(const QString &_protocol)
 {
     KProtocolInfoPrivate *prot = KProtocolInfoFactory::self()->findProtocol(_protocol);
@@ -389,6 +410,7 @@ QStringList KProtocolInfo::slaveHandlesNotify(const QString &_protocol)
 
     return prot->m_slaveHandlesNotify;
 }
+#endif
 
 QString KProtocolInfo::proxiedBy(const QString &_protocol)
 {

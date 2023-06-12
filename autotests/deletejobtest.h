@@ -8,13 +8,11 @@
 #define DELETEJOBTEST_H
 
 #include <QObject>
-#include <kio/job.h>
 
 class DeleteJobTest : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
-    void initTestCase();
     void deleteFileTestCase_data() const;
     void deleteFileTestCase();
     void deleteDirectoryTestCase_data() const;

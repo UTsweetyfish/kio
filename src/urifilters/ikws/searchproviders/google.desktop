@@ -13,7 +13,7 @@ Name[bg]=Google
 Name[bn]=গুগল্
 Name[bn_IN]=Google
 Name[br]=Google
-Name[bs]=Google
+Name[bs]=Gugl
 Name[ca]=Google
 Name[ca@valencia]=Google
 Name[cs]=Google
@@ -43,8 +43,10 @@ Name[hsb]=Google
 Name[hu]=Google
 Name[ia]=Google
 Name[id]=Google
+Name[ie]=Google
 Name[is]=Google
 Name[it]=Google
+Name[ka]=Google
 Name[kk]=Google
 Name[km]=ហ្គូហ្គល
 Name[kn]=ಗೂಗಲ್
@@ -84,6 +86,7 @@ Name[ta]=கூகுள்
 Name[te]=గూగుల్
 Name[tg]=Google
 Name[th]=กูเกิล
+Name[tok]=ilo alasa Google
 Name[tr]=Google
 Name[ug]=گۇگىل(Google)
 Name[uk]=Google
@@ -98,13 +101,15 @@ Name[zh_TW]=Google
 Keys=g,gg,google
 Query=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[ar]=https://www.google.com/search?q=\\{@}&ie=UTF-8
-Query[ast]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[az]=https://www.google.com/search?q=\\{@}&ie=UTF-8
+Query[be]=https://www.google.com/search?q=\\{@}&ie=UTF-8
+Query[be@latin]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[bg]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[bs]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[ca]=https://www.google.cat/search?q=\\{@}&ie=UTF-8
 Query[ca@valencia]=https://www.google.cat/search?q=\\{@}&ie=UTF-8
 Query[cs]=https://www.google.com/search?q=\\{@}&ie=UTF-8
+Query[cy]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[da]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[de]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[el]=https://www.google.com/search?q=\\{@}&ie=UTF-8
@@ -121,8 +126,10 @@ Query[hi]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[hu]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[ia]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[id]=https://www.google.com/search?q=\\{@}&ie=UTF-8
+Query[ie]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[is]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[it]=https://www.google.com/search?q=\\{@}&ie=UTF-8
+Query[ka]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[kk]=http://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ko]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[lt]=https://www.google.com/search?q=\\{@}&ie=UTF-8
@@ -147,6 +154,7 @@ Query[sr@latin]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[sv]=https://www.google.se/search?q=\\{@}&ie=UTF-8
 Query[ta]=https://www.google.com/search?hl=ta&q=\\{@}&ie=UTF-8
 Query[tg]=https://www.google.com/search?q=\\{@}&ie=UTF-8
+Query[tok]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[tr]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[ug]=https://www.google.com/search?q=\\{@}&ie=UTF-8
 Query[uk]=https://www.google.com/search?q=\\{@}&ie=UTF-8

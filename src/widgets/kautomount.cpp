@@ -6,15 +6,19 @@
 */
 
 #include "kautomount.h"
-#include "kio/job.h"
+
 #include "kio_widgets_debug.h"
-#include <KDirWatch>
 #include <KIO/JobUiDelegate>
 #include <KIO/OpenUrlJob>
-#include <KJobUiDelegate>
-#include <QDebug>
+#include <jobuidelegatefactory.h>
 #include <kdirnotify.h>
+#include <kio/simplejob.h>
 #include <kmountpoint.h>
+
+#include <KDirWatch>
+#include <KJobUiDelegate>
+
+#include <QDebug>
 
 #if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 88)
 
@@ -86,7 +90,7 @@ void KAutoMountPrivate::slotResult(KJob *job)
             // qDebug() << "KAutoMount: m_strDevice=" << m_strDevice << " -> mountpoint=" << mountpoint;
             if (m_bShowFilemanagerWindow) {
                 KIO::OpenUrlJob *job = new KIO::OpenUrlJob(url, QStringLiteral("inode/directory"));
-                job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, nullptr /*TODO - window*/));
+                job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, nullptr /*TODO - window*/));
                 job->setRunExecutables(true);
                 job->start();
             }

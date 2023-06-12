@@ -22,20 +22,22 @@
 #include <QStandardPaths>
 #include <QTimer>
 
+#include <KLibexec>
 #include <KLocalizedString>
-
-#include <KPluginLoader>
 
 #include "commands_p.h"
 #include "connection_p.h"
 #include "connectionserver.h"
 #include "dataprotocol_p.h"
 #include "kioglobal_p.h"
-#include <config-kiocore.h> // KDE_INSTALL_FULL_LIBEXECDIR_KF5
+#include <config-kiocore.h> // KDE_INSTALL_FULL_LIBEXECDIR_KF
 #include <kprotocolinfo.h>
 
 #include "kiocoredebug.h"
+#include "slavebase.h"
 #include "slaveinterface_p.h"
+#include "workerfactory.h"
+#include "workerthread_p.h"
 
 using namespace KIO;
 
@@ -66,7 +68,9 @@ public:
         , m_job(nullptr)
         , m_pid(0)
         , m_port(0)
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 103)
         , contacted(false)
+#endif
         , dead(false)
         , m_refCount(1)
     {
@@ -81,6 +85,7 @@ public:
         delete slaveconnserver;
     }
 
+    WorkerThread *m_workerThread = nullptr; // only set for in-process workers
     QString m_protocol;
     QString m_slaveProtocol;
     QString m_host;
@@ -88,9 +93,11 @@ public:
     QString m_passwd;
     KIO::ConnectionServer *slaveconnserver;
     KIO::SimpleJob *m_job;
-    qint64 m_pid;
+    qint64 m_pid; // only set for out-of-process workers
     quint16 m_port;
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 103)
     bool contacted;
+#endif
     bool dead;
     QElapsedTimer contact_started;
     QElapsedTimer m_idleSince;
@@ -118,28 +125,28 @@ void Slave::timeout()
         return;
     }
 
-    /*qDebug() << "slave failed to connect to application pid=" << d->m_pid
+    /*qDebug() << "worker failed to connect to application pid=" << d->m_pid
                  << " protocol=" << d->m_protocol;*/
     if (d->m_pid && KIOPrivate::isProcessAlive(d->m_pid)) {
         int delta_t = d->contact_started.elapsed() / 1000;
-        // qDebug() << "slave is slow... pid=" << d->m_pid << " t=" << delta_t;
+        // qDebug() << "worker is slow... pid=" << d->m_pid << " t=" << delta_t;
         if (delta_t < s_slaveConnectionTimeoutMax) {
             QTimer::singleShot(1000 * s_slaveConnectionTimeoutMin, this, &Slave::timeout);
             return;
         }
     }
-    // qDebug() << "Houston, we lost our slave, pid=" << d->m_pid;
+    // qDebug() << "Houston, we lost our worker, pid=" << d->m_pid;
     d->connection->close();
     d->dead = true;
     QString arg = d->m_protocol;
     if (!d->m_host.isEmpty()) {
         arg += QLatin1String("://") + d->m_host;
     }
-    // qDebug() << "slave died pid = " << d->m_pid;
+    // qDebug() << "worker failed to connect pid =" << d->m_pid << arg;
 
     ref();
     // Tell the job about the problem.
-    Q_EMIT error(ERR_SLAVE_DIED, arg);
+    Q_EMIT error(ERR_WORKER_DIED, arg);
     // Tell the scheduler about the problem.
     Q_EMIT slaveDied(this);
     // After the above signal we're dead!!
@@ -157,7 +164,7 @@ Slave::Slave(const QString &protocol, QObject *parent)
 
 Slave::~Slave()
 {
-    // qDebug() << "destructing slave object pid = " << d->m_pid;
+    // qDebug() << "destructing slave object pid =" << d->m_pid;
     // delete d;
 }
 
@@ -209,17 +216,21 @@ void Slave::setIdle()
     d->m_idleSince.start();
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 103)
 bool Slave::isConnected()
 {
     Q_D(Slave);
     return d->contacted;
 }
+#endif
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 103)
 void Slave::setConnected(bool c)
 {
     Q_D(Slave);
     d->contacted = c;
 }
+#endif
 
 void Slave::ref()
 {
@@ -242,6 +253,12 @@ void Slave::aboutToDelete()
     Q_D(Slave);
     d->connection->disconnect(this);
     this->disconnect();
+}
+
+void Slave::setWorkerThread(WorkerThread *thread)
+{
+    Q_D(Slave);
+    d->m_workerThread = thread;
 }
 
 int Slave::idleTime()
@@ -341,9 +358,9 @@ void Slave::gotInput()
         if (!d->m_host.isEmpty()) {
             arg += QLatin1String("://") + d->m_host;
         }
-        // qDebug() << "slave died pid = " << d->m_pid;
+        // qDebug() << "worker died pid =" << d->m_pid << arg;
         // Tell the job about the problem.
-        Q_EMIT error(ERR_SLAVE_DIED, arg);
+        Q_EMIT error(ERR_WORKER_DIED, arg);
         // Tell the scheduler about the problem.
         Q_EMIT slaveDied(this);
     }
@@ -355,12 +372,15 @@ void Slave::kill()
 {
     Q_D(Slave);
     d->dead = true; // OO can be such simple.
-    // qDebug() << "killing slave pid" << d->m_pid
-    //         << "(" << d->m_protocol + QLatin1String("://") + d->m_host << ")";
     if (d->m_pid) {
+        qCDebug(KIO_CORE) << "killing worker process pid" << d->m_pid << "(" << d->m_protocol + QLatin1String("://") + d->m_host << ")";
         KIOPrivate::sendTerminateSignal(d->m_pid);
         d->m_pid = 0;
+    } else if (d->m_workerThread) {
+        qCDebug(KIO_CORE) << "aborting worker thread for " << d->m_protocol + QLatin1String("://") + d->m_host;
+        d->m_workerThread->abort();
     }
+    deref();
 }
 
 void Slave::setHost(const QString &host, quint16 port, const QString &user, const QString &passwd)
@@ -394,6 +414,7 @@ void Slave::setConfig(const MetaData &config)
     d->connection->send(CMD_CONFIG, data);
 }
 
+// TODO KF6: return std::unique_ptr
 Slave *Slave::createSlave(const QString &protocol, const QUrl &url, int &error, QString &error_text)
 {
     Q_UNUSED(url)
@@ -402,46 +423,60 @@ Slave *Slave::createSlave(const QString &protocol, const QUrl &url, int &error, 
     if (protocol == QLatin1String("data")) {
         return new DataProtocol();
     }
-    Slave *slave = new Slave(protocol);
-    QUrl slaveAddress = slave->d_func()->slaveconnserver->address();
-    if (slaveAddress.isEmpty()) {
-        error_text = i18n("Can not create socket for launching io-slave for protocol '%1'.", protocol);
-        error = KIO::ERR_CANNOT_CREATE_SLAVE;
-        delete slave;
-        return nullptr;
-    }
 
     const QString _name = KProtocolInfo::exec(protocol);
     if (_name.isEmpty()) {
         error_text = i18n("Unknown protocol '%1'.", protocol);
-        error = KIO::ERR_CANNOT_CREATE_SLAVE;
-        delete slave;
+        error = KIO::ERR_CANNOT_CREATE_WORKER;
         return nullptr;
     }
-    // find the kioslave using QPluginLoader; kioslave would do this
+
+    // find the KIO worker using QPluginLoader; kioslave would do this
     // anyway, but if it doesn't exist, we want to be able to return
     // a useful error message immediately
     QPluginLoader loader(_name);
     const QString lib_path = loader.fileName();
     if (lib_path.isEmpty()) {
-        error_text = i18n("Can not find io-slave for protocol '%1'.", protocol);
-        error = KIO::ERR_CANNOT_CREATE_SLAVE;
+        error_text = i18n("Can not find a KIO worker for protocol '%1'.", protocol);
+        error = KIO::ERR_CANNOT_CREATE_WORKER;
+        return nullptr;
+    }
+
+    Slave *slave = new Slave(protocol);
+    QUrl slaveAddress = slave->d_func()->slaveconnserver->address();
+    if (slaveAddress.isEmpty()) {
+        error_text = i18n("Can not create a socket for launching a KIO worker for protocol '%1'.", protocol);
+        error = KIO::ERR_CANNOT_CREATE_WORKER;
         delete slave;
         return nullptr;
+    }
+
+    // Threads are enabled by default, set KIO_ENABLE_WORKER_THREADS=0 to disable them
+    const auto useThreads = []() {
+        return qgetenv("KIO_ENABLE_WORKER_THREADS") != "0";
+    };
+    static bool bUseThreads = useThreads();
+
+    // Threads have performance benefits, but degrade robustness
+    // (a worker crashing kills the app). So let's only enable the feature for kio_file, for now.
+    if (protocol == QLatin1String("admin") || (bUseThreads && protocol == QLatin1String("file"))) {
+        auto *factory = qobject_cast<WorkerFactory *>(loader.instance());
+        if (factory) {
+            auto *thread = new WorkerThread(slave, factory, slaveAddress.toString().toLocal8Bit());
+            thread->start();
+            slave->setWorkerThread(thread);
+            return slave;
+        } else {
+            qCWarning(KIO_CORE) << lib_path << "doesn't implement WorkerFactory?";
+        }
     }
 
     const QStringList args = QStringList{lib_path, protocol, QString(), slaveAddress.toString()};
     // qDebug() << "kioslave" << ", " << lib_path << ", " << protocol << ", " << QString() << ", " << slaveAddress;
 
-    // look where libexec path is (can be set in qt.conf)
-    const QString qlibexec = QLibraryInfo::location(QLibraryInfo::LibraryExecutablesPath);
-    // on !win32 we use a kf5 suffix
-    const QString qlibexecKF5 = QDir(qlibexec).filePath(QStringLiteral("kf5"));
-
     // search paths
-    const QStringList searchPaths = QStringList() << QCoreApplication::applicationDirPath() // then look where our application binary is located
-                                                  << qlibexec << qlibexecKF5
-                                                  << QFile::decodeName(KDE_INSTALL_FULL_LIBEXECDIR_KF5); // look at our installation location
+    QStringList searchPaths = KLibexec::kdeFrameworksPaths(QStringLiteral("libexec/kf" QT_STRINGIFY(QT_VERSION_MAJOR)));
+    searchPaths.append(QFile::decodeName(KDE_INSTALL_FULL_LIBEXECDIR_KF)); // look at our installation location
     QString kioslaveExecutable = QStandardPaths::findExecutable(QStringLiteral("kioslave5"), searchPaths);
     if (kioslaveExecutable.isEmpty()) {
         // Fallback to PATH. On win32 we install to bin/ which tests outside
@@ -451,7 +486,7 @@ Slave *Slave::createSlave(const QString &protocol, const QUrl &url, int &error, 
     }
     if (kioslaveExecutable.isEmpty()) {
         error_text = i18n("Can not find 'kioslave5' executable at '%1'", searchPaths.join(QLatin1String(", ")));
-        error = KIO::ERR_CANNOT_CREATE_SLAVE;
+        error = KIO::ERR_CANNOT_CREATE_WORKER;
         delete slave;
         return nullptr;
     }

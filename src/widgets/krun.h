@@ -185,7 +185,7 @@ public:
     void setShowScriptExecutionPrompt(bool showPrompt);
 
     /**
-     * Suggested file name given by the server (e.g. HTTP content-disposition)
+     * Suggested file name given by the server (e.g.\ HTTP content-disposition)
      */
     QString suggestedFileName() const;
 
@@ -288,7 +288,7 @@ public:
 
 #if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 71)
     /**
-     * Run an application (known from its .desktop file, i.e. as a KService)
+     * Run an application (known from its .desktop file, i.e.\ as a KService).
      *
      * If you need to wait for the application to register to D-Bus, use D-Bus activation instead.
      *
@@ -578,7 +578,7 @@ public:
 
 #if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 0)
     /**
-     * Given a full command line (e.g. the Exec= line from a .desktop file),
+     * Given a full command line (e.g.\ the Exec= line from a .desktop file),
      * extract the name of the binary being run.
      * @param execLine the full command line
      * @param removePath if true, remove a (relative or absolute) path. E.g. /usr/bin/ls becomes ls.

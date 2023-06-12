@@ -36,7 +36,6 @@ private Q_SLOTS:
     void initTestCase()
     {
         QStandardPaths::setTestModeEnabled(true);
-        qputenv("KDE_FORK_SLAVES", "yes"); // to avoid a runtime dependency on klauncher
 #ifdef Q_OS_UNIX
         m_umask = ::umask(0);
         ::umask(m_umask);
@@ -124,7 +123,7 @@ private Q_SLOTS:
         QTest::newRow("text file with jpeg extension") << "Text File"
                                                        << "Text File.txt"
                                                        << "foo.jpg"
-                                                       << "foo.jpg.txt";
+                                                       << "foo.jpg"; // You get what you typed
         QTest::newRow("html file") << "HTML File"
                                    << "HTML File.html"
                                    << "foo.html"
@@ -135,8 +134,8 @@ private Q_SLOTS:
                                           << "tmp_link.desktop";
         QTest::newRow("url desktop file no extension") << "Link to Location "
                                                        << ""
-                                                       << "tmp_link"
-                                                       << "tmp_link";
+                                                       << "tmp_link1"
+                                                       << "tmp_link1.desktop";
         QTest::newRow("url desktop file .pl extension") << "Link to Location "
                                                         << ""
                                                         << "tmp_link.pl"
@@ -187,16 +186,22 @@ private Q_SLOTS:
         QFETCH(QString, expectedFilename);
 
         QWidget parentWidget;
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
         KActionCollection coll(this, QStringLiteral("foo"));
         KNewFileMenu menu(&coll, QStringLiteral("the_action"), this);
+#else
+        KNewFileMenu menu(this);
+#endif
         menu.setModal(false);
         menu.setParentWidget(&parentWidget);
         menu.setSelectDirWhenAlreadyExist(true);
-        QList<QUrl> lst;
-        lst << QUrl::fromLocalFile(m_tmpDir.path());
-        menu.setPopupFiles(lst);
+        menu.setWorkingDirectory(QUrl::fromLocalFile(m_tmpDir.path()));
         menu.checkUpToDate();
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
         QAction *action = coll.action(QStringLiteral("the_action"));
+#else
+        QAction *action = &menu;
+#endif
         QVERIFY(action);
         QAction *textAct = nullptr;
         const QList<QAction *> actionsList = action->menu()->actions();
@@ -289,12 +294,19 @@ private Q_SLOTS:
 
     void testParsingUserDirs()
     {
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
         KActionCollection coll(this, QStringLiteral("foo"));
         KNewFileMenu menu(&coll, QStringLiteral("the_action"), this);
-        const QList<QUrl> lst{QUrl::fromLocalFile(m_tmpDir.path())};
-        menu.setPopupFiles(lst);
+#else
+        KNewFileMenu menu(this);
+#endif
+        menu.setWorkingDirectory(QUrl::fromLocalFile(m_tmpDir.path()));
         menu.checkUpToDate();
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
         QAction *action = coll.action(QStringLiteral("the_action"));
+#else
+        QAction *action = &menu;
+#endif
         const auto list = action->menu()->actions();
         auto it = std::find_if(list.cbegin(), list.cend(), [](QAction *act) {
             return act->text().contains("Custom");

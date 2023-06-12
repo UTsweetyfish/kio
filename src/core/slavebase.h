@@ -26,6 +26,9 @@ namespace KIO
 class Connection;
 class SlaveBasePrivate;
 
+// TODO: Enable once file KIO worker is ported away and add endif, similar in the cpp file
+// #if KIOCORE_ENABLE_DEPRECATED_SINCE(version where file:/ KIO worker was ported)
+
 /**
  * @class KIO::SlaveBase slavebase.h <KIO/SlaveBase>
  *
@@ -45,10 +48,13 @@ class SlaveBasePrivate;
  *
  * If a kioslave needs a Qt event loop within the implementation of one method, e.g. to
  * wait for an asynchronous operation to finish, that is possible, using QEventLoop.
+ *
+ * @deprecated Since 5.96, use WorkerBase.
  */
 class KIOCORE_EXPORT SlaveBase
 {
 public:
+    KIOCORE_DEPRECATED_VERSION_BELATED(5, 101, 5, 96, "Use WorkerBase")
     SlaveBase(const QByteArray &protocol, const QByteArray &pool_socket, const QByteArray &app_socket);
     virtual ~SlaveBase();
 
@@ -56,7 +62,7 @@ public:
      * @internal
      * Terminate the slave by calling the destructor and then ::exit()
      */
-    Q_NORETURN void exit();
+    void exit();
 
     /**
      * @internal
@@ -68,7 +74,7 @@ public:
     ///////////
 
     /**
-     * Sends data in the slave to the job (i.e. in get).
+     * Sends data in the slave to the job (i.e.\ in get).
      *
      * To signal end of data, simply send an empty
      * QByteArray().
@@ -220,7 +226,7 @@ public:
     void speed(unsigned long _bytes_per_second);
 
     /**
-     * Call this to signal a redirection
+     * Call this to signal a redirection.
      * The job will take care of going to that url.
      */
     void redirection(const QUrl &_url);
@@ -253,14 +259,22 @@ public:
      * Type of message box. Should be kept in sync with KMessageBox::DialogType.
      */
     enum MessageBoxType {
-        QuestionYesNo = 1,
-        WarningYesNo = 2,
+        QuestionTwoActions = 1, ///< @since 5.100
+        WarningTwoActions = 2, ///< @since 5.100
         WarningContinueCancel = 3,
-        WarningYesNoCancel = 4,
+        WarningTwoActionsCancel = 4, ///< @since 5.100
         Information = 5,
         SSLMessageBox = 6,
-        // In KMessageBox::DialogType; Sorry = 7, Error = 8, QuestionYesNoCancel = 9
+        // In KMessageBox::DialogType; Sorry = 7, Error = 8, QuestionTwoActionsCancel = 9
         WarningContinueCancelDetailed = 10,
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 100)
+        QuestionYesNo ///< @deprecated Since 5.100, use QuestionTwoActions.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use QuestionTwoActions.") = QuestionTwoActions,
+        WarningYesNo ///< @deprecated Since 5.100, use WarningTwoActions.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use WarningTwoActions.") = WarningTwoActions,
+        WarningYesNoCancel ///< @deprecated Since 5.100, use WarningTwoActionsCancel.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use WarningTwoActionsCancel.") = WarningTwoActionsCancel,
+#endif
     };
 
     /**
@@ -269,49 +283,57 @@ public:
     enum ButtonCode {
         Ok = 1,
         Cancel = 2,
-        Yes = 3,
-        No = 4,
+        PrimaryAction = 3, ///< @since 5.100
+        SecondaryAction = 4, ///< @since 5.100
         Continue = 5,
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 100)
+        Yes ///< @deprecated Since 5.100, use PrimaryAction.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use PrimaryAction.") = PrimaryAction,
+        No ///< @deprecated Since 5.100, use SecondaryAction.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use SecondaryAction.") = SecondaryAction,
+#endif
     };
 
     /**
      * Call this to show a message box from the slave
-     * @param type type of message box: QuestionYesNo, WarningYesNo, WarningContinueCancel...
+     * @param type type of message box: QuestionTwoActions, WarningTwoActions, WarningContinueCancel...
      * @param text Message string. May contain newlines.
-     * @param caption Message box title.
-     * @param buttonYes The text for the first button.
-     *                  The default is i18n("&Yes").
-     * @param buttonNo  The text for the second button.
-     *                  The default is i18n("&No").
-     * Note: for ContinueCancel, buttonYes is the continue button and buttonNo is unused.
-     *       and for Information, none is used.
+     * @param title Message box title.
+     * @param primaryActionText the text for the first button.
+     *                          Ignored for @p type Information & SSLMessageBox.
+     *                          The (deprecated since 5.100) default is i18n("&Yes").
+     * @param secondaryActionText the text for the second button.
+     *                            Ignored for @p type WarningContinueCancel, WarningContinueCancelDetailed,
+     *                            Information & SSLMessageBox.
+     *                            The (deprecated since 5.100) default is i18n("&No").
      * @return a button code, as defined in ButtonCode, or 0 on communication error.
      */
     int messageBox(MessageBoxType type,
                    const QString &text,
-                   const QString &caption = QString(),
-                   const QString &buttonYes = QString(),
-                   const QString &buttonNo = QString());
+                   const QString &title = QString(),
+                   const QString &primaryActionText = QString(),
+                   const QString &secondaryActionText = QString());
 
     /**
      * Call this to show a message box from the slave
      * @param text Message string. May contain newlines.
-     * @param type type of message box: QuestionYesNo, WarningYesNo, WarningContinueCancel...
-     * @param caption Message box title.
-     * @param buttonYes The text for the first button.
-     *                  The default is i18n("&Yes").
-     * @param buttonNo  The text for the second button.
-     *                  The default is i18n("&No").
-     * Note: for ContinueCancel, buttonYes is the continue button and buttonNo is unused.
-     *       and for Information, none is used.
+     * @param type type of message box: QuestionTwoActions, WarningTwoActions, WarningContinueCancel...
+     * @param title Message box title.
+     * @param primaryActionText the text for the first button.
+     *                          Ignored for @p type Information & SSLMessageBox.
+     *                          The (deprecated since 5.100) default is i18n("&Yes").
+     * @param secondaryActionText the text for the second button.
+     *                            Ignored for @p type WarningContinueCancel, WarningContinueCancelDetailed,
+     *                            Information & SSLMessageBox.
+     *                            The (deprecated since 5.100) default is i18n("&No").
      * @param dontAskAgainName the name used to store result from 'Do not ask again' checkbox.
      * @return a button code, as defined in ButtonCode, or 0 on communication error.
      */
     int messageBox(const QString &text,
                    MessageBoxType type,
-                   const QString &caption = QString(),
-                   const QString &buttonYes = QString(),
-                   const QString &buttonNo = QString(),
+                   const QString &title = QString(),
+                   const QString &primaryActionText = QString(),
+                   const QString &secondaryActionText = QString(),
                    const QString &dontAskAgainName = QString());
 
     /**
@@ -403,10 +425,11 @@ public:
     /**
      * Prepare slave for streaming operation
      */
-    virtual void setSubUrl(const QUrl &url);
+    virtual void setSubUrl(const QUrl &url); // TODO KF6 remove
 
     /**
-     * Opens the connection (forced)
+     * Opens the connection (forced).
+     *
      * When this function gets called the slave is operating in
      * connection-oriented mode.
      * When a connection gets lost while the slave operates in
@@ -417,7 +440,8 @@ public:
     virtual void openConnection();
 
     /**
-     * Closes the connection (forced)
+     * Closes the connection (forced).
+     *
      * Called when the application disconnects the slave to close
      * any open network connections.
      *
@@ -480,7 +504,7 @@ public:
     virtual void close();
 
     /**
-     * put, i.e. write data into a file.
+     * put, i.e.\ write data into a file.
      *
      * @param url where to write the file
      * @param permissions may be -1. In this case no special permission mode is set.
@@ -583,19 +607,22 @@ public:
     virtual void symlink(const QString &target, const QUrl &dest, JobFlags flags);
 
     /**
-     * Change permissions on @p url
+     * Change permissions on @p url.
+     *
      * The slave emits ERR_DOES_NOT_EXIST or ERR_CANNOT_CHMOD
      */
     virtual void chmod(const QUrl &url, int permissions);
 
     /**
-     * Change ownership of @p url
+     * Change ownership of @p url.
+     *
      * The slave emits ERR_DOES_NOT_EXIST or ERR_CANNOT_CHOWN
      */
     virtual void chown(const QUrl &url, const QString &owner, const QString &group);
 
     /**
-     * Sets the modification time for @url
+     * Sets the modification time for @p url.
+     *
      * For instance this is what CopyJob uses to set mtime on dirs at the end of a copy.
      * It could also be used to set the mtime on any file, in theory.
      * The usual implementation on unix is to call utime(path, &myutimbuf).
@@ -626,7 +653,8 @@ public:
      *
      * @param src where to copy the file from (decoded)
      * @param dest where to copy the file to (decoded)
-     * @param permissions may be -1. In this case no special permission mode is set.
+     * @param permissions may be -1. In this case no special permission mode is set,
+     *        and the owner and group permissions are not preserved.
      * @param flags We support Overwrite here
      *
      * Don't forget to set the modification time of @p dest to be the modification time of @p src.
@@ -653,7 +681,8 @@ public:
     virtual void setLinkDest(const QUrl &url, const QString &target);
 
     /**
-     * Used for any command that is specific to this slave (protocol)
+     * Used for any command that is specific to this slave (protocol).
+     *
      * Examples are : HTTP POST, mount and unmount (kio_file)
      *
      * @param data packed data; the meaning is completely dependent on the
@@ -679,7 +708,7 @@ public:
 
     /**
      * Called by the scheduler to tell the slave that the configuration
-     * changed (i.e. proxy settings) .
+     * changed (i.e.\ proxy settings).
      */
     virtual void reparseConfiguration();
 
@@ -859,7 +888,7 @@ public:
      *
      * \code
      * AuthInfo info;
-     * info.url = QUrl("http://www.foobar.org/foo/bar");
+     * info.url = QUrl("https://www.foobar.org/foo/bar");
      * info.username = "somename";
      * info.verifyPath = true;
      * if ( !checkCachedAuthentication( info ) )
@@ -884,7 +913,7 @@ public:
      *
      * \code
      * AuthInfo info;
-     * info.url = QUrl("http://www.foobar.org/foo/bar");
+     * info.url = QUrl("https://www.foobar.org/foo/bar");
      * info.username = "somename";
      * info.verifyPath = true;
      * if ( !checkCachedAuthentication( info ) ) {
@@ -1049,11 +1078,17 @@ private:
         return QString::fromLatin1(mProtocol);
     }
 
+    void setRunInThread(bool b);
+
     // This helps catching missing tr()/i18n() calls in error().
     void error(int _errid, const QByteArray &_text);
     void send(int cmd, const QByteArray &arr = QByteArray());
+
     std::unique_ptr<SlaveBasePrivate> const d;
     friend class SlaveBasePrivate;
+    friend class WorkerThread;
+    friend class WorkerBasePrivate;
+    friend class WorkerSlaveBaseBridge;
 };
 
 /**

@@ -5,14 +5,18 @@ Keys=grec
 Name=Great Dictionary of the Catalan Language (GRan Enciclopèdia Catalana)
 Name[ar]=القاموس العظيم عن اللغة الكَتَلونية (GRan Enciclopèdia  Catalana)
 Name[az]=Katalon Dilini Böyük Lüğəti (GRan Enciclopèdia Catalana)
+Name[be]=Вялікі слоўнік каталанскай мовы (GRan Enciclopèdia Catalana)
+Name[be@latin]=Vialiki sloŭnik katalanskaj movy (GRan Enciclopèdia Catalana)
+Name[bg]=Голям речник на каталунски език (GRan Enciclopèdia Catalana)
 Name[ca]=Gran diccionari de la Llengua Catalana (Gran Enciclopèdia Catalana)
 Name[ca@valencia]=Gran diccionari de la Llengua Catalana (Gran Enciclopèdia Catalana)
 Name[cs]=Velký katalánský slovník (GRan Enciclopèdia Catalana)
+Name[cy]=Geiriadur Mawr o'r Iaith Catalaneg (GRan Enciclopèdia Catalana)
 Name[da]=Storartet ordbog for det katalanske sprog (GRan Enciclopèdia  Catalana)
 Name[de]=Großes Wörterbuch der Katalanischen Sprache (GRan Enciclopèdia Catalana)
 Name[el]=Μεγάλο Λεξικό της Καταλανικής Γλώσσας  (GRan Enciclopèdia Catalana)
 Name[en_GB]=Great Dictionary of the Catalan Language (GRan Enciclopèdia Catalana)
-Name[eo]=Granda Vortaro de la Kataluna Lingvo (GRan Enciclopèdia  Catalana)
+Name[eo]=Granda Vortaro de la Kataluna Lingvo (GRan Enciclopèdia Catalana)
 Name[es]=Gran diccionario del idioma catalán (Gran Enciclopèdia Catalana)
 Name[et]=Suur katalaani sõnaraamat (GRan Enciclopèdia Catalana)
 Name[eu]=Katalan hizkuntzaren hiztegi  Handia (GRan Enciclopèdia Catalana)
@@ -23,14 +27,17 @@ Name[gl]=Gran Enciclopèdia Catalana
 Name[hu]=Katalán nagyszótár (GRan Enciclopèdia  Catalana)
 Name[ia]=Grande Dictionario del Linguage Catalan (GRan Enciclopèdia  Catalana)
 Name[id]=Kamus Besar Bahasa Catalan (GRan Enciclopèdia Catalana)
-Name[is]=Stóra orðabók katalónska tungumálsins (GRan Enciclopèdia  Catalana)
+Name[ie]=Li grand dictionarium del catalan lingue (GRan Enciclopèdia Catalana)
+Name[is]=Stóra katalónska orðabókin (GRan Enciclopèdia  Catalana)
 Name[it]=Grande dizionario della lingua catalana (GRan Enciclopèdia Catalana)
+Name[ka]=კატალანური ენის დიდი ლექსიკონი (GRan Enciclopèdia Catalana)
 Name[ko]=카탈루냐어 대사전(GRan Enciclopèdia Catalana)
 Name[lt]=Didysis katalonų kalbos žodynas (GRan Enciclopèdia Catalana)
 Name[my]=ကတ်တလန်ဘာသာစကား၏ ဒစ်ရှင်နရီကြီး (GRan Enciclopèdia Catalana)
 Name[nb]=Den store, katalanske ordboka (GRan Enciclopèdia Catalana)
 Name[nl]=Groot woordenboek van de Catalaanse taal (GRan Enciclopèdia Catalana)
 Name[nn]=Den store, katalanske ordboka (GRan Enciclopèdia Catalana)
+Name[pa]=ਕਾਟਾਲਾਨ ਭਾਸ਼ਾ ਲਈ ਮਹਾਨ ਕੋਸ਼ (GRan ਵਿਸ਼ਵਕੋਸ਼ ਕਾਟਾਲਾਨਾ)
 Name[pl]=Wielki słownik języka katalońskiego (GRan Enciclopèdia Catalana)
 Name[pt]=Grande Dicionário da Língua Catalã (GRan Enciclopèdia Catalana)
 Name[pt_BR]=Grande dicionário do idioma catalão (GRan Enciclopédia Catalana)
@@ -43,6 +50,7 @@ Name[sr@ijekavianlatin]=Veliki rječnik katalonskog jezika (GRan Enciclopèdia C
 Name[sr@latin]=Veliki rečnik katalonskog jezika (GRan Enciclopèdia Catalana)
 Name[sv]=Stor ordbok över det katalanska språket (Gran Enciclopèdia Catalana)
 Name[tg]=Луғати калони забони каталонӣ (Донишномаи каталонии GRan)
+Name[tok]=lipu nimi pi toki Katalan (Gran Enciclopèdia Catalana)
 Name[tr]=Katalanca Büyük Sözlük (GRan Enciclopèdia Catalana)
 Name[uk]=Великий словник каталанської мови (GRan Enciclopèdia Catalana)
 Name[vi]=Đại từ điển tiếng Catalan (GRan Enciclopèdia Catalana)
@@ -51,8 +59,9 @@ Name[zh_CN]=Catalan 语言的大目录(GRan Enciclopèdia Catalana)
 Name[zh_TW]=很棒的加泰隆尼亞語文字典 (GRan Enciclopèdia  Catalana)
 Query=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[ar]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
-Query[ast]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[az]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
+Query[be]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
+Query[be@latin]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[bg]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[bn]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[bs]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
@@ -60,6 +69,7 @@ Query[ca]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[ca@valencia]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[cs]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[csb]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
+Query[cy]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[da]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[de]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[el]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
@@ -82,8 +92,10 @@ Query[hr]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[hu]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[ia]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[id]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
+Query[ie]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[is]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[it]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
+Query[ka]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[kk]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[km]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[kn]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
@@ -114,6 +126,7 @@ Query[sr@latin]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[sv]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[tg]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[th]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
+Query[tok]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[tr]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[ug]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}
 Query[uk]=http://ec.grec.net/cgi-bin/AppDLC3.exe?APP=CERCADLC&GECART=\\{@}

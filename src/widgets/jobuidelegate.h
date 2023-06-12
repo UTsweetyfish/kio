@@ -4,6 +4,7 @@
     SPDX-FileCopyrightText: 2000 David Faure <faure@kde.org>
     SPDX-FileCopyrightText: 2006 Kevin Ottens <ervin@kde.org>
     SPDX-FileCopyrightText: 2013 Dawit Alemayehu <adawit@kde.org>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
@@ -19,9 +20,14 @@
 #include <kio/skipdialog.h>
 
 class KJob;
+class KDirOperator;
+class KIOWidgetJobUiDelegateFactory;
+
 namespace KIO
 {
 class JobUiDelegatePrivate;
+
+class FileUndoManager;
 
 class Job;
 
@@ -33,23 +39,51 @@ class Job;
 class KIOWIDGETS_EXPORT JobUiDelegate : public KDialogJobUiDelegate, public JobUiDelegateExtension
 {
     Q_OBJECT
+    // Allow the factory to construct. Everyone else needs to go through the factory or derive!
+    friend class ::KIOWidgetJobUiDelegateFactory;
+    // KIO internals don't need to derive either
+    friend class KIO::FileUndoManager;
 
 public:
+#if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 98)
     /**
      * Constructs a new KIO Job UI delegate.
+     * @deprecated Since 5.98, use KIO::createDefaultJobUiDelegate or versioned constructor instead
      */
+    KIOWIDGETS_DEPRECATED_VERSION(5, 98, "use KIO::createDefaultJobUiDelegate or versioned constructor instead")
     JobUiDelegate();
+#endif
 
+#if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 98)
     /**
      * Constructs a new KIO Job UI Delegate.
      * @param flags allows to enable automatic error/warning handling
      * @param window the window associated with this delegate, see setWindow.
-     * @since 5.70
+     * @since 5.70,
+     * @deprecated Since 5.98, use KIO::createDefaultJobUiDelegate or versioned constructor instead
      */
-    explicit JobUiDelegate(
-        KJobUiDelegate::Flags flags,
-        QWidget *window); // KF6 TODO: merge with previous ctor using AutoHandlingDisabled and nullptr default values (same in KDialogJobUiDelegate)
+    KIOWIDGETS_DEPRECATED_VERSION(5, 98, "use KIO::createDefaultJobUiDelegate or versioned constructor instead")
+    explicit JobUiDelegate(KJobUiDelegate::Flags flags, QWidget *window);
+#endif
 
+protected:
+    friend class ::KDirOperator;
+
+    enum class Version {
+        V2,
+    };
+
+    /**
+     * Constructs a new KIO Job UI delegate.
+     * @param version does nothing purely here to disambiguate this constructor from the deprecated older constructors.
+     * @param flags allows to enable automatic error/warning handling
+     * @param window the window associated with this delegate, see setWindow.
+     * @param ifaces Interface instances such as OpenWithHandlerInterface to replace the default interfaces
+     * @since 5.98
+     */
+    explicit JobUiDelegate(Version version, KJobUiDelegate::Flags flags = AutoHandlingDisabled, QWidget *window = nullptr, const QList<QObject *> &ifaces = {});
+
+public:
     /**
      * Destroys the KIO Job UI delegate.
      */
@@ -79,7 +113,7 @@ public:
      * a result code, as well as the new dest. Much easier to use than the
      * class RenameDialog directly.
      *
-     * @param caption the caption for the dialog box
+     * @param title the title for the dialog box
      * @param src the URL of the file/dir we're trying to copy, as it's part of the text message
      * @param dest the URL of the destination file/dir, i.e. the one that already exists
      * @param options parameters for the dialog (which buttons to show...)
@@ -93,7 +127,7 @@ public:
      * @return the result
      */
     RenameDialog_Result askFileRename(KJob *job,
-                                      const QString &caption,
+                                      const QString &title,
                                       const QUrl &src,
                                       const QUrl &dest,
                                       KIO::RenameDialog_Options options,
@@ -126,15 +160,15 @@ public:
     bool askDeleteConfirmation(const QList<QUrl> &urls, DeletionType deletionType, ConfirmationType confirmationType) override;
 
     /**
-     * This function allows for the delegation user prompts from the ioslaves.
+     * This function allows for the delegation user prompts from the KIO workers.
      *
      * @param type the desired type of message box.
      * @param text the message shown to the user.
-     * @param caption the caption of the message dialog box.
-     * @param buttonYes the text for the YES button.
-     * @param buttonNo the text for the NO button.
-     * @param iconYes the icon shown on the YES button.
-     * @param iconNo the icon shown on the NO button.
+     * @param title the title of the message dialog box.
+     * @param primaryActionText the text for the primary action button.
+     * @param secondaryActionText the text for the secondary action button.
+     * @param primaryActionIconName the icon shown on the primary action button.
+     * @param secondaryActionIconName the icon shown on the secondary action button.
      * @param dontAskAgainName the name used to store result from 'Do not ask again' checkbox.
      * @param metaData SSL information used by the SSLMessageBox. Since 5.66 this is also used for privilege operation details.
      *
@@ -145,11 +179,11 @@ public:
     // KF6 TODO Add a QString parameter for "details" and keep in sync with API in SlaveBase, SlaveInterface, and JobUiDelegateExtension.
     int requestMessageBox(MessageBoxType type,
                           const QString &text,
-                          const QString &caption,
-                          const QString &buttonYes,
-                          const QString &buttonNo,
-                          const QString &iconYes = QString(),
-                          const QString &iconNo = QString(),
+                          const QString &title,
+                          const QString &primaryActionText,
+                          const QString &secondaryActionText,
+                          const QString &primaryActionIconName = QString(),
+                          const QString &secondaryActionIconName = QString(),
                           const QString &dontAskAgainName = QString(),
                           const KIO::MetaData &metaData = KIO::MetaData()) override;
 

@@ -6,12 +6,12 @@ Name[ar]=مجموعات جوجل
 Name[as]=Google Groups
 Name[az]=Google Qrupları
 Name[be]=Групы Google
-Name[be@latin]=Hrupy „Google”
+Name[be@latin]=Hrupy Google
 Name[bg]=Групи в Google
 Name[bn]=গুগল্ গ্রুপস
 Name[bn_IN]=Google Groups (গ্রুপ)
 Name[br]=Stroladoù Google
-Name[bs]=Google Grupe
+Name[bs]=Gugl Grupe
 Name[ca]=Grups a Google
 Name[ca@valencia]=Grups a Google
 Name[cs]=Google - diskuzní skupiny
@@ -41,8 +41,10 @@ Name[hsb]=Google Groups
 Name[hu]=Google Groups
 Name[ia]=Google Groups : Gruppos de Google
 Name[id]=Google Grup
-Name[is]=Google - Ráðstefnur
+Name[ie]=Google Groups
+Name[is]=Google hópar
 Name[it]=Gruppi di Google
+Name[ka]=Google ჯგუფები
 Name[kk]=Google топтары
 Name[km]=ក្រុម​ហ្គូហ្គល
 Name[kn]=ಗೂಗಲ್ ಗುಂಪುಗಳು
@@ -82,6 +84,7 @@ Name[ta]=கூகுள் குழுக்கள்
 Name[te]=గూగుల్ గుంపులు
 Name[tg]=Гурӯҳҳои Google
 Name[th]=กลุ่มต่าง ๆ ของกูเกิล
+Name[tok]=ilo toki Google Groups
 Name[tr]=Google Grupları
 Name[ug]=Google گۇرۇپپا
 Name[uk]=Групи Google
@@ -96,13 +99,15 @@ Name[zh_TW]=Google 群組
 Keys=ggg,groups,dj,deja
 Query=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[ar]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
-Query[ast]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[az]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
+Query[be]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
+Query[be@latin]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[bg]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[bs]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[ca]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[ca@valencia]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[cs]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
+Query[cy]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[da]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[de]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[el]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
@@ -119,8 +124,10 @@ Query[hi]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[hu]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[ia]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[id]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
+Query[ie]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[is]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[it]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
+Query[ka]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[kk]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[ko]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[lt]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
@@ -144,6 +151,7 @@ Query[sr@ijekavianlatin]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[sr@latin]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[sv]=https://groups.google.se/groups?oi=djq&as_q=\\{@}
 Query[tg]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
+Query[tok]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[tr]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[ug]=https://groups.google.com/groups?oi=djq&as_q=\\{@}
 Query[uk]=https://groups.google.com/groups?oi=djq&as_q=\\{@}

@@ -2,14 +2,21 @@
 Keys=qwn
 Name=Qwant News
 Name[ar]=أخبار Qwant
+Name[ast]=Qwant News
 Name[az]=Qwant Xəbərlər
+Name[be]=Навіны Qwant
+Name[be@latin]=Naviny Qwant
+Name[bg]=Qwant News
+Name[bs]=Kvant Vijesti
 Name[ca]=Notícies a Qwant
 Name[ca@valencia]=Notícies a Qwant
 Name[cs]=Novinky Qwant
+Name[cy]=Newyddion Qwant
 Name[da]=Qwant News
 Name[de]=Qwant-Neuigkeiten
 Name[el]=Qwant Ειδήσεις
 Name[en_GB]=Qwant News
+Name[eo]=Qwant Novaĵoj
 Name[es]=Qwant Noticias
 Name[et]=Qwant News
 Name[eu]=Qwant Berriak
@@ -19,9 +26,11 @@ Name[gd]=Qwant News
 Name[gl]=Noticias en Qwant
 Name[hu]=Qwant hírek
 Name[ia]=Novas de Qwant
-Name[id]=QWant Berita
-Name[is]=Qwant Fréttir
+Name[id]=Qwant News
+Name[ie]=Qwant News
+Name[is]=Qwant News
 Name[it]=Notizie di Qwant
+Name[ka]=Qwant ახალი ამბები
 Name[ko]=Qwant 뉴스
 Name[lt]=Qwant naujienos
 Name[ml]=ക്വാണ്ട് വാർത്തകൾ
@@ -31,9 +40,11 @@ Name[nb]=Qwant nyheter
 Name[nds]=Qwant-Narichten
 Name[nl]=Qwant nieuws
 Name[nn]=Qwant nyheiter
+Name[pa]=ਕਿਊਵਾਂਟ ਖ਼ਬਰਾਂ
 Name[pl]=Qwant - aktualności
 Name[pt]=Notícias do Qwant
 Name[pt_BR]=Notícias do Qwant
+Name[ro]=Qwant Știri
 Name[ru]=Qwant: Новости
 Name[sk]=Novinky služby Qwant
 Name[sl]=Qwant - novice
@@ -43,6 +54,7 @@ Name[sr@ijekavianlatin]=Qwant-vesti
 Name[sr@latin]=Qwant-vesti
 Name[sv]=Qwant-nyheter
 Name[tg]=Ахбори Qwant
+Name[tok]=ilo pi alasa sin Qwant
 Name[tr]=Qwant Haberleri
 Name[uk]=Новини Qwant
 Name[vi]=Qwant Tin tức
@@ -51,15 +63,20 @@ Name[zh_CN]=Qwant 新闻
 Name[zh_TW]=Qwant News
 Query=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[ar]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
-Query[ast]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[az]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[be]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[be@latin]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[bg]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[bs]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[ca]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[ca@valencia]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[cs]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[cy]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[da]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[de]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[el]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[en_GB]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[eo]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[es]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[et]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[eu]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
@@ -67,21 +84,28 @@ Query[fi]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[fr]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[hu]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[ia]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[id]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[ie]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[is]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[it]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[ka]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[ko]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[lt]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[my]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[nl]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[nn]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[pa]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[pl]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[pt]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[pt_BR]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[ro]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[ru]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[sk]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[sl]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[sv]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[tg]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[tok]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
+Query[tr]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[uk]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[vi]=https://www.qwant.com/?q=\\{@}&client=kde&t=news
 Query[x-test]=xxhttps://www.qwant.com/?q=\\{@}&client=kde&t=newsxx

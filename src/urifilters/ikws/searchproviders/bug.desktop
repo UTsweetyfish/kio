@@ -2,14 +2,21 @@
 Keys=bug,bugft,bugno,bugnr,feature,ccbug
 Name=KDE Bugs
 Name[ar]=علل كدي
+Name[ast]=KDE Bugs
 Name[az]=KDE Xətaları
+Name[be]=Адсочванне хібаў KDE
+Name[be@latin]=Adsočvannie chibaŭ KDE
+Name[bg]=KDE Bugs
+Name[bs]=KDE Bagovi
 Name[ca]=KDE Bugs
 Name[ca@valencia]=KDE Bugs
 Name[cs]=Chyby KDE
+Name[cy]=Gwallau KDE
 Name[da]=KDE Bugs
 Name[de]=KDE-Fehler
 Name[el]=KDE Bugs
 Name[en_GB]=KDE Bugs
+Name[eo]=KDE-Cimoj
 Name[es]=Fallos de KDE
 Name[et]=KDE veateated
 Name[eu]=KDEren akatsak
@@ -17,13 +24,17 @@ Name[fi]=KDE Bugs
 Name[fr]=Bogues de KDE
 Name[hu]=KDE Bugs
 Name[ia]=KDE Bugs
-Name[is]=KDE villur
+Name[id]=KDE Bugs
+Name[ie]=Defectes de KDE
+Name[is]=KDE Bugs
 Name[it]=Bug di KDE
+Name[ka]=KDE შეცდომები
 Name[ko]=KDE 버그
 Name[lt]=KDE klaidos
 Name[my]=ခေဒီအီးဆိုင်ရာ ဆော့ဖ်လ်ဝဲလ်ပြစ်ချက်များ
 Name[nl]=KDE-bugs
 Name[nn]=KDE-feil
+Name[pa]=KDE ਬੱਗ
 Name[pl]=Błędy KDE
 Name[pt]=Erros do KDE
 Name[pt_BR]=Erros do KDE
@@ -33,23 +44,28 @@ Name[sk]=KDE Chyby
 Name[sl]=KDE Bugs
 Name[sv]=KDE Bugs
 Name[tg]=Хатоҳои KDE
+Name[tok]=pakala pi ilo tan kulupu KDE
+Name[tr]=KDE Hataları
 Name[uk]=Вади KDE
 Name[vi]=Lỗi KDE
 Name[x-test]=xxKDE Bugsxx
 Name[zh_CN]=KDE Bugs
 Query=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[ar]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
-Query[ast]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[az]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[be]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[be@latin]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[bg]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[bs]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[ca]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[ca@valencia]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[cs]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[cy]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[da]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[de]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[el]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[en_GB]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[eo]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[es]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[et]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[eu]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
@@ -61,8 +77,10 @@ Query[hi]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[hu]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[ia]=http://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[id]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[ie]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[is]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[it]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[ka]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[kk]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[ko]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[lt]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
@@ -86,6 +104,7 @@ Query[sr@ijekavianlatin]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[sr@latin]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[sv]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[tg]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
+Query[tok]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[tr]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[ug]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}
 Query[uk]=https://bugs.kde.org/buglist.cgi?quicksearch=\\{@}

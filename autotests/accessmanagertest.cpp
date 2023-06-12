@@ -22,8 +22,7 @@ class AccessManagerTest : public QObject
 private Q_SLOTS:
     void initTestCase()
     {
-        qputenv("KDE_FORK_SLAVES", "yes"); // To avoid a runtime dependency on klauncher
-        qputenv("KIOSLAVE_ENABLE_TESTMODE", "1"); // ensure the ioslaves call QStandardPaths::setTestModeEnabled too
+        qputenv("KIOSLAVE_ENABLE_TESTMODE", "1"); // ensure the KIO workers call QStandardPaths::setTestModeEnabled too
         QStandardPaths::setTestModeEnabled(true);
     }
 
@@ -71,7 +70,7 @@ private Q_SLOTS:
         const QString aFile = aDir + QStringLiteral("/accessmanagertest-data2");
         const QString putDataContents = "We love free software! " + QString(24000, 'c');
         QProcess process;
-        process.start(QStringLiteral("echo"), QStringList{putDataContents});
+        process.start(QStandardPaths::findExecutable(QStringLiteral("echo")), QStringList{putDataContents});
 
         QFile::remove(aFile);
 

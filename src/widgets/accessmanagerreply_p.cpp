@@ -11,7 +11,6 @@
 #include "accessmanager.h"
 #include "job.h"
 #include "kio_widgets_debug.h"
-#include "scheduler.h"
 
 #include <kprotocolinfo.h>
 #include <kurlauthorized.h>
@@ -19,7 +18,6 @@
 #include <QMimeDatabase>
 #include <QSslConfiguration>
 #include <QtMath>
-
 
 namespace KDEPrivate
 {
@@ -102,7 +100,10 @@ AccessManagerReply::AccessManagerReply(const QNetworkAccessManager::Operation op
     setError(static_cast<QNetworkReply::NetworkError>(errorCode), errorMessage);
     const auto networkError = error();
     if (networkError != QNetworkReply::NoError) {
-        QMetaObject::invokeMethod(this, "error", Qt::QueuedConnection, Q_ARG(QNetworkReply::NetworkError, networkError));
+        auto occurrFunc = [this, networkError]() {
+            Q_EMIT errorOccurred(networkError);
+        };
+        QMetaObject::invokeMethod(this, occurrFunc, Qt::QueuedConnection);
     }
 
     emitFinished(true, Qt::QueuedConnection);
@@ -216,7 +217,7 @@ void AccessManagerReply::setHeaderFromMetaData(const KIO::MetaData &_metaData)
             }
 
             const auto headerName = QStringView(httpHeader).left(index);
-            // Ignore cookie header since it is handled by the http ioslave.
+            // Ignore cookie header since it is handled by the http KIO worker.
             if (headerName.startsWith(QLatin1String("set-cookie"), Qt::CaseInsensitive)) {
                 continue;
             }
@@ -314,7 +315,7 @@ int AccessManagerReply::jobError(KJob *kJob)
     switch (errCode) {
     case 0:
         break; // No error;
-    case KIO::ERR_SLAVE_DEFINED:
+    case KIO::ERR_WORKER_DEFINED:
     case KIO::ERR_NO_CONTENT: // Sent by a 204 response is not an error condition.
         setError(QNetworkReply::NoError, kJob->errorText());
         break;
@@ -485,7 +486,7 @@ void AccessManagerReply::slotPercent(KJob *job, unsigned long percent)
 void AccessManagerReply::emitFinished(bool state, Qt::ConnectionType type)
 {
     setFinished(state);
-    Q_EMIT QMetaObject::invokeMethod(this, "finished", type);
+    Q_EMIT QMetaObject::invokeMethod(this, &AccessManagerReply::finished, type);
 }
 
 }

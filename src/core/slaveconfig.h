@@ -15,6 +15,8 @@
 
 #include <memory>
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 102)
+
 namespace KIO
 {
 class SlaveConfigPrivate;
@@ -36,11 +38,14 @@ class SlaveConfigPrivate;
  * or domain specification. Configuration items defined in a group are
  * only applied when the slave is connecting with a host that matches with
  * the host and/or domain specified by the group.
+ *
+ * @deprecated Since 5.102, no known external users.
  */
 class KIOCORE_EXPORT SlaveConfig : public QObject
 {
     Q_OBJECT
 public:
+    KIOCORE_DEPRECATED_VERSION(5, 102, "No known external users")
     static SlaveConfig *self();
     ~SlaveConfig() override;
     /**
@@ -98,5 +103,7 @@ private:
     friend class SlaveConfigSingleton;
 };
 }
+
+#endif
 
 #endif

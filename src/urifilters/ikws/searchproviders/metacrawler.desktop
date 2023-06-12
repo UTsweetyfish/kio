@@ -12,7 +12,7 @@ Name[bg]=MetaCrawler
 Name[bn]=মেটা-ক্রলার
 Name[bn_IN]=MetaCrawler
 Name[br]=MetaCrawler
-Name[bs]=Metakrouler
+Name[bs]=MetaKroler
 Name[ca]=MetaCrawler
 Name[ca@valencia]=MetaCrawler
 Name[cs]=MetaCrawler
@@ -42,8 +42,10 @@ Name[hsb]=MetaCrawler
 Name[hu]=MetaCrawler
 Name[ia]=MetaCrawler
 Name[id]=MetaCrawler
+Name[ie]=MetaCrawler
 Name[is]=MetaCrawler
 Name[it]=MetaCrawler
+Name[ka]=MetaCrawler
 Name[kk]=MetaCrawler
 Name[km]=MetaCrawler
 Name[kn]=ಮೆಟಾ ಕ್ರಾಲರ್
@@ -81,6 +83,7 @@ Name[sv]=MetaCrawler
 Name[te]=మెటా క్రాలర్
 Name[tg]=MetaCrawler
 Name[th]=บริการ MetaCrawler
+Name[tok]=ilo alasa MetaCrawler
 Name[tr]=MetaCrawler
 Name[ug]=MetaCrawler
 Name[uk]=MetaCrawler
@@ -95,15 +98,20 @@ Name[zh_TW]=MetaCrawler
 Keys=mc,meta,metacrawler
 Query=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[ar]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
-Query[ast]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[az]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[be]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[be@latin]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[bg]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[bs]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[ca]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[ca@valencia]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[cs]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[cy]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[da]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[de]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[el]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[en_GB]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[eo]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[es]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[et]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[eu]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
@@ -113,13 +121,16 @@ Query[gl]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[hu]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[ia]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[id]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[ie]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[is]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[it]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[ka]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[ko]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[lt]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[my]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[nl]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[nn]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[pa]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[pl]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[pt]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[pt_BR]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
@@ -129,6 +140,8 @@ Query[sk]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[sl]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[sv]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[tg]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[tok]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
+Query[tr]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[uk]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[vi]=https://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}
 Query[x-test]=xxhttps://www.metacrawler.com/info.metac.cloud.other/search/web?q=\\{@}xx

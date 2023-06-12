@@ -7,21 +7,22 @@ Name[af]=dict.cc Vertaling: Engels na Duits
 Name[ar]=ترجمة dict.cc: من الانجليزية إلى الألمانية
 Name[as]=dict.cc Translation: English to German
 Name[az]=dict.cc  tərcümə: İngiliscədən Almancaya
-Name[be]=dict.cc Пераклад: з англійскай на нямецкую
-Name[be@latin]=Pierakład „dict.cc”: anhielskaja ➙ niamieckaja
+Name[be]=dict.cc - пераклад з англійскай на нямецкую
+Name[be@latin]=dict.cc - pieraklad z anhlijskaj na niamieckuju
 Name[bg]=Превод с dict.cc — от английски към немски
 Name[bn]=dict.cc অনুবাদ: ইংরাজি থেকে জার্মান
 Name[bn_IN]=dict.cc অনুবাদ: ইংরাজি থেকে জার্মান
-Name[bs]=English to German: dikt.cc: sa engleskog na njemački
+Name[bs]=dikt.cc Prijevod: sa engleskog na njemački
 Name[ca]=Traducció dict.cc: Anglès - Alemany
 Name[ca@valencia]=Traducció dict.cc: Anglés - Alemany
 Name[cs]=Překlad dict.cc: z angličtiny do němčiny
 Name[csb]=dict.cc: anielsczi -> miemiecczi
+Name[cy]=cyfieithiad dict.cc: Saesneg i Almaeneg
 Name[da]=dict.cc oversættelse: Engelsk til tysk
 Name[de]=dict.cc – Übersetzung: Englisch/Deutsch
 Name[el]=dict.cc Μετάφραση: Αγγλικά σε Γερμανικά
 Name[en_GB]=dict.cc Translation: English to German
-Name[eo]=Tradukado dict.cc: angle germanen
+Name[eo]=dict.cc Traduko: angla al germana
 Name[es]=dict.cc Traducción: inglés a alemán
 Name[et]=dict.cc tõlkimine: inglise->saksa
 Name[eu]=dict.cc ingelesetik alemanerako itzulpenak
@@ -41,8 +42,10 @@ Name[hsb]=dict.cc přełožowanje: jendźelsce -> němsce
 Name[hu]=Dict.cc - Fordítás angolról németre
 Name[ia]=dict.cc Traduction: Anglese a Germano
 Name[id]=Terjemahan dict.cc: Bahasa Inggris ke Jerman
-Name[is]=dict.cc Þýðing: Enska í þýsku
+Name[ie]=Traduction dict.cc: anglesi a german
+Name[is]=dict.cc þýðingar: Úr ensku í þýsku
 Name[it]=Traduzione dict.cc: dall'inglese al tedesco
+Name[ka]=dict.cc თარგმანი: ინგლისურიდან გერმანულზე
 Name[kk]=dict.cc аудармашы: ағылшын тілінен немісшеге
 Name[km]=ការ​បកប្រែ dict.cc ៖ ភាសា​អង់គ្លេស​ទៅជា​​​អាល្លឺម៉ង់
 Name[kn]=dict.cc ಅನುವಾದ: ಇಂಗ್ಲೀಷಿನಿಂದ ಜರ್ಮನ್ ಗೆ
@@ -79,6 +82,7 @@ Name[sv]=dict.cc översättning: engelska till tyska
 Name[te]=dict.cc అనువాదము: ఇంగ్లీష్ నుండి జెర్మన్
 Name[tg]=Тарҷумаҳои dict.cc: Англисӣ ба немисӣ
 Name[th]=การแปล dict.cc: ภาษาอังกฤษเป็นเยอรมัน
+Name[tok]=ilo pi ante toki dict.cc: toki Inli tawa toki Tosi
 Name[tr]=dict.cc Çevirisi: İngilizceden Almancaya
 Name[ug]=dict.cc تەرجىمە: ئىنگلىزچىدىن گېرمانچىغا
 Name[uk]=dict.cc — переклад з англійської німецькою
@@ -93,13 +97,19 @@ Query=https://www.dict.cc/?s=\\{@}
 Query[ar]=https://www.dict.cc/?s=\\{@}
 Query[ast]=https://www.dict.cc/?s=\\{@}
 Query[az]=https://www.dict.cc/?s=\\{@}
+Query[be]=https://www.dict.cc/?s=\\{@}
+Query[be@latin]=https://www.dict.cc/?s=\\{@}
+Query[bg]=https://www.dict.cc/?s=\\{@}
+Query[bs]=https://www.dict.cc/?s=\\{@}
 Query[ca]=https://www.dict.cc/?s=\\{@}
 Query[ca@valencia]=https://www.dict.cc/?s=\\{@}
 Query[cs]=https://www.dict.cc/?s=\\{@}
+Query[cy]=https://www.dict.cc/?s=\\{@}
 Query[da]=https://www.dict.cc/?s=\\{@}
 Query[de]=https://www.dict.cc/?s=\\{@}
 Query[el]=https://www.dict.cc/?s=\\{@}
 Query[en_GB]=https://www.dict.cc/?s=\\{@}
+Query[eo]=https://www.dict.cc/?s=\\{@}
 Query[es]=https://www.dict.cc/?s=\\{@}
 Query[et]=https://www.dict.cc/?s=\\{@}
 Query[eu]=https://www.dict.cc/?s=\\{@}
@@ -109,13 +119,16 @@ Query[gl]=https://www.dict.cc/?s=\\{@}
 Query[hu]=https://www.dict.cc/?s=\\{@}
 Query[ia]=https://www.dict.cc/?s=\\{@}
 Query[id]=https://www.dict.cc/?s=\\{@}
+Query[ie]=https://www.dict.cc/?s=\\{@}
 Query[is]=https://www.dict.cc/?s=\\{@}
 Query[it]=https://www.dict.cc/?s=\\{@}
+Query[ka]=https://www.dict.cc/?s=\\{@}
 Query[ko]=https://www.dict.cc/?s=\\{@}
 Query[lt]=https://www.dict.cc/?s=\\{@}
 Query[my]=https://www.dict.cc/?s=\\{@}
 Query[nl]=https://www.dict.cc/?s=\\{@}
 Query[nn]=https://www.dict.cc/?s=\\{@}
+Query[pa]=https://www.dict.cc/?s=\\{@}
 Query[pl]=https://www.dict.cc/?s=\\{@}
 Query[pt]=https://www.dict.cc/?s=\\{@}
 Query[pt_BR]=https://www.dict.cc/?s=\\{@}
@@ -125,6 +138,8 @@ Query[sk]=https://www.dict.cc/?s=\\{@}
 Query[sl]=https://www.dict.cc/?s=\\{@}
 Query[sv]=https://www.dict.cc/?s=\\{@}
 Query[tg]=https://www.dict.cc/?s=\\{@}
+Query[tok]=https://www.dict.cc/?s=\\{@}
+Query[tr]=https://www.dict.cc/?s=\\{@}
 Query[uk]=https://www.dict.cc/?s=\\{@}
 Query[vi]=https://www.dict.cc/?s=\\{@}
 Query[x-test]=xxhttps://www.dict.cc/?s=\\{@}xx

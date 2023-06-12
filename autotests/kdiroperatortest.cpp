@@ -23,8 +23,6 @@ class KDirOperatorTest : public QObject
 private Q_SLOTS:
     void initTestCase()
     {
-        // To avoid a runtime dependency on klauncher
-        qputenv("KDE_FORK_SLAVES", "yes");
     }
 
     void cleanupTestCase()
@@ -50,10 +48,10 @@ private Q_SLOTS:
 
     void testReadConfig()
     {
-        // Test: Make sure readConfig() and then setView() restores
+        // Test: Make sure readConfig() and then setViewMode() restores
         // the correct kind of view.
         KDirOperator *dirOp = new KDirOperator;
-        dirOp->setView(KFile::DetailTree);
+        dirOp->setViewMode(KFile::DetailTree);
         dirOp->setShowHiddenFiles(true);
         KConfigGroup cg(KSharedConfig::openConfig(), "diroperator");
         dirOp->writeConfig(cg);
@@ -61,7 +59,7 @@ private Q_SLOTS:
 
         dirOp = new KDirOperator;
         dirOp->readConfig(cg);
-        dirOp->setView(KFile::Default);
+        dirOp->setViewMode(KFile::Default);
         QVERIFY(dirOp->showHiddenFiles());
         // KDirOperatorDetail inherits QTreeView, so this test should work
         QVERIFY(qobject_cast<QTreeView *>(dirOp->view()));
@@ -85,7 +83,7 @@ private Q_SLOTS:
 
         KDirOperator dirOp(kFileDirUrl);
         QSignalSpy completedSpy(dirOp.dirLister(), qOverload<>(&KCoreDirLister::completed));
-        dirOp.setView(KFile::DetailTree);
+        dirOp.setViewMode(KFile::DetailTree);
         completedSpy.wait(1000);
         dirOp.setCurrentItem(QUrl(QStringLiteral("file:///")));
         dirOp.setCurrentItem(QUrl::fromLocalFile(QFINDTESTDATA("kdiroperatortest.cpp")));
@@ -145,7 +143,7 @@ private Q_SLOTS:
         dirOp.activateWindow();
         QVERIFY(QTest::qWaitForWindowActive(&dirOp));
 
-        dirOp.setView(KFile::Default);
+        dirOp.setViewMode(KFile::Default);
 
         // first case, go up...
         dirOp.cdUp();
@@ -211,7 +209,7 @@ private Q_SLOTS:
         dirOp.activateWindow();
         QVERIFY(QTest::qWaitForWindowActive(&dirOp));
 
-        dirOp.setView(KFile::Default);
+        dirOp.setViewMode(KFile::Default);
 
         // finishedLoading is emitted when the dirLister emits the completed signal
         QSignalSpy finishedSpy(&dirOp, &KDirOperator::finishedLoading);
@@ -259,6 +257,28 @@ private Q_SLOTS:
 
         QVERIFY(finishedSpy.wait(1000));
         QVERIFY(dirOp.selectedItems().isEmpty());
+    }
+
+    /**
+     * If one copies the location of a file and then paste that into the location bar,
+     * the directory browser should show the directory of the file instead of showing an error.
+     * @see https://bugs.kde.org/459900
+     */
+    void test_bug459900()
+    {
+        KDirOperator dirOp;
+        QSignalSpy urlEnteredSpy(&dirOp, &KDirOperator::urlEntered);
+        // Try to open a file
+        const QString filePath = QFINDTESTDATA("servicemenu_protocol_mime_test_data/kio/servicemenus/mimetype_dir.desktop");
+        dirOp.setUrl(QUrl::fromLocalFile(filePath), true);
+        // Should accept the file and use its parent directory
+        QCOMPARE(urlEnteredSpy.size(), 1);
+        const QUrl fileUrl = QUrl::fromLocalFile(QFileInfo(filePath).absolutePath());
+        QCOMPARE(urlEnteredSpy.takeFirst().at(0).toUrl().adjusted(QUrl::StripTrailingSlash), fileUrl);
+        // Even in the same directory, KDirOperator should update the text in pathCombo
+        dirOp.setUrl(QUrl::fromLocalFile(filePath), true);
+        QCOMPARE(urlEnteredSpy.size(), 1);
+        QCOMPARE(urlEnteredSpy.takeFirst().at(0).toUrl().adjusted(QUrl::StripTrailingSlash), fileUrl.adjusted(QUrl::StripTrailingSlash));
     }
 };
 

@@ -1,4 +1,4 @@
-# SymbolsHelper-Confirmed: 5.74.0 amd64
+# SymbolsHelper-Confirmed: 5.103.0 amd64
 libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
 * Build-Depends-Package: libkf5kio-dev
  _ZN11KFileWidget10readConfigER12KConfigGroup@Base 5.69.0
@@ -68,6 +68,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN12KDirOperator11resizeEventEP12QResizeEvent@Base 5.69.0
  _ZN12KDirOperator11setIconSizeEi@Base 5.77.0
  _ZN12KDirOperator11setIsSavingEb@Base 5.69.0
+ _ZN12KDirOperator11setViewModeEN5KFile8FileViewE@Base 5.100.0
  _ZN12KDirOperator11viewChangedEP17QAbstractItemView@Base 5.69.0
  _ZN12KDirOperator11writeConfigER12KConfigGroup@Base 5.69.0
  _ZN12KDirOperator12clearHistoryEv@Base 5.69.0
@@ -95,7 +96,9 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN12KDirOperator15finishedLoadingEv@Base 5.69.0
  _ZN12KDirOperator15setCurrentItemsERK13KFileItemList@Base 5.69.0
  _ZN12KDirOperator15setCurrentItemsERK5QListI4QUrlE@Base 5.69.0
+ _ZN12KDirOperator15setViewInternalEP17QAbstractItemView@Base 5.100.0
  _ZN12KDirOperator15toggleDirsFirstEv@Base 5.69.0
+ _ZN12KDirOperator16renamingFinishedERK5QListI4QUrlE@Base 5.96.0
  _ZN12KDirOperator16setPreviewWidgetEP18KPreviewWidgetBase@Base 5.69.0
  _ZN12KDirOperator16staticMetaObjectE@Base 5.69.0
  _ZN12KDirOperator16toggleIgnoreCaseEv@Base 5.69.0
@@ -157,12 +160,17 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN12KNewFileMenu16directoryCreatedERK4QUrl@Base 5.69.0
  _ZN12KNewFileMenu16staticMetaObjectE@Base 5.69.0
  _ZN12KNewFileMenu17selectExistingDirERK4QUrl@Base 5.77.0
+ _ZN12KNewFileMenu19setWorkingDirectoryERK4QUrl@Base 5.97.0
  _ZN12KNewFileMenu21setSupportedMimeTypesERK11QStringList@Base 5.69.0
  _ZN12KNewFileMenu23setViewShowsHiddenFilesEb@Base 5.69.0
+ _ZN12KNewFileMenu24setNewFileShortcutActionEP7QAction@Base 5.100.0
+ _ZN12KNewFileMenu26setNewFolderShortcutActionEP7QAction@Base 5.100.0
  _ZN12KNewFileMenu28setSelectDirWhenAlreadyExistEb@Base 5.77.0
  _ZN12KNewFileMenu8setModalEb@Base 5.69.0
  _ZN12KNewFileMenuC1EP17KActionCollectionRK7QStringP7QObject@Base 5.69.0
+ _ZN12KNewFileMenuC1EP7QObject@Base 5.100.0
  _ZN12KNewFileMenuC2EP17KActionCollectionRK7QStringP7QObject@Base 5.69.0
+ _ZN12KNewFileMenuC2EP7QObject@Base 5.100.0
  _ZN12KNewFileMenuD0Ev@Base 5.69.0
  _ZN12KNewFileMenuD1Ev@Base 5.69.0
  _ZN12KNewFileMenuD2Ev@Base 5.69.0
@@ -193,6 +201,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN13KUrlNavigator18activeTabRequestedERK4QUrl@Base 5.90.0
  _ZN13KUrlNavigator18newWindowRequestedERK4QUrl@Base 5.90.0
  _ZN13KUrlNavigator18setCustomProtocolsERK11QStringList@Base 5.69.0
+ _ZN13KUrlNavigator19setSupportedSchemesERK11QStringList@Base 5.103.0
  _ZN13KUrlNavigator19urlAboutToBeChangedERK4QUrl@Base 5.69.0
  _ZN13KUrlNavigator20editableStateChangedEb@Base 5.69.0
  _ZN13KUrlNavigator20setShowHiddenFoldersEb@Base 5.90.0
@@ -235,15 +244,23 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN15KFilePlacesView11resizeEventEP12QResizeEvent@Base 5.69.0
  _ZN15KFilePlacesView11urlsDroppedERK4QUrlP10QDropEventP7QWidget@Base 5.69.0
  _ZN15KFilePlacesView12rowsInsertedERK11QModelIndexii@Base 5.69.0
+ _ZN15KFilePlacesView12tabRequestedERK4QUrl@Base 5.93.0
  _ZN15KFilePlacesView13dragMoveEventEP14QDragMoveEvent@Base 5.69.0
  _ZN15KFilePlacesView13keyPressEventEP9QKeyEvent@Base 5.69.0
  _ZN15KFilePlacesView14dragEnterEventEP15QDragEnterEvent@Base 5.69.0
  _ZN15KFilePlacesView14dragLeaveEventEP15QDragLeaveEvent@Base 5.69.0
+ _ZN15KFilePlacesView14placeActivatedERK4QUrl@Base 5.93.0
  _ZN15KFilePlacesView15mousePressEventEP11QMouseEvent@Base 5.69.0
  _ZN15KFilePlacesView16contextMenuEventEP17QContextMenuEvent@Base 5.69.0
  _ZN15KFilePlacesView16staticMetaObjectE@Base 5.69.0
+ _ZN15KFilePlacesView18activeTabRequestedERK4QUrl@Base 5.93.0
+ _ZN15KFilePlacesView18newWindowRequestedERK4QUrl@Base 5.93.0
+ _ZN15KFilePlacesView19setTeardownFunctionESt8functionIFvRK11QModelIndexEE@Base 5.93.0
+ _ZN15KFilePlacesView21allPlacesShownChangedEb@Base 5.93.0
  _ZN15KFilePlacesView21setDropOnPlaceEnabledEb@Base 5.69.0
+ _ZN15KFilePlacesView22contextMenuAboutToShowERK11QModelIndexP5QMenu@Base 5.93.0
  _ZN15KFilePlacesView25setAutoResizeItemsEnabledEb@Base 5.69.0
+ _ZN15KFilePlacesView26setDragAutoActivationDelayEi@Base 5.93.0
  _ZN15KFilePlacesView6setUrlERK4QUrl@Base 5.69.0
  _ZN15KFilePlacesView8setModelEP18QAbstractItemModel@Base 5.69.0
  _ZN15KFilePlacesView9dropEventEP10QDropEvent@Base 5.69.0
@@ -292,12 +309,14 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN16KFilePlacesModel12errorMessageERK7QString@Base 5.69.0
  _ZN16KFilePlacesModel12requestEjectERK11QModelIndex@Base 5.69.0
  _ZN16KFilePlacesModel12requestSetupERK11QModelIndex@Base 5.69.0
+ _ZN16KFilePlacesModel12teardownDoneERK11QModelIndexN5Solid9ErrorTypeERK8QVariant@Base 5.100.0
  _ZN16KFilePlacesModel14setGroupHiddenENS_9GroupTypeEb@Base 5.69.0
  _ZN16KFilePlacesModel14setPlaceHiddenERK11QModelIndexb@Base 5.69.0
  _ZN16KFilePlacesModel15requestTeardownERK11QModelIndex@Base 5.69.0
  _ZN16KFilePlacesModel16staticMetaObjectE@Base 5.69.0
  _ZN16KFilePlacesModel18groupHiddenChangedENS_9GroupTypeEb@Base 5.69.0
  _ZN16KFilePlacesModel19setSupportedSchemesERK11QStringList@Base 5.69.0
+ _ZN16KFilePlacesModel23supportedSchemesChangedEv@Base 5.94.0
  _ZN16KFilePlacesModel8addPlaceERK7QStringRK4QUrlS2_S2_@Base 5.69.0
  _ZN16KFilePlacesModel8addPlaceERK7QStringRK4QUrlS2_S2_RK11QModelIndex@Base 5.69.0
  _ZN16KFilePlacesModel8reloadedEv@Base 5.74.0
@@ -395,6 +414,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZN24KDirSortFilterProxyModel16staticMetaObjectE@Base 5.69.0
  _ZN24KDirSortFilterProxyModel19setSortFoldersFirstEb@Base 5.69.0
  _ZN24KDirSortFilterProxyModel20pointsForPermissionsERK9QFileInfo@Base 5.69.0
+ _ZN24KDirSortFilterProxyModel22setSortHiddenFilesLastEb@Base 5.96.0
  _ZN24KDirSortFilterProxyModelC1EP7QObject@Base 5.69.0
  _ZN24KDirSortFilterProxyModelC2EP7QObject@Base 5.69.0
  _ZN24KDirSortFilterProxyModelD0Ev@Base 5.69.0
@@ -436,6 +456,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK11KFileWidget8sizeHintEv@Base 5.69.0
  (optional=templinst)_ZNK12KConfigGroup9readEntryIbEET_PKcRKS1_@Base 5.69.0
  _ZNK12KConfigGroup9readEntryIiEET_PKcRKS1_@Base 5.90.0
+ _ZNK12KDirOperator10allActionsEv@Base 5.100.0
  _ZNK12KDirOperator10isSelectedERK9KFileItem@Base 5.69.0
  _ZNK12KDirOperator10metaObjectEv@Base 5.69.0
  _ZNK12KDirOperator10mimeFilterEv@Base 5.69.0
@@ -460,6 +481,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK12KDirOperator3urlEv@Base 5.69.0
  _ZNK12KDirOperator4modeEv@Base 5.69.0
  _ZNK12KDirOperator4viewEv@Base 5.69.0
+ _ZNK12KDirOperator6actionENS_6ActionE@Base 5.100.0
  _ZNK12KDirOperator6isRootEv@Base 5.69.0
  _ZNK12KDirOperator7numDirsEv@Base 5.69.0
  _ZNK12KDirOperator7sortingEv@Base 5.69.0
@@ -471,6 +493,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK12KDirOperator9iconsZoomEv@Base 5.69.0
  _ZNK12KNewFileMenu10metaObjectEv@Base 5.69.0
  _ZNK12KNewFileMenu10popupFilesEv@Base 5.69.0
+ _ZNK12KNewFileMenu16workingDirectoryEv@Base 5.97.0
  _ZNK12KNewFileMenu18supportedMimeTypesEv@Base 5.69.0
  _ZNK12KNewFileMenu7isModalEv@Base 5.69.0
  _ZNK13KUrlNavigator10dropWidgetEv@Base 5.69.0
@@ -486,6 +509,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK13KUrlNavigator13savedPositionEv@Base 5.69.0
  _ZNK13KUrlNavigator14uncommittedUrlEv@Base 5.69.0
  _ZNK13KUrlNavigator15customProtocolsEv@Base 5.69.0
+ _ZNK13KUrlNavigator16supportedSchemesEv@Base 5.103.0
  _ZNK13KUrlNavigator17showHiddenFoldersEv@Base 5.90.0
  _ZNK13KUrlNavigator21sortHiddenFoldersLastEv@Base 5.90.0
  _ZNK13KUrlNavigator23isPlacesSelectorVisibleEv@Base 5.69.0
@@ -497,7 +521,9 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK15KFileCopyToMenu10metaObjectEv@Base 5.69.0
  _ZNK15KFileCopyToMenu12addActionsToEP5QMenu@Base 5.69.0
  _ZNK15KFilePlacesView10metaObjectEv@Base 5.69.0
+ _ZNK15KFilePlacesView14allPlacesShownEv@Base 5.93.0
  _ZNK15KFilePlacesView20isDropOnPlaceEnabledEv@Base 5.69.0
+ _ZNK15KFilePlacesView23dragAutoActivationDelayEv@Base 5.93.0
  _ZNK15KFilePlacesView24isAutoResizeItemsEnabledEv@Base 5.69.0
  _ZNK15KFilePlacesView8sizeHintEv@Base 5.69.0
  _ZNK16KFileFilterCombo10metaObjectEv@Base 5.69.0
@@ -519,11 +545,15 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK16KFilePlacesModel13isGroupHiddenERK11QModelIndex@Base 5.69.0
  _ZNK16KFilePlacesModel14bookmarkForUrlERK4QUrl@Base 5.69.0
  _ZNK16KFilePlacesModel14deviceForIndexERK11QModelIndex@Base 5.69.0
+ _ZNK16KFilePlacesModel14isEjectAllowedERK11QModelIndex@Base 5.94.0
  _ZNK16KFilePlacesModel16bookmarkForIndexERK11QModelIndex@Base 5.69.0
  _ZNK16KFilePlacesModel16supportedSchemesEv@Base 5.69.0
+ _ZNK16KFilePlacesModel17isTeardownAllowedERK11QModelIndex@Base 5.93.0
+ _ZNK16KFilePlacesModel19deviceAccessibilityERK11QModelIndex@Base 5.100.0
  _ZNK16KFilePlacesModel19ejectActionForIndexERK11QModelIndex@Base 5.69.0
  _ZNK16KFilePlacesModel20supportedDropActionsEv@Base 5.69.0
  _ZNK16KFilePlacesModel22teardownActionForIndexERK11QModelIndex@Base 5.69.0
+ _ZNK16KFilePlacesModel28isTeardownOverlayRecommendedERK11QModelIndex@Base 5.96.0
  _ZNK16KFilePlacesModel3urlERK11QModelIndex@Base 5.69.0
  _ZNK16KFilePlacesModel4dataERK11QModelIndexi@Base 5.69.0
  _ZNK16KFilePlacesModel4iconERK11QModelIndex@Base 5.69.0
@@ -538,6 +568,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK16KFilePlacesModel8rowCountERK11QModelIndex@Base 5.69.0
  _ZNK16KFilePlacesModel9groupTypeERK11QModelIndex@Base 5.69.0
  _ZNK16KFilePlacesModel9mimeTypesEv@Base 5.69.0
+ _ZNK16KFilePlacesModel9roleNamesEv@Base 5.93.0
  _ZNK17KFileCustomDialog10fileWidgetEv@Base 5.69.0
  _ZNK17KFileCustomDialog10metaObjectEv@Base 5.69.0
  _ZNK17KImageFilePreview10metaObjectEv@Base 5.69.0
@@ -562,6 +593,7 @@ libKF5KIOFileWidgets.so.5 libkf5kiofilewidgets5 #MINVER#, kio
  _ZNK24KDirSortFilterProxyModel12canFetchMoreERK11QModelIndex@Base 5.69.0
  _ZNK24KDirSortFilterProxyModel15subSortLessThanERK11QModelIndexS2_@Base 5.69.0
  _ZNK24KDirSortFilterProxyModel16sortFoldersFirstEv@Base 5.69.0
+ _ZNK24KDirSortFilterProxyModel19sortHiddenFilesLastEv@Base 5.96.0
  _ZNK24KDirSortFilterProxyModel20supportedDragOptionsEv@Base 5.69.0
  _ZNK26KStatusBarOfflineIndicator10metaObjectEv@Base 5.69.0
  _ZNK3KIO18DefaultViewAdapter10metaObjectEv@Base 5.69.0

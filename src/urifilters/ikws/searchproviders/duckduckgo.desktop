@@ -6,12 +6,15 @@ Name=Duck Duck Go
 Name[ar]=دك دك جو
 Name[ast]=Duck Duck Go
 Name[az]=Duck Duck Go axtarış sistemi
+Name[be]=Duck Duck Go
+Name[be@latin]=Duck Duck Go
 Name[bg]=Duck Duck Go
 Name[bn]=ডাক ডাক গো
-Name[bs]=Dak dak go
+Name[bs]=Duck Duck Go
 Name[ca]=Duck Duck Go
 Name[ca@valencia]=Duck Duck Go
 Name[cs]=Duck Duck Go
+Name[cy]=Duck Duck Go
 Name[da]=Duck Duck Go
 Name[de]=Duck Duck Go
 Name[el]=Duck Duck Go
@@ -33,8 +36,10 @@ Name[hr]=Duck Duck Go
 Name[hu]=Duck Duck Go
 Name[ia]=Duck Duck Go
 Name[id]=Duck Duck Go
+Name[ie]=Duck Duck Go
 Name[is]=Duck Duck Go
 Name[it]=Duck Duck Go
+Name[ka]=Duck Duck Go
 Name[kk]=Duck Duck Go
 Name[km]=Duck Duck Go
 Name[kn]=ಡಕ್ ಡಕ್ ಗೊ
@@ -64,6 +69,7 @@ Name[sr@latin]=Duck Duck Go
 Name[sv]=Duck Duck Go
 Name[tg]=Duck Duck Go
 Name[th]=Duck Duck Go
+Name[tok]=ilo alasa DuckDuckGo
 Name[tr]=Duck Duck Go
 Name[ug]=Duck Duck Go
 Name[uk]=Duck Duck Go
@@ -74,17 +80,20 @@ Name[zh_CN]=Duck Duck Go
 Name[zh_TW]=Duck Duck Go
 Query=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[ar]=https://duckduckgo.com/?q=\\{@}&t=kde
-Query[ast]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[az]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[be]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[be@latin]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[bg]=https://duckduckgo.com/?q=\\{@}&t=kde
-Query[bs]=httpa://duckduckgo.com/?q=\\{@}&t=kde
+Query[bs]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[ca]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[ca@valencia]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[cs]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[cy]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[da]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[de]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[el]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[en_GB]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[eo]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[es]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[et]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[eu]=https://duckduckgo.com/?q=\\{@}&t=kde
@@ -96,8 +105,10 @@ Query[hi]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[hu]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[ia]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[id]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[ie]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[is]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[it]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[ka]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[kk]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[ko]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[lt]=https://duckduckgo.com/?q=\\{@}&t=kde
@@ -121,6 +132,7 @@ Query[sr@ijekavianlatin]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[sr@latin]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[sv]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[tg]=https://duckduckgo.com/?q=\\{@}&t=kde
+Query[tok]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[tr]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[ug]=https://duckduckgo.com/?q=\\{@}&t=kde
 Query[uk]=https://duckduckgo.com/?q=\\{@}&t=kde

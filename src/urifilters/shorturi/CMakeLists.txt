@@ -1,6 +1,5 @@
 kcoreaddons_add_plugin(kshorturifilter
-    INSTALL_NAMESPACE "kf5/urifilters"
-    SERVICETYPES ${CMAKE_SOURCE_DIR}/src/widgets/kurifilterplugin.desktop
+    INSTALL_NAMESPACE "kf${QT_MAJOR_VERSION}/urifilters"
 )
 
 target_sources(kshorturifilter PRIVATE
@@ -16,7 +15,7 @@ ecm_qt_export_logging_category(
     EXPORT KIO
 )
 
-target_link_libraries(kshorturifilter KF5::I18n KF5::KIOWidgets Qt5::DBus)
+target_link_libraries(kshorturifilter KF5::I18n KF5::KIOWidgets Qt${QT_MAJOR_VERSION}::DBus)
 
 install( FILES kshorturifilterrc  DESTINATION  ${KDE_INSTALL_CONFDIR} )
 

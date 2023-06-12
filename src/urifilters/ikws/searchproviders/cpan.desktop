@@ -6,11 +6,11 @@ Name[ar]=CPAN - شبكة أرشيف بيرل الشاملة
 Name[as]=CPAN - Comprehensive Perl Archive Network
 Name[az]=CPAN - Perl Skriplər Arxivi
 Name[be]=CPAN - Comprehensive Perl Archive Network
-Name[be@latin]=CPAN: zbor prahramaŭ u movie „Perl”
+Name[be@latin]=CPAN - Comprehensive Perl Archive Network
 Name[bg]=CPAN - Comprehensive Perl Archive Network
 Name[bn]=CPAN - কমপ্রিহেনসিভ পার্ল আর্কাইভ নেটওয়ার্ক
 Name[bn_IN]=CPAN - কম্প্রিহেনসিভ Perl আর্কাইভ নেটওয়ার্ক
-Name[bs]=CPAN — sveobuhvatna arhiva perla
+Name[bs]=CPAN - Sveobuhvatna mreža Perl arhiva
 Name[ca]=CPAN: Xarxa extensa de l'arxiu Perl
 Name[ca@valencia]=CPAN: Xarxa extensa de l'arxiu Perl
 Name[cs]=CPAN - Comprehensive Perl Archive Network
@@ -20,7 +20,7 @@ Name[da]=CPAN - omfattende Perl-arkivnetværk
 Name[de]=CPAN – Umfassendes Perl-Archiv
 Name[el]=CPAN - Περιεκτικό δίκτυο αρχειοθήκης perl
 Name[en_GB]=CPAN - Comprehensive Perl Archive Network
-Name[eo]=CPAN - Ampleksa reta arkivo de Perl
+Name[eo]=CPAN - Ampleksa arkivreto de Perl
 Name[es]=CPAN - Comprehensive Perl Archive Network
 Name[et]=CPAN - Comprehensive Perl Archive Network
 Name[eu]=CPAN - Perl artxibo-sare zabala
@@ -40,8 +40,10 @@ Name[hsb]=CPAN - Comprehensive Perl Archive Network
 Name[hu]=CPAN - Comprehensive Perl Archive Network
 Name[ia]=CPAN - Comprehensive Perl Archive Network (Rete Comprehensive de Archivo de Perl)
 Name[id]=CPAN - Jaringan Arsip Perl Komprehensif
+Name[ie]=CPAN - Comprehensive Perl Archive Network
 Name[is]=CPAN - Comprehensive Perl Archive Network
 Name[it]=CPAN - Rete globale degli archivi Perl
+Name[ka]=CPAN - Comprehensive Perl Archive Network
 Name[kk]=CPAN - Perl скрипттер архив желісі
 Name[km]=CPAN - Comprehensive Perl Archive Network
 Name[kn]=CPAN -ವ್ಯಾಪಕ ಪರ್ಲ್ ಕಡತಾಗಾರ (ಆರ್ಕೈವ್) ಜಾಲ
@@ -79,6 +81,7 @@ Name[sv]=CPAN - Comprehensive Perl Archive Network
 Name[te]=CPAN - విశదీకృత Perl ఆర్చివ్ నెట్వర్‍క్
 Name[tg]=CPAN - Шабакаи бойгонии ҳаматарафаи Perl
 Name[th]=CPAN - เครือข่ายเก็บบันทึกภาษา Perl แบบครอบคลุม
+Name[tok]=ilo CPAN
 Name[tr]=CPAN - Detaylı Perl Arşiv Ağı
 Name[ug]=CPAN - كەڭ دائىرىلىك Perl ئارخىپ تورى
 Name[uk]=CPAN — всеосяжна мережа архівів Perl
@@ -92,15 +95,20 @@ Name[zh_CN]=CPAN - 综合性 Perl 档案网络
 Name[zh_TW]=CPAN - 全面的 Perl 收集網路
 Query=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[ar]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
-Query[ast]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[az]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[be]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[be@latin]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[bg]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[bs]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[ca]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[ca@valencia]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[cs]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[cy]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[da]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[de]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[el]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[en_GB]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[eo]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[es]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[et]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[eu]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
@@ -110,13 +118,16 @@ Query[gl]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[hu]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[ia]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[id]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[ie]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[is]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[it]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[ka]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[ko]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[lt]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[my]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[nl]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[nn]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[pa]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[pl]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[pt]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[pt_BR]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
@@ -126,6 +137,8 @@ Query[sk]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[sl]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[sv]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[tg]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[tok]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
+Query[tr]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[uk]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[vi]=https://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}
 Query[x-test]=xxhttps://search.cpan.org/search?mode=\\{mode,2,""}&query=\\{query,q,1}xx

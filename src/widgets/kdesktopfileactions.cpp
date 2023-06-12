@@ -222,7 +222,7 @@ QList<KServiceAction> KDesktopFileActions::userDefinedServices(const KService &s
     }
 
     QStringList keys;
-    const QString actionMenu = service.property(QStringLiteral("X-KDE-GetActionMenu"), QVariant::String).toString();
+    const QString actionMenu = service.property(QStringLiteral("X-KDE-GetActionMenu"), QMetaType::QString).toString();
     if (!actionMenu.isEmpty()) {
         const QStringList dbuscall = actionMenu.split(QLatin1Char(' '));
         if (dbuscall.count() >= 4) {
@@ -321,7 +321,7 @@ void KDesktopFileActions::executeService(const QList<QUrl> &urls, const KService
         KIO::ApplicationLauncherJob *job = new KIO::ApplicationLauncherJob(action);
         job->setUrls(urls);
         QObject::connect(job, &KJob::result, qApp, [urls]() {
-            // The action may update the desktop file. Example: eject unmounts (#5129).
+        // The action may update the desktop file. Example: eject unmounts (#5129).
 #ifndef KIO_ANDROID_STUB
             org::kde::KDirNotify::emitFilesChanged(urls);
 #endif

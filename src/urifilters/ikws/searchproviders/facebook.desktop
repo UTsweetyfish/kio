@@ -6,17 +6,20 @@ Name=Facebook
 Name[ar]=فيس بوك
 Name[ast]=Facebook
 Name[az]=Facebook
+Name[be]=Facebook
+Name[be@latin]=Facebook
 Name[bg]=Facebook
 Name[bn]=ফেসবুক
 Name[bs]=Fejsbuk
 Name[ca]=Facebook
 Name[ca@valencia]=Facebook
 Name[cs]=Facebook
+Name[cy]=Facebook
 Name[da]=Facebook
 Name[de]=Facebook
 Name[el]=Facebook
 Name[en_GB]=Facebook
-Name[eo]=Vizaĵlibro
+Name[eo]=Fejsbuko
 Name[es]=Facebook
 Name[et]=Facebook
 Name[eu]=Facebook
@@ -33,8 +36,10 @@ Name[hr]=Facebook
 Name[hu]=Facebook
 Name[ia]=Facebook
 Name[id]=Facebook
+Name[ie]=Facebook
 Name[is]=Facebook
 Name[it]=Facebook
+Name[ka]=Facebook
 Name[kk]=Facebook
 Name[km]=Facebook
 Name[kn]=ಫೇಸ್ ಬುಕ್
@@ -65,6 +70,7 @@ Name[sr@latin]=Facebook
 Name[sv]=Facebook
 Name[tg]=Facebook
 Name[th]=เฟซบุ้ค
+Name[tok]=ilo Facebook
 Name[tr]=Facebook
 Name[ug]=فېيىسبۇك(Facebook)
 Name[uk]=Facebook
@@ -75,13 +81,15 @@ Name[zh_CN]=Facebook
 Name[zh_TW]=Facebook
 Query=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[ar]=https://www.facebook.com/search/?q=\\{@}&init=quick
-Query[ast]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[az]=https://www.facebook.com/search/?q=\\{@}&init=quick
+Query[be]=https://www.facebook.com/search/?q=\\{@}&init=quick
+Query[be@latin]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[bg]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[bs]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[ca]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[ca@valencia]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[cs]=https://www.facebook.com/search/?q=\\{@}&init=quick
+Query[cy]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[da]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[de]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[el]=https://www.facebook.com/search/?q=\\{@}&init=quick
@@ -98,8 +106,10 @@ Query[hi]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[hu]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[ia]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[id]=https://www.facebook.com/search/?q=\\{@}&init=quick
+Query[ie]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[is]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[it]=https://www.facebook.com/search/?q=\\{@}&init=quick
+Query[ka]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[kk]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[ko]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[lt]=https://www.facebook.com/search/?q=\\{@}&init=quick
@@ -123,6 +133,7 @@ Query[sr@ijekavianlatin]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[sr@latin]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[sv]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[tg]=https://www.facebook.com/search/?q=\\{@}&init=quick
+Query[tok]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[tr]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[ug]=https://www.facebook.com/search/?q=\\{@}&init=quick
 Query[uk]=https://www.facebook.com/search/?q=\\{@}&init=quick

@@ -26,8 +26,7 @@ void KMountPointTest::testCurrentMountPoints()
     }
     KMountPoint::Ptr mountWithDevice;
     for (KMountPoint::Ptr mountPoint : mountPoints) {
-        qDebug().nospace() << "Mounted from: " << mountPoint->mountedFrom() << ", device name: " << mountPoint->realDeviceName()
-                           << ", mount point: " << mountPoint->mountPoint() << ", mount type: " << mountPoint->mountType();
+        qDebug() << mountPoint;
         QVERIFY(!mountPoint->mountedFrom().isEmpty());
         QVERIFY(!mountPoint->mountPoint().isEmpty());
         QVERIFY(!mountPoint->mountType().isEmpty());
@@ -87,7 +86,7 @@ void KMountPointTest::testCurrentMountPointOptions()
         QSKIP("No mountpoints available.");
         return;
     }
-        
+
     KMountPoint::Ptr anyZfsMount;
     KMountPoint::Ptr mountWithDevice;
     KMountPoint::Ptr mountWithOptions;
@@ -101,13 +100,13 @@ void KMountPointTest::testCurrentMountPointOptions()
         if (!anyZfsMount && mountPoint->mountType() == QLatin1String("zfs")) {
             anyZfsMount = mountPoint;
         }
-        
+
         // keep one (first) mountpoint with any options
         if (!mountWithOptions && !mountPoint->mountOptions().empty()) {
             mountWithOptions = mountPoint;
         }
     }
-        
+
     if (!anyZfsMount) {
         qDebug() << "No ZFS mounts, skipping test";
     } else {
@@ -126,7 +125,7 @@ void KMountPointTest::testCurrentMountPointOptions()
         QVERIFY(!mountWithDevice->realDeviceName().isEmpty());
         qDebug() << "Device mount options" << mountWithDevice->mountOptions();
     }
-    
+
     if (!mountWithOptions) {
         qDebug() << "No mount with options, skipping test";
     } else {

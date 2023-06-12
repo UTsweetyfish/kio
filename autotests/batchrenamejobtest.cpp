@@ -51,9 +51,6 @@ private Q_SLOTS:
     {
         QStandardPaths::setTestModeEnabled(true);
 
-        // To avoid a runtime dependency on klauncher
-        qputenv("KDE_FORK_SLAVES", "yes");
-
         cleanupTestCase();
 
         // Create temporary home directory
@@ -114,6 +111,8 @@ private Q_SLOTS:
         QSignalSpy spy(job, &KIO::BatchRenameJob::fileRenamed);
         QVERIFY2(job->exec(), qPrintable(job->errorString()));
         QCOMPARE(spy.count(), oldFilenames.count());
+        QCOMPARE(job->processedAmount(KJob::Items), oldFilenames.count());
+        QCOMPARE(job->totalAmount(KJob::Items), oldFilenames.count());
         QVERIFY(!checkFileExistence(oldFilenames));
         QVERIFY(checkFileExistence(newFilenames));
     }

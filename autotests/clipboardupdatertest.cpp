@@ -9,14 +9,13 @@
 
 #include <QtTestWidgets>
 
-#include "clipboardupdater_p.h"
 #include "kiotesthelper.h"
-
 #include <kio/copyjob.h>
 #include <kio/deletejob.h>
-#include <kio/job.h>
+#include <kio/filecopyjob.h>
 #include <kio/paste.h>
 #include <kio/pastejob.h>
+#include <kio/simplejob.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -37,12 +36,6 @@ static QList<QUrl> tempFiles(const QTemporaryDir &dir, const QString &baseName, 
         createTestFile(file);
     }
     return urls;
-}
-
-void ClipboardUpdaterTest::initTestCase()
-{
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
 }
 
 void ClipboardUpdaterTest::testPasteAfterRenameFiles()

@@ -8,23 +8,24 @@
 
 #include "jobremotetest.h"
 
-#include <QTest>
-
-#include <KLocalizedString>
 #include <QDebug>
-
 #include <QDir>
 #include <QEventLoop>
+#include <QStandardPaths>
+#include <QTest>
 #include <QUrl>
 
-#include <QStandardPaths>
+#include <KLocalizedString>
+
 #include <kio/copyjob.h>
 #include <kio/deletejob.h>
 #include <kio/directorysizejob.h>
 #include <kio/filejob.h>
-#include <kio/scheduler.h>
+#include <kio/mkdirjob.h>
+#include <kio/statjob.h>
+#include <kio/storedtransferjob.h>
 #include <kprotocolinfo.h>
-//#include "kiotesthelper.h" // createTestFile etc.
+// #include "kiotesthelper.h" // createTestFile etc.
 
 QTEST_MAIN(JobRemoteTest)
 
@@ -70,9 +71,6 @@ static bool myMkdir(const QUrl &url)
 void JobRemoteTest::initTestCase()
 {
     QStandardPaths::setTestModeEnabled(true);
-
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
 
     s_referenceTimeStamp = QDateTime::currentDateTime().addSecs(-30); // 30 seconds ago
 

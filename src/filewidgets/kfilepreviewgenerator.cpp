@@ -655,12 +655,10 @@ void KFilePreviewGeneratorPrivate::slotPreviewJobFinished(KJob *job)
             m_pendingItems.clear();
             m_dispatchedItems.clear();
             m_pendingVisibleIconUpdates = 0;
-            QMetaObject::invokeMethod(
-                q,
-                [this]() {
-                    dispatchIconUpdateQueue();
-                },
-                Qt::QueuedConnection);
+            auto dispatchFunc = [this]() {
+                dispatchIconUpdateQueue();
+            };
+            QMetaObject::invokeMethod(q, dispatchFunc, Qt::QueuedConnection);
         }
         m_sequenceIndices.clear(); // just to be sure that we don't leak anything
     }
@@ -853,12 +851,10 @@ void KFilePreviewGeneratorPrivate::resolveMimeType()
     } else if (!m_iconUpdatesPaused) {
         // assure that the MIME type of the next
         // item will be resolved asynchronously
-        QMetaObject::invokeMethod(
-            q,
-            [this]() {
-                resolveMimeType();
-            },
-            Qt::QueuedConnection);
+        auto mimeFunc = [this]() {
+            resolveMimeType();
+        };
+        QMetaObject::invokeMethod(q, mimeFunc, Qt::QueuedConnection);
     }
 }
 
@@ -975,9 +971,19 @@ void KFilePreviewGeneratorPrivate::createPreviews(const KFileItemList &items)
         }
     }
     const QSize size = m_viewAdapter->iconSize();
-    startPreviewJob(otherItems, size.width(), size.height());
+    const int width = size.width();
+    const int height = size.height();
+    startPreviewJob(otherItems, width, height);
 
-    const int cacheSize = (size.width() > 128) || (size.height() > 128) ? 256 : 128;
+    const int longer = std::max(width, height);
+    int cacheSize = 128;
+    if (longer > 512) {
+        cacheSize = 1024;
+    } else if (longer > 256) {
+        cacheSize = 512;
+    } else if (longer > 128) {
+        cacheSize = 256;
+    }
     startPreviewJob(imageItems, cacheSize, cacheSize);
 
     m_iconUpdateTimer->start();

@@ -14,6 +14,7 @@
 #include <KService>
 #include <kio/global.h>
 
+#include <KPluginFactory>
 #include <KPluginMetaData>
 
 #include <QHashIterator>
@@ -652,11 +653,11 @@ QStringList KUriFilter::pluginNames() const
 
 void KUriFilter::loadPlugins()
 {
-    QVector<KPluginMetaData> plugins = KPluginMetaData::findPlugins(QStringLiteral("kf5/urifilters"));
+    QVector<KPluginMetaData> plugins = KPluginMetaData::findPlugins(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/urifilters"));
     const QString prefKey = QStringLiteral("X-KDE-InitialPreference");
     // Sort the plugins by order of priority
     std::sort(plugins.begin(), plugins.end(), [prefKey](const KPluginMetaData &a, const KPluginMetaData &b) {
-        return a.rawData().value(prefKey).toInt() > b.rawData().value(prefKey).toInt();
+        return a.value(prefKey, 0) > b.value(prefKey, 0);
     });
 
     QStringList pluginNames;

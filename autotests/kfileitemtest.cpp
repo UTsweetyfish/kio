@@ -24,6 +24,7 @@ QTEST_MAIN(KFileItemTest)
 
 void KFileItemTest::initTestCase()
 {
+    QStandardPaths::setTestModeEnabled(true);
 }
 
 void KFileItemTest::testPermissionsString()
@@ -133,6 +134,26 @@ void KFileItemTest::testMove()
     // Just testing a property to make sure it does.
     KFileItem fileItem2(std::move(fileItem));
     QCOMPARE(fileItem2.name(), QStringLiteral("two"));
+}
+
+void KFileItemTest::testMimeTypeCtor()
+{
+    KFileItem fileItem;
+
+    fileItem = KFileItem(QUrl::fromLocalFile(QStringLiteral("/one")), QString("inode/directory"));
+    QVERIFY(fileItem.isDir());
+    QVERIFY(fileItem.isMimeTypeKnown());
+
+    fileItem = KFileItem(QUrl::fromLocalFile(QStringLiteral("/one")), QString("image/jpeg"));
+    QVERIFY(!fileItem.isDir());
+    QVERIFY(fileItem.isMimeTypeKnown());
+
+    fileItem = KFileItem(QUrl::fromLocalFile(QStringLiteral("/one.txt")), QString("inode/directory"));
+    QVERIFY(fileItem.isDir());
+    QVERIFY(fileItem.isMimeTypeKnown());
+
+    fileItem = KFileItem(QUrl::fromLocalFile(QStringLiteral("/one.txt")), QString(" "));
+    QVERIFY(!fileItem.isMimeTypeKnown());
 }
 
 void KFileItemTest::testBasic()

@@ -10,6 +10,7 @@
 #include "kiotrashdebug.h"
 #include "trashsizecache.h"
 
+#include "../utils_p.h"
 #include <kdirnotify.h>
 #include <kfileitem.h>
 #include <kio/chmodjob.h>
@@ -74,10 +75,7 @@ int TrashImpl::testDir(const QString &_name) const
 {
     DIR *dp = ::opendir(QFile::encodeName(_name).constData());
     if (!dp) {
-        QString name = _name;
-        if (name.endsWith(QLatin1Char('/'))) {
-            name.chop(1);
-        }
+        QString name = Utils::trailingSlashRemoved(_name);
 
         bool ok = QDir().mkdir(name);
         if (!ok && QFile::exists(name)) {
@@ -960,7 +958,7 @@ void TrashImpl::insertTrashDir(int id, const QString &trashDir, const QString &t
 {
     m_trashDirectories.insert(id, trashDir);
     qCDebug(KIO_TRASH) << "found" << trashDir << "gave it id" << id;
-    m_topDirectories.insert(id, !topdir.endsWith(QLatin1Char('/')) ? topdir + QLatin1Char('/') : topdir);
+    m_topDirectories.insert(id, Utils::slashAppended(topdir));
 }
 
 int TrashImpl::findTrashDirectory(const QString &origPath)
@@ -1321,13 +1319,13 @@ bool TrashImpl::adaptTrashSize(const QString &origPath, int trashId)
         const qint64 partitionSize = util.size();
 
         if (((static_cast<double>(additionalSize) / static_cast<double>(partitionSize)) * 100) >= percent) {
-            m_lastErrorCode = KIO::ERR_SLAVE_DEFINED;
-            m_lastErrorMessage = i18n("The file is too large to be trashed.");
+            m_lastErrorCode = KIO::ERR_TRASH_FILE_TOO_LARGE;
+            m_lastErrorMessage = KIO::buildErrorString(m_lastErrorCode, {});
             return false;
         }
 
         if (actionType == 0) { // warn the user only
-            m_lastErrorCode = KIO::ERR_SLAVE_DEFINED;
+            m_lastErrorCode = KIO::ERR_WORKER_DEFINED;
             m_lastErrorMessage = i18n("The trash is full. Empty it or remove items manually.");
             return false;
         }

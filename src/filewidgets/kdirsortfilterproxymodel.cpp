@@ -10,6 +10,8 @@
 
 #include "kdirsortfilterproxymodel.h"
 
+#include "defaults-kfile.h"
+
 #include <KConfigGroup>
 #include <KLocalizedString>
 #include <KSharedConfig>
@@ -27,12 +29,14 @@ public:
     void slotNaturalSortingChanged();
 
     bool m_sortFoldersFirst;
+    bool m_sortHiddenFilesLast;
     bool m_naturalSorting;
     QCollator m_collator;
 };
 
 KDirSortFilterProxyModel::KDirSortFilterProxyModelPrivate::KDirSortFilterProxyModelPrivate()
     : m_sortFoldersFirst(true)
+    , m_sortHiddenFilesLast(DefaultHiddenFilesLast)
 {
     slotNaturalSortingChanged();
 }
@@ -118,12 +122,32 @@ int KDirSortFilterProxyModel::pointsForPermissions(const QFileInfo &info)
 
 void KDirSortFilterProxyModel::setSortFoldersFirst(bool foldersFirst)
 {
+    if (d->m_sortFoldersFirst == foldersFirst) {
+        return;
+    }
+
     d->m_sortFoldersFirst = foldersFirst;
+    invalidate();
 }
 
 bool KDirSortFilterProxyModel::sortFoldersFirst() const
 {
     return d->m_sortFoldersFirst;
+}
+
+void KDirSortFilterProxyModel::setSortHiddenFilesLast(bool hiddenFilesLast)
+{
+    if (d->m_sortHiddenFilesLast == hiddenFilesLast) {
+        return;
+    }
+
+    d->m_sortHiddenFilesLast = hiddenFilesLast;
+    invalidate();
+}
+
+bool KDirSortFilterProxyModel::sortHiddenFilesLast() const
+{
+    return d->m_sortHiddenFilesLast;
 }
 
 bool KDirSortFilterProxyModel::subSortLessThan(const QModelIndex &left, const QModelIndex &right) const
@@ -135,6 +159,17 @@ bool KDirSortFilterProxyModel::subSortLessThan(const QModelIndex &left, const QM
 
     const bool isLessThan = (sortOrder() == Qt::AscendingOrder);
 
+    // Show hidden files and folders last
+    if (d->m_sortHiddenFilesLast) {
+        const bool leftItemIsHidden = leftFileItem.isHidden();
+        const bool rightItemIsHidden = rightFileItem.isHidden();
+        if (leftItemIsHidden && !rightItemIsHidden) {
+            return !isLessThan;
+        } else if (!leftItemIsHidden && rightItemIsHidden) {
+            return isLessThan;
+        }
+    }
+
     // Folders go before files if the corresponding setting is set.
     if (d->m_sortFoldersFirst) {
         const bool leftItemIsDir = leftFileItem.isDir();
@@ -144,15 +179,6 @@ bool KDirSortFilterProxyModel::subSortLessThan(const QModelIndex &left, const QM
         } else if (!leftItemIsDir && rightItemIsDir) {
             return !isLessThan;
         }
-    }
-
-    // Hidden elements go before visible ones.
-    const bool leftItemIsHidden = leftFileItem.isHidden();
-    const bool rightItemIsHidden = rightFileItem.isHidden();
-    if (leftItemIsHidden && !rightItemIsHidden) {
-        return isLessThan;
-    } else if (!leftItemIsHidden && rightItemIsHidden) {
-        return !isLessThan;
     }
 
     switch (left.column()) {

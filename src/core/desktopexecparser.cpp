@@ -28,10 +28,11 @@
 #endif
 #include <QDir>
 #include <QFile>
+#include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QUrl>
 
-#include <config-kiocore.h> // KDE_INSTALL_FULL_LIBEXECDIR_KF5
+#include <config-kiocore.h> // KDE_INSTALL_FULL_LIBEXECDIR_KF
 
 #include "kiocoredebug.h"
 
@@ -201,10 +202,11 @@ QStringList KIO::DesktopExecParser::supportedProtocols(const KService &service)
     }
 
     // add x-scheme-handler/<protocol>
+    const QLatin1String xScheme("x-scheme-handler/");
     const auto servicesTypes = service.serviceTypes();
     for (const auto &mimeType : servicesTypes) {
-        if (mimeType.startsWith(QLatin1String("x-scheme-handler/"))) {
-            supportedProtocols << mimeType.mid(17);
+        if (mimeType.startsWith(xScheme)) {
+            supportedProtocols << mimeType.mid(xScheme.size());
         }
     }
 
@@ -214,13 +216,12 @@ QStringList KIO::DesktopExecParser::supportedProtocols(const KService &service)
 
 bool KIO::DesktopExecParser::isProtocolInSupportedList(const QUrl &url, const QStringList &supportedProtocols)
 {
-    if (supportedProtocols.contains(QLatin1String("KIO"))) {
-        return true;
-    }
-    return url.isLocalFile() || supportedProtocols.contains(url.scheme().toLower());
+    return url.isLocalFile() //
+        || supportedProtocols.contains(QLatin1String("KIO")) //
+        || supportedProtocols.contains(url.scheme(), Qt::CaseInsensitive);
 }
 
-// We have up to two sources of data, for protocols not handled by kioslaves (so called "helper") :
+// We have up to two sources of data, for protocols not handled by KIO workers (so called "helper") :
 // 1) the exec line of the .protocol file, if there's one
 // 2) the application associated with x-scheme-handler/<protocol> if there's one
 bool KIO::DesktopExecParser::hasSchemeHandler(const QUrl &url) // KF6 TODO move to OpenUrlJob
@@ -244,6 +245,8 @@ public:
         , tempFiles(false)
     {
     }
+
+    bool isUrlSupported(const QUrl &url, const QStringList &supportedProtocols);
 
     const KService &service;
     QList<QUrl> urls;
@@ -275,7 +278,7 @@ static const QString kioexecPath()
 {
     QString kioexec = QCoreApplication::applicationDirPath() + QLatin1String("/kioexec");
     if (!QFileInfo::exists(kioexec)) {
-        kioexec = QStringLiteral(KDE_INSTALL_FULL_LIBEXECDIR_KF5 "/kioexec");
+        kioexec = QStringLiteral(KDE_INSTALL_FULL_LIBEXECDIR_KF "/kioexec");
     }
     Q_ASSERT(QFileInfo::exists(kioexec));
     return kioexec;
@@ -308,6 +311,24 @@ static QString findNonExecutableProgram(const QString &executable)
     return QString();
 }
 
+bool KIO::DesktopExecParserPrivate::isUrlSupported(const QUrl &url, const QStringList &protocols)
+{
+    if (KIO::DesktopExecParser::isProtocolInSupportedList(url, protocols)) {
+        return true;
+    }
+
+    // supportedProtocols() only checks whether the .desktop file has MimeType=x-scheme-handler/xxx
+    // We also want to check whether the app has been set as default/associated in mimeapps.list
+    const auto handlers = KApplicationTrader::queryByMimeType(QLatin1String("x-scheme-handler/") + url.scheme());
+    for (const KService::Ptr &handler : handlers) {
+        if (handler->desktopEntryName() == service.desktopEntryName()) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 QStringList KIO::DesktopExecParser::resultingArguments() const
 {
     QString exec = d->service.exec();
@@ -326,7 +347,7 @@ QStringList KIO::DesktopExecParser::resultingArguments() const
             // Too bad for commands that need a shell - they must reside in $PATH.
             executableFullPath = QStandardPaths::findExecutable(binary);
             if (executableFullPath.isEmpty()) {
-                executableFullPath = QFile::decodeName(KDE_INSTALL_FULL_LIBEXECDIR_KF5 "/") + binary;
+                executableFullPath = QFile::decodeName(KDE_INSTALL_FULL_LIBEXECDIR_KF "/") + binary;
             }
         } else {
             executableFullPath = binary;
@@ -391,14 +412,16 @@ QStringList KIO::DesktopExecParser::resultingArguments() const
     };
     QVector<MountRequest> requests;
     requests.reserve(d->urls.count());
+
     const QStringList appSupportedProtocols = supportedProtocols(d->service);
     for (int i = 0; i < d->urls.count(); ++i) {
         const QUrl url = d->urls.at(i);
-        const bool supported = mx1.hasUrls ? isProtocolInSupportedList(url, appSupportedProtocols) : url.isLocalFile();
+        const bool supported = mx1.hasUrls ? d->isUrlSupported(url, appSupportedProtocols) : url.isLocalFile();
         if (!supported) {
-            // if FUSE fails, we'll have to fallback to kioexec
+            // If FUSE fails, and there is no scheme handler, we'll have to fallback to kioexec
             useKioexec = true;
         }
+
         // NOTE: Some non-KIO apps may support the URLs (e.g. VLC supports smb://)
         // but will not have the password if they are not in the URL itself.
         // Hence convert URL to KIOFuse equivalent in case there is a password.
@@ -474,15 +497,21 @@ QStringList KIO::DesktopExecParser::resultingArguments() const
     if (d->service.terminal()) {
         KConfigGroup cg(KSharedConfig::openConfig(), "General");
         QString terminal = cg.readPathEntry("TerminalApplication", QStringLiteral("konsole"));
-        const bool isKonsole = (terminal == QLatin1String("konsole"));
 
-        QString terminalPath = QStandardPaths::findExecutable(terminal);
+        const bool isKonsole = (terminal == QLatin1String("konsole"));
+        QStringList terminalParts = KShell::splitArgs(terminal);
+        QString terminalPath;
+        if (!terminalParts.isEmpty()) {
+            terminalPath = QStandardPaths::findExecutable(terminalParts.at(0));
+        }
+
         if (terminalPath.isEmpty()) {
             d->m_errorString = i18n("Terminal %1 not found while trying to run %2", terminal, d->service.entryPath());
             qCWarning(KIO_CORE) << "Terminal" << terminal << "not found, service" << d->service.name();
             return QStringList();
         }
-        terminal = terminalPath;
+        terminalParts[0] = terminalPath;
+        terminal = KShell::joinArgs(terminalParts);
         if (isKonsole) {
             if (!d->service.workingDirectory().isEmpty()) {
                 terminal += QLatin1String(" --workdir ") + KShell::quoteArg(d->service.workingDirectory());
@@ -513,7 +542,7 @@ QStringList KIO::DesktopExecParser::resultingArguments() const
         if (d->service.terminal()) {
             result << QStringLiteral("su");
         } else {
-            QString kdesu = QFile::decodeName(KDE_INSTALL_FULL_LIBEXECDIR_KF5 "/kdesu");
+            QString kdesu = QFile::decodeName(KDE_INSTALL_FULL_LIBEXECDIR_KF "/kdesu");
             if (!QFile::exists(kdesu)) {
                 kdesu = QStandardPaths::findExecutable(QStringLiteral("kdesu"));
             }

@@ -10,14 +10,14 @@
 #ifndef KIO_SLAVE_H
 #define KIO_SLAVE_H
 
-#define KIO_SLAVE_EXPORT KIOCORE_EXPORT
-
 #include "kio/slaveinterface.h"
 #include <QDateTime>
 #include <QObject>
 
 namespace KIO
 {
+
+class WorkerThread;
 class SlavePrivate;
 class SlaveKeeper;
 class SimpleJob;
@@ -29,15 +29,12 @@ class ProtoQueue;
 class SimpleJobPrivate;
 class UserNotificationHandler;
 
-// Attention developers: If you change the implementation of KIO::Slave,
-// do *not* use connection() or slaveconn but the respective KIO::Slave
-// accessor methods. Otherwise classes derived from Slave might break. (LS)
-//
 // Do not use this class directly, outside of KIO. Only use the Slave pointer
 // that is returned by the scheduler for passing it around.
 //
-// TODO: KDE5: Separate public API and private stuff for this better
-class KIO_SLAVE_EXPORT Slave : public KIO::SlaveInterface
+// KF6 TODO: remove export macro, nothing uses this class outside kio anymore
+// (and rename this file to slave_p.h, and don't install it anymore)
+class KIOCORE_EXPORT Slave : public KIO::SlaveInterface
 {
     Q_OBJECT
 public:
@@ -214,16 +211,23 @@ private:
      */
     void setIdle();
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 103)
     /**
      * @returns Whether the slave is connected
      * (Connection oriented slaves only)
+     * @deprecated Since 5.103. The connected slave feature will be removed.
      */
+    KIOCORE_DEPRECATED_VERSION(5, 103, "The connected slave feature will be removed.")
     bool isConnected();
+    KIOCORE_DEPRECATED_VERSION(5, 103, "The connected slave feature will be removed.")
     void setConnected(bool c);
+#endif
 
     void ref();
     void deref();
     void aboutToDelete();
+
+    void setWorkerThread(WorkerThread *thread);
 
 public Q_SLOTS: // TODO KF6: make all three slots private
     void accept();
@@ -238,7 +242,5 @@ private:
 };
 
 }
-
-#undef KIO_SLAVE_EXPORT
 
 #endif

@@ -5,13 +5,13 @@ Name[af]=HyperDictionary.com Thesaurus
 Name[ar]=قاموس HyperDictionary.com للمعاني المترادفة
 Name[as]=HyperDictionary.com Thesaurus
 Name[az]=HyperDictionary.com Thesaurus
-Name[be]=Тэзаўрус HyperDictionary.com
-Name[be@latin]=Tezaŭrus „HyperDictionary.com”
+Name[be]=HyperDictionary.com Thesaurus
+Name[be@latin]=HyperDictionary.com Thesaurus
 Name[bg]=Речник на HyperDictionary.com
 Name[bn]=HyperDictionary.com থেসরাস (সমার্থক ও বিপরীত শব্দ)
 Name[bn_IN]=HyperDictionary.com শব্দকোষ
 Name[br]=Tezorus HyperDictionary.com
-Name[bs]=Hiperrečnik (sinonimar)
+Name[bs]=HyperDictionary.com Leksikon sinonima (Tezaurus)
 Name[ca]=Tesaurus de HyperDictionary.com
 Name[ca@valencia]=Tesaurus de HyperDictionary.com
 Name[cs]=Tezaurus HyperDictionary.com
@@ -41,8 +41,10 @@ Name[hsb]=HyperDictionary.com tesawrus
 Name[hu]=HyperDictionary.com szinonimaszótár
 Name[ia]=HyperDictionary.com Thesauro
 Name[id]=Tesaurus HyperDictionary.com
-Name[is]=HyperDictionary.com samheitaorðabók
+Name[ie]=Tresor de HyperDictionary.com
+Name[is]=HyperDictionary.com - samheitaorðabók
 Name[it]=Dizionario dei sinonimi e contrari HyperDictionary.com
+Name[ka]=HyperDictionary.com ლექსიკონი
 Name[kk]=HyperDictionary.com тезаурус
 Name[km]=កម្រង​វេវចនសព្ទ HyperDictionary.com
 Name[kn]=HyperDictionary.com ಸಮಾನ/ವಿರುದ್ಧಾರ್ಥಕ ಪದಕೋಶ (ಥಿಸಾರಸ್)
@@ -80,6 +82,7 @@ Name[sv]=HyperDictionary.com synonymordlista
 Name[te]=HyperDictionary.com థెసారెస్
 Name[tg]=Донишномаи HyperDictionary.com
 Name[th]=พจนานุกรมคำพ้อง HyperDictionary.com
+Name[tok]=lipu pi nimi sama tan lipu nimi HyperDictionary.com
 Name[tr]=HyperDictionary.com Terimler
 Name[ug]=HyperDictionary.com خەزىنە
 Name[uk]=Словник синонімів HyperDictionary.com
@@ -95,7 +98,6 @@ Query=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[af]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[ar]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[as]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
-Query[ast]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[az]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[be]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[be@latin]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
@@ -108,6 +110,7 @@ Query[ca]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[ca@valencia]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[cs]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[csb]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
+Query[cy]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[da]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[de]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[el]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
@@ -132,8 +135,10 @@ Query[hsb]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[hu]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[ia]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[id]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
+Query[ie]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[is]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[it]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
+Query[ka]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[kk]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[km]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[kn]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
@@ -171,6 +176,7 @@ Query[sv]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[te]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[tg]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[th]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
+Query[tok]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[tr]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[ug]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}
 Query[uk]=http://www.hyperdictionary.com/search.aspx?Dict=T&define=\\{@}

@@ -15,8 +15,9 @@
 #include <QUrl>
 
 #include "kiowidgets_export.h"
-#include <KPageDialog>
 #include <kfileitem.h>
+
+#include <KPageDialog>
 
 #include <memory>
 
@@ -136,7 +137,7 @@ public:
      * Creates an empty properties dialog (for applications that want use
      * a standard dialog, but for things not doable via the plugin-mechanism).
      *
-     * @param title is the string display as the "filename" in the caption of the dialog.
+     * @param title is the string display as the "filename" in the title of the dialog.
      * @param parent is the parent of the dialog widget.
      */
     explicit KPropertiesDialog(const QString &title, QWidget *parent = nullptr);
@@ -365,8 +366,13 @@ Q_SIGNALS:
     void saveAs(const QUrl &oldUrl, QUrl &newUrl);
 
 Q_SIGNALS:
-    // TODO KF6: remove this, not used anymore
+#if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 103)
+    /**
+     * @deprecated Since 5.82, not used anymore.
+     */
+    KIOWIDGETS_DEPRECATED_VERSION_BELATED(5, 103, 5, 82, "Not used anymore")
     void leaveModality();
+#endif
 
 private:
     std::unique_ptr<KPropertiesDialogPrivate> d;
@@ -382,9 +388,22 @@ class KPropertiesDialogPluginPrivate;
  * A plugin in itself is just a library containing code, not a dialog's page.
  * It's up to the plugin to insert pages into the parent dialog.
  *
- * To make a plugin available, define a service that implements the KPropertiesDialog/Plugin
- * servicetype, as well as the MIME types for which the plugin should be created.
- * For instance, X-KDE-ServiceTypes=KPropertiesDialog/Plugin,text/html,application/x-mymimetype.
+ * To make a plugin available, ensure it has embedded json metadata (look for
+ * K_PLUGIN_CLASS_WITH_JSON) and install the plugin in "\<plugins_dir>/kf5/propertiesdialog/".
+ * (By default KDE uses the same plugins dir as Qt, you can find the @c plugins_dir path on
+ * your system by running <tt>qtpaths --plugin-dir</tt> or <tt>qmake QT_INSTALL_PLUGINS</tt>
+ * in terminal).
+ *
+ * The metadata can contain the MIME types for which the plugin should be created.
+ * For instance:
+ * @verbatim
+   {
+       "KPlugin": {
+           "MimeTypes": ["text/html", "application/x-mymimetype"]
+       }
+   }
+   @endverbatim
+ * If the MIME types are empty or not specified, the plugin will be created for all MIME types.
  *
  * You can also include X-KDE-Protocol=file if you want that plugin
  * to be loaded only for local files, for instance.

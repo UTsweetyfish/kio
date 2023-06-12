@@ -4,6 +4,7 @@
     SPDX-FileCopyrightText: 2000 Waldo Bastain <bastain@kde.org>
     SPDX-FileCopyrightText: 2000 Dawit Alemayehu <adawit@kde.org>
     SPDX-FileCopyrightText: 2008 Jarosław Staniek <staniek@kde.org>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-only
 */
@@ -50,9 +51,9 @@
 
 #include <kprotocolinfofactory_p.h>
 
-#include "http_slave_defaults.h"
-#include "ioslave_defaults.h"
-#include "slaveconfig.h"
+#include "http_worker_defaults.h"
+#include "ioworker_defaults.h"
+#include "workerconfig.h"
 
 using SubnetPair = QPair<QHostAddress, int>;
 
@@ -107,8 +108,8 @@ class KProxyData : public QObject
 {
     Q_OBJECT
 public:
-    KProxyData(const QString &slaveProtocol, const QStringList &proxyAddresses)
-        : protocol(slaveProtocol)
+    KProxyData(const QString &workerProtocol, const QStringList &proxyAddresses)
+        : protocol(workerProtocol)
         , proxyList(proxyAddresses)
     {
     }
@@ -270,7 +271,7 @@ void KProtocolManager::reparseConfiguration()
     lock.unlock();
 
     // Force the slave config to re-read its config...
-    KIO::SlaveConfig::self()->reset();
+    KIO::WorkerConfig::self()->reset();
 }
 
 static KSharedConfig::Ptr config()
@@ -612,11 +613,17 @@ void KProtocolManager::badProxy(const QString &proxy)
         d->cachedProxyData[key]->removeAddress(proxy);
     }
 }
-
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 QString KProtocolManager::slaveProtocol(const QUrl &url, QString &proxy)
 {
+    return workerProtocol(url, proxy);
+}
+#endif
+
+QString KProtocolManager::workerProtocol(const QUrl &url, QString &proxy)
+{
     QStringList proxyList;
-    const QString protocol = KProtocolManager::slaveProtocol(url, proxyList);
+    const QString protocol = KProtocolManager::workerProtocol(url, proxyList);
     if (!proxyList.isEmpty()) {
         proxy = proxyList.first();
     }
@@ -624,21 +631,25 @@ QString KProtocolManager::slaveProtocol(const QUrl &url, QString &proxy)
 }
 
 // Generates proxy cache key from request given url.
-static void extractProxyCacheKeyFromUrl(const QUrl &u, QString *key)
+static QString extractProxyCacheKeyFromUrl(const QUrl &u)
 {
-    if (!key) {
-        return;
-    }
-
-    *key = u.scheme();
-    *key += u.host();
+    QString key = u.scheme();
+    key += u.host();
 
     if (u.port() > 0) {
-        *key += QString::number(u.port());
+        key += QString::number(u.port());
     }
+    return key;
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 QString KProtocolManager::slaveProtocol(const QUrl &url, QStringList &proxyList)
+{
+    return workerProtocol(url, proxyList);
+}
+#endif
+
+QString KProtocolManager::workerProtocol(const QUrl &url, QStringList &proxyList)
 {
     proxyList.clear();
 
@@ -650,8 +661,7 @@ QString KProtocolManager::slaveProtocol(const QUrl &url, QStringList &proxyList)
         return protocol;
     }
 
-    QString proxyCacheKey;
-    extractProxyCacheKeyFromUrl(url, &proxyCacheKey);
+    const QString proxyCacheKey = extractProxyCacheKeyFromUrl(url);
 
     KProtocolManagerPrivate *d = kProtocolManagerPrivate();
     QMutexLocker lock(&d->mutex);
@@ -679,7 +689,7 @@ QString KProtocolManager::slaveProtocol(const QUrl &url, QStringList &proxyList)
         }
     }
 
-    // The idea behind slave protocols is not applicable to http
+    // The idea behind worker protocols is not applicable to http
     // and webdav protocols as well as protocols unknown to KDE.
     /* clang-format off */
     if (!proxyList.isEmpty()
@@ -705,12 +715,12 @@ QString KProtocolManager::slaveProtocol(const QUrl &url, QStringList &proxyList)
 
 QString KProtocolManager::userAgentForHost(const QString &hostname)
 {
-    const QString sendUserAgent = KIO::SlaveConfig::self()->configData(QStringLiteral("http"), hostname.toLower(), QStringLiteral("SendUserAgent")).toLower();
+    const QString sendUserAgent = KIO::WorkerConfig::self()->configData(QStringLiteral("http"), hostname.toLower(), QStringLiteral("SendUserAgent")).toLower();
     if (sendUserAgent == QLatin1String("false")) {
         return QString();
     }
 
-    const QString useragent = KIO::SlaveConfig::self()->configData(QStringLiteral("http"), hostname.toLower(), QStringLiteral("UserAgent"));
+    const QString useragent = KIO::WorkerConfig::self()->configData(QStringLiteral("http"), hostname.toLower(), QStringLiteral("UserAgent"));
 
     // Return the default user-agent if none is specified
     // for the requested host.
@@ -723,7 +733,7 @@ QString KProtocolManager::userAgentForHost(const QString &hostname)
 
 QString KProtocolManager::defaultUserAgent()
 {
-    const QString modifiers = KIO::SlaveConfig::self()->configData(QStringLiteral("http"), QString(), QStringLiteral("UserAgentKeys"));
+    const QString modifiers = KIO::WorkerConfig::self()->configData(QStringLiteral("http"), QString(), QStringLiteral("UserAgentKeys"));
     return defaultUserAgent(modifiers);
 }
 
@@ -971,7 +981,7 @@ static KProtocolInfoPrivate *findProtocol(const QUrl &url)
     QString protocol = url.scheme();
     if (!KProtocolInfo::proxiedBy(protocol).isEmpty()) {
         QString dummy;
-        protocol = KProtocolManager::slaveProtocol(url, dummy);
+        protocol = KProtocolManager::workerProtocol(url, dummy);
     }
 
     return KProtocolInfoFactory::self()->findProtocol(protocol);
@@ -1195,7 +1205,17 @@ QString KProtocolManager::protocolForArchiveMimetype(const QString &mimeType)
 
 QString KProtocolManager::charsetFor(const QUrl &url)
 {
-    return KIO::SlaveConfig::self()->configData(url.scheme(), url.host(), QStringLiteral("Charset"));
+    return KIO::WorkerConfig::self()->configData(url.scheme(), url.host(), QStringLiteral("Charset"));
+}
+
+bool KProtocolManager::supportsPermissions(const QUrl &url)
+{
+    KProtocolInfoPrivate *prot = findProtocol(url);
+    if (!prot) {
+        return true;
+    }
+
+    return prot->m_supportsPermissions;
 }
 
 #undef PRIVATE_DATA

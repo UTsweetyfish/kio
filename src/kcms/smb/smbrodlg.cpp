@@ -18,7 +18,7 @@
 #include <KLocalizedString>
 #include <KPluginFactory>
 
-K_PLUGIN_FACTORY(SMBRoOptionsFactory, registerPlugin<SMBRoOptions>();)
+K_PLUGIN_CLASS_WITH_JSON(SMBRoOptions, "smb.json")
 
 SMBRoOptions::SMBRoOptions(QWidget *parent, const QVariantList &args)
     : KCModule(parent, args)
@@ -120,7 +120,7 @@ QString SMBRoOptions::quickHelp() const
 {
     return i18n(
         "<h1>Windows Shares</h1><p>Applications using the "
-        "SMB kioslave (like Konqueror) are able to access shared Microsoft "
+        "SMB KIO worker (like Konqueror) are able to access shared Microsoft "
         "Windows file systems, if properly configured.</p><p>You can specify "
         "here the credentials used to access the shared resources. "
         "Passwords will be stored locally, and scrambled so as to render them "

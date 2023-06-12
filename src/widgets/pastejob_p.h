@@ -8,7 +8,10 @@
 #ifndef PASTEJOB_P_H
 #define PASTEJOB_P_H
 
+#include "pastejob.h"
 #include <job_p.h>
+
+#include <QMimeData>
 
 namespace KIO
 {
@@ -29,7 +32,7 @@ public:
 
     friend class KIO::DropJobPrivate;
 
-    const QMimeData *m_mimeData;
+    QPointer<const QMimeData> m_mimeData;
     QUrl m_destDir;
     JobFlags m_flags;
     bool m_clipboard;

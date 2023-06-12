@@ -105,22 +105,13 @@
 > (Web Proxy Auto-Discovery ou <acronym
 >WPAD</acronym
 >).</para>
-
-<note
-><para
->En cas de problème d'utilisation de ce réglage, veuillez consulter la section <acronym
->FAQ</acronym
-> sur <ulink url="http://www.konqueror.org"
->http://www.konqueror.org</ulink
-> pour plus d'informations.</para
-></note>
 </listitem>
 </varlistentry>
 
 <varlistentry>
 <term
 ><guilabel
->Utiliser l'URL de configuration automatique du serveur mandataire</guilabel
+>Utiliser l'URL de configuration automatique du serveur mandataire :</guilabel
 ></term>
 <listitem>
 <para
@@ -133,7 +124,7 @@
 <varlistentry>
 <term
 ><guilabel
->Utiliser la configuration du serveur mandataire du système</guilabel
+>Utiliser la configuration du serveur mandataire du système :</guilabel
 ></term>
 <listitem>
 <para
@@ -147,10 +138,10 @@
 <!-- Exceptions fields are different for system proxy (envar) + manual proxy list of hosts/IPs? -->
 <para
 >Dans le champ <guilabel
->Exceptions</guilabel
+>Exceptions :</guilabel
 >, saisissez la variable d'environnement (&pex; $<envar
 >NO_PROXY</envar
->) stockant les adresses des sites pour lesquelles un serveur mandataire ne doit pas être utilisé.</para>
+>) utilisée pour enregistrer les adresses des sites pour lesquels un serveur mandataire ne doit pas être utilisé.</para>
 <para
 >Utilisez <guilabel
 >Afficher la valeur des variables d'environnement</guilabel
@@ -164,30 +155,30 @@ How to enable Auto Detect button?
 <varlistentry>
 <term
 ><guilabel
->Utiliser la configuration du serveur mandataire manuellement spécifiée</guilabel
+>Utiliser la configuration du serveur mandataire manuellement spécifié :</guilabel
 ></term>
 <listitem>
 
 <para
->L'adresse complète du serveur mandataire inclut son adresse Internet et un numéro de port. Vous devrez les saisir dans les champs de texte dédiés. Cochez <guilabel
+>Les informations complètes pour l'adressage du serveur mandataire comportement son adresse Internet et un numéro de port. Vous devrez les saisir dans les champs de texte dédiés. Sélectionnez <guilabel
 >Utiliser ce serveur mandataire pour tous les protocoles</guilabel
-> afin de copier les adresse et port du serveur mandataire HTTP dans tous les autres champs, afin d'économiser leur saisie.</para>
+> afin de copier les adresses et le port du serveur mandataire &HTTP; dans tous les autres champs du serveur mandataire, afin d'économiser certaines saisies.</para>
 
 <variablelist>
 <varlistentry>
 <term
 ><guilabel
->Exceptions</guilabel
+>Exceptions :</guilabel
 ></term>
 <listitem>
 <para
->Listez les noms d'hôtes ou adresses IP, séparés par des virgules, qui seront exclues des réglages définis ci-dessus. Pour exclure tous les hôtes d'un domaine, faites précéder ce nom de domaine d'un point. Par exemple, excluez tous les hôtes de kde.org en inscrivant <userinput
+>Saisissez une liste des noms d'hôtes ou d'adresses IP, séparés par des virgules, à exclure pour l'utilisation des paramètres de configuration ci-dessus pour le serveur mandataire. Si vous voulez exclure tous les hôtes d'un domaine donné, veuillez faire précéder ce nom de domaine par un point. Par exemple, pour exclure tous les hôtes de « kde.org », saisissez <userinput
 >.kde.org</userinput
 >. Les caractères jokers comme <userinput
 >*</userinput
 > ou <userinput
 >?</userinput
-> ne sont pas pris en charge et n'auront aucun effet. Vous pouvez également saisir des adresses IP seules (&pex; 127.0.0.1) ou incluant leurs masques de sous-réseau (&pex; 192.168.0.1/24).</para>
+> ne sont pas pris en charge et n'auront aucun effet. De plus, vous pouvez également saisir des adresses IP (&pex; 127.0.0.1) ou des addresses IP incluant leurs masques de sous-réseau (&pex; 192.168.0.1/24).</para>
 </listitem>
 </varlistentry>
 </variablelist>
