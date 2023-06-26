@@ -63,7 +63,7 @@ RenameFileDialog::RenameFileDialog(const KFileItemList &items, QWidget *parent)
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     d->okButton = buttonBox->button(QDialogButtonBox::Ok);
     d->okButton->setDefault(true);
-    d->okButton->setShortcut(Qt::CTRL | Qt::Key_Return);
+    d->okButton->setShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return));
     connect(buttonBox, &QDialogButtonBox::accepted, this, &RenameFileDialog::slotAccepted);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &RenameFileDialog::reject);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QObject::deleteLater);
@@ -131,13 +131,12 @@ RenameFileDialog::RenameFileDialog(const KFileItemList &items, QWidget *parent)
         QLabel *infoLabel = new QLabel(i18nc("@info", "# will be replaced by ascending numbers starting with:"), page);
         mainLayout->addWidget(infoLabel);
         d->spinBox = new QSpinBox(page);
-        d->spinBox->setMaximum(10000);
         d->spinBox->setMinimum(0);
         d->spinBox->setSingleStep(1);
         d->spinBox->setValue(1);
         d->spinBox->setDisplayIntegerBase(10);
 
-        QHBoxLayout *horizontalLayout = new QHBoxLayout(page);
+        QHBoxLayout *horizontalLayout = new QHBoxLayout;
         horizontalLayout->setContentsMargins(0, 0, 0, 0);
         horizontalLayout->addWidget(infoLabel);
         horizontalLayout->addWidget(d->spinBox);

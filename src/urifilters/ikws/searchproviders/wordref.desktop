@@ -7,13 +7,13 @@ Name[af]=WordReference.com Engelse Woordeboek
 Name[ar]=قاموس WordReference.com الانجليزي
 Name[as]=WordReference.com English Dictionary
 Name[az]=WordReference.com İngilis dili lüğəti
-Name[be]=WordReference.com Англійскі слоўнік
-Name[be@latin]=Anhielski słoŭnik „WordReference.com”
+Name[be]=WordReference.com - англійскі слоўнік
+Name[be@latin]=WordReference.com - anhlijski sloŭnik
 Name[bg]=Английски речник WordReference.com
 Name[bn]=WordReference.com ইংরাজি অভিধান
 Name[bn_IN]=WordReference.com ইংরাজি অভিধান
 Name[br]=Geriaoueg saozneg WordReference.com
-Name[bs]=Vordreferens: engleski rječnik
+Name[bs]=Vordreferens: engleski rjeÄnik
 Name[ca]=Diccionari anglès de WordReference.com
 Name[ca@valencia]=Diccionari anglés de WordReference.com
 Name[cs]=Anglický slovník WordReference.com
@@ -23,7 +23,7 @@ Name[da]=WordReference.com engelsk ordbog
 Name[de]=WordReference.com – Englischwörterbuch
 Name[el]=WordReference.com αγγλικό λεξικό
 Name[en_GB]=WordReference.com English Dictionary
-Name[eo]=Angla vortaro de WordReference.com
+Name[eo]=Angla Vortaro de WordReference.com
 Name[es]=WordReference.com diccionario de inglés
 Name[et]=WordReference.com inglise keele sõnaraamat
 Name[eu]=WordReference.com ingeles-hiztegia
@@ -43,8 +43,10 @@ Name[hsb]=WordReference.com English Dictionary
 Name[hu]=WordReference.com angol szótár
 Name[ia]=WordReference.com Dictionario Anglese
 Name[id]=Kamus Bahasa Inggris WordReference.com
-Name[is]=WordReference.com ensk orðabók
+Name[ie]=Dictionarium anglesi de WordReference.com
+Name[is]=WordReference.com - Ensk orðabók
 Name[it]=Dizionario inglese WordReference.com
+Name[ka]=WordReference.com ინგლისური ლექსიკონი
 Name[kk]=WordReference.com ағылшын сөздігі
 Name[km]=វចនានុក្រម​អង់គ្លេស WordReference.com
 Name[kn]=WordReference.com ಇಂಗ್ಲೀಷ್ ಶಬ್ದಕೋಶ
@@ -81,6 +83,7 @@ Name[sv]=WordReference.com engelsk ordbok
 Name[te]=WordReference.com ఇంగ్లీష్ పదకోశం
 Name[tg]=Луғати забони англисии WordReference.com
 Name[th]=พจนานุกรมอังกฤษ WordReference.com
+Name[tok]=lipu nimi pi toki inli tan lipu WordReference.com
 Name[tr]=WordReference.com İngilizce Sözlük
 Name[ug]=WordReference.com ئىنگلىزچە لۇغەت
 Name[uk]=Англійський словник WordReference.com
@@ -95,13 +98,19 @@ Query=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ar]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ast]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[az]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[be]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[be@latin]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[bg]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[bs]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ca]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ca@valencia]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[cs]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[cy]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[da]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[de]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[el]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[en_GB]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[eo]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[es]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[et]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[eu]=https://www.wordreference.com/english/definition.asp?en=\\{@}
@@ -111,21 +120,27 @@ Query[gl]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[hu]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ia]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[id]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[ie]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[is]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[it]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[ka]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ko]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[lt]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[my]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[nl]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[nn]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[pa]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[pl]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[pt]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[pt_BR]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[ro]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[ru]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[sk]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[sl]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[sv]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[tg]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[tok]=https://www.wordreference.com/english/definition.asp?en=\\{@}
+Query[tr]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[uk]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[vi]=https://www.wordreference.com/english/definition.asp?en=\\{@}
 Query[x-test]=xxhttps://www.wordreference.com/english/definition.asp?en=\\{@}xx

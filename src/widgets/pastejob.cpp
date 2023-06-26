@@ -26,7 +26,11 @@ extern KIO::Job *pasteMimeDataImpl(const QMimeData *mimeData, const QUrl &destUr
 PasteJob::PasteJob(PasteJobPrivate &dd)
     : Job(dd)
 {
-    QTimer::singleShot(0, this, SLOT(slotStart()));
+    Q_D(PasteJob);
+
+    QTimer::singleShot(0, this, [d]() {
+        d->slotStart();
+    });
 }
 
 PasteJob::~PasteJob()
@@ -36,6 +40,11 @@ PasteJob::~PasteJob()
 void PasteJobPrivate::slotStart()
 {
     Q_Q(PasteJob);
+    if (!m_mimeData) {
+        q->setError(KIO::ERR_NO_CONTENT);
+        q->emitResult();
+        return;
+    }
     const bool move = KIO::isClipboardDataCut(m_mimeData);
     KIO::Job *job = nullptr;
     if (m_mimeData->hasUrls()) {

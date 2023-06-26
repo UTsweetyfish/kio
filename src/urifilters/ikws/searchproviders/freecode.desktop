@@ -4,15 +4,19 @@ Name=Freecode
 Name[ar]=فريكود
 Name[ast]=Freecode
 Name[az]=Freecode
+Name[be]=Freecode
+Name[be@latin]=Freecode
 Name[bg]=Freecode
-Name[bs]=Freecode
+Name[bs]=Frikod
 Name[ca]=Freecode
 Name[ca@valencia]=Freecode
 Name[cs]=Freecode
+Name[cy]=Freecode
 Name[da]=Freecode
 Name[de]=Freecode
 Name[el]=Freecode
 Name[en_GB]=Freecode
+Name[eo]=Freecode
 Name[es]=Freecode
 Name[et]=Freecode
 Name[eu]=Freecode
@@ -24,8 +28,10 @@ Name[hi]=Freecode
 Name[hu]=Freecode
 Name[ia]=Freecode
 Name[id]=Freecode
+Name[ie]=Freecode
 Name[is]=Freecode
 Name[it]=Freecode
+Name[ka]=Freecode
 Name[kk]=Freecode
 Name[ko]=Freecode
 Name[lt]=Freecode
@@ -49,6 +55,7 @@ Name[sr@ijekavianlatin]=Freecode
 Name[sr@latin]=Freecode
 Name[sv]=Freecode
 Name[tg]=Freecode
+Name[tok]=ilo Freecode
 Name[tr]=Freecode
 Name[ug]=Freecode
 Name[uk]=Freecode
@@ -60,13 +67,15 @@ Name[zh_TW]=Freecode
 Keys=fc,freecode
 Query=http://freecode.com/search?q=\\{@}
 Query[ar]=http://freecode.com/search?q=\\{@}
-Query[ast]=http://freecode.com/search?q=\\{@}
 Query[az]=http://freecode.com/search?q=\\{@}
+Query[be]=http://freecode.com/search?q=\\{@}
+Query[be@latin]=http://freecode.com/search?q=\\{@}
 Query[bg]=http://freecode.com/search?q=\\{@}
 Query[bs]=http://freecode.com/search?q=\\{@}
 Query[ca]=http://freecode.com/search?q=\\{@}
 Query[ca@valencia]=http://freecode.com/search?q=\\{@}
 Query[cs]=http://freecode.com/search?q=\\{@}
+Query[cy]=http://freecode.com/search?q=\\{@}
 Query[da]=http://freecode.com/search?q=\\{@}
 Query[de]=http://freecode.com/search?q=\\{@}
 Query[el]=http://freecode.com/search?q=\\{@}
@@ -83,8 +92,10 @@ Query[hi]=http://freecode.com/search?q=\\{@}
 Query[hu]=http://freecode.com/search?q=\\{@}
 Query[ia]=http://freecode.com/search?q=\\{@}
 Query[id]=http://freecode.com/search?q=\\{@}
+Query[ie]=http://freecode.com/search?q=\\{@}
 Query[is]=http://freecode.com/search?q=\\{@}
 Query[it]=http://freecode.com/search?q=\\{@}
+Query[ka]=http://freecode.com/search?q=\\{@}
 Query[kk]=http://freecode.com/search?q=\\{@}
 Query[ko]=http://freecode.com/search?q=\\{@}
 Query[lt]=http://freecode.com/search?q=\\{@}
@@ -108,6 +119,7 @@ Query[sr@ijekavianlatin]=http://freecode.com/search?q=\\{@}
 Query[sr@latin]=http://freecode.com/search?q=\\{@}
 Query[sv]=http://freecode.com/search?q=\\{@}
 Query[tg]=http://freecode.com/search?q=\\{@}
+Query[tok]=http://freecode.com/search?q=\\{@}
 Query[tr]=http://freecode.com/search?q=\\{@}
 Query[ug]=http://freecode.com/search?q=\\{@}
 Query[uk]=http://freecode.com/search?q=\\{@}

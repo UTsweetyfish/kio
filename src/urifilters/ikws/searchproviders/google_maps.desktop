@@ -2,13 +2,17 @@
 Type=Service
 Name=Google Maps
 Name[ar]=خرائط جوجل
+Name[ast]=Google Maps
 Name[az]=Google Xəritələr
+Name[be]=Мапы Google
+Name[be@latin]=Mapy Google
 Name[bg]=Карти в Google
 Name[bn]=গুগল ম্যাপ
-Name[bs]=Google mape
+Name[bs]=Gugl Mape
 Name[ca]=Google Maps
 Name[ca@valencia]=Google Maps
 Name[cs]=Mapy Google
+Name[cy]=Mapiau Google
 Name[da]=Google Maps
 Name[de]=Google Maps
 Name[el]=Google Maps
@@ -30,8 +34,10 @@ Name[hr]=Google Maps
 Name[hu]=Google térkép
 Name[ia]=Google Maps : Mappas de Google
 Name[id]=Google Maps
-Name[is]=Google Kort
+Name[ie]=Google Maps
+Name[is]=Google kort
 Name[it]=Mappe di Google
+Name[ka]=Google Maps
 Name[kk]=Google карталаы
 Name[km]=ផែនទី​​ហ្គូហ្គល
 Name[kn]=ಗೂಗಲ್ ನಕ್ಷೆಗಳು
@@ -62,6 +68,7 @@ Name[sv]=Google kartor
 Name[ta]=கூகுள் மேப்ஸ்
 Name[tg]=Харитаҳои Google
 Name[th]=ดูแผนที่ต่าง ๆ ด้วยกูเกิล
+Name[tok]=ilo nasin Google
 Name[tr]=Google Maps
 Name[ug]=Google خەرىتە
 Name[uk]=Карти Google
@@ -73,13 +80,15 @@ Name[zh_TW]=Google 地圖
 Keys=googlemaps,ggmaps,ggm
 Query=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ar]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
-Query[ast]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[az]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
+Query[be]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
+Query[be@latin]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[bg]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[bs]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ca]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ca@valencia]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[cs]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
+Query[cy]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[da]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[de]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[el]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
@@ -96,8 +105,10 @@ Query[hi]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[hu]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ia]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[id]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
+Query[ie]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[is]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[it]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
+Query[ka]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[kk]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ko]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[lt]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
@@ -122,6 +133,7 @@ Query[sr@latin]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[sv]=https://maps.google.se/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ta]=https://maps.google.com/maps?hl=ta&q=\\{@}&ie=UTF8&iwloc=addr
 Query[tg]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
+Query[tok]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[tr]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[ug]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr
 Query[uk]=https://maps.google.com/maps?q=\\{@}&ie=UTF8&iwloc=addr

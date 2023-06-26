@@ -6,17 +6,20 @@ Name=Google Code
 Name[ar]=جوجل كود
 Name[ast]=Google Code
 Name[az]=Google Code
+Name[be]=Google Code
+Name[be@latin]=Google Code
 Name[bg]=Код в Google
 Name[bn]=গুগল কোড
-Name[bs]=Google Code
+Name[bs]=Gugl Kod
 Name[ca]=Google Code
 Name[ca@valencia]=Google Code
 Name[cs]=Google Code
+Name[cy]=Côd Google
 Name[da]=Google Code
 Name[de]=Google Code
 Name[el]=Google Code
 Name[en_GB]=Google Code
-Name[eo]=Guglo Kodo
+Name[eo]=Google Kodo
 Name[es]=Google Code
 Name[et]=Google Code
 Name[eu]=Google Code
@@ -33,8 +36,10 @@ Name[hr]=Google Code
 Name[hu]=Google Code
 Name[ia]=Google Movies
 Name[id]=Google Code
-Name[is]=Google kóði
+Name[ie]=Google Code
+Name[is]=Google Code
 Name[it]=Codice di Google
+Name[ka]=Google Code
 Name[kk]=Google Code
 Name[km]=កូដ​​​ហ្គូហ្គល
 Name[kn]=ಗೂಗಲ್ ಕೋಡ್
@@ -64,6 +69,7 @@ Name[sr@latin]=Google‑kod
 Name[sv]=Google kod
 Name[tg]=Рамзи Google
 Name[th]=Google Code
+Name[tok]=ilo alasa pi ilo lon ilo Google
 Name[tr]=Google Code
 Name[ug]=Google Code
 Name[uk]=Google Code
@@ -74,13 +80,15 @@ Name[zh_CN]=Google Code
 Name[zh_TW]=Google Code
 Query=https://code.google.com/query/#q=\\{%2520}
 Query[ar]=https://code.google.com/query/#q=\\{%2520}
-Query[ast]=https://code.google.com/query/#q=\\{%2520}
 Query[az]=https://code.google.com/query/#q=\\{%2520}
+Query[be]=https://code.google.com/query/#q=\\{%2520}
+Query[be@latin]=https://code.google.com/query/#q=\\{%2520}
 Query[bg]=https://code.google.com/query/#q=\\{%2520}
 Query[bs]=https://code.google.com/query/#q=\\{%2520}
 Query[ca]=https://code.google.com/query/#q=\\{%2520}
 Query[ca@valencia]=https://code.google.com/query/#q=\\{%2520}
 Query[cs]=https://code.google.com/query/#q=\\{%2520}
+Query[cy]=https://code.google.com/query/#q=\\{%2520}
 Query[da]=https://code.google.com/query/#q=\\{%2520}
 Query[de]=https://code.google.com/query/#q=\\{%2520}
 Query[el]=https://code.google.com/query/#q=\\{%2520}
@@ -97,8 +105,10 @@ Query[hi]=https://code.google.com/query/#q=\\{%2520}
 Query[hu]=https://code.google.com/query/#q=\\{%2520}
 Query[ia]=https://code.google.com/query/#q=\\{%2520}
 Query[id]=https://code.google.com/query/#q=\\{%2520}
+Query[ie]=https://code.google.com/query/#q=\\{%2520}
 Query[is]=https://code.google.com/query/#q=\\{%2520}
 Query[it]=https://code.google.com/query/#q=\\{%2520}
+Query[ka]=https://code.google.com/query/#q=\\{%2520}
 Query[kk]=https://code.google.com/query/#q=\\{%2520}
 Query[ko]=https://code.google.com/query/#q=\\{%2520}
 Query[lt]=https://code.google.com/query/#q=\\{%2520}
@@ -122,6 +132,7 @@ Query[sr@ijekavianlatin]=https://code.google.com/query/#q=\\{%2520}
 Query[sr@latin]=https://code.google.com/query/#q=\\{%2520}
 Query[sv]=https://code.google.se/query/#q=\\{%2520}
 Query[tg]=https://code.google.com/query/#q=\\{%2520}
+Query[tok]=https://code.google.com/query/#q=\\{%2520}
 Query[tr]=https://code.google.com/query/#q=\\{%2520}
 Query[ug]=https://code.google.com/query/#q=\\{%2520}
 Query[uk]=https://code.google.com/query/#q=\\{%2520}

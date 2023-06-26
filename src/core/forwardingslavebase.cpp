@@ -6,7 +6,7 @@
 */
 
 #include "forwardingslavebase.h"
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 
 #include "deletejob.h"
 #include "job.h"
@@ -14,6 +14,8 @@
 #include "mkdirjob.h"
 
 #include <QMimeDatabase>
+
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 
 namespace KIO
 {
@@ -95,7 +97,7 @@ void ForwardingSlaveBase::prepareUDSEntry(KIO::UDSEntry &entry, bool listing) co
         url = QUrl(urlStr);
         QUrl new_url(d->m_requestedURL);
         if (listing) {
-            new_url.setPath(concatPaths(new_url.path(), url.fileName()));
+            new_url.setPath(Utils::concatPaths(new_url.path(), url.fileName()));
         }
         // ## Didn't find a way to use an iterator instead of re-doing a key lookup
         entry.replace(KIO::UDSEntry::UDS_URL, new_url.toString());
@@ -106,9 +108,9 @@ void ForwardingSlaveBase::prepareUDSEntry(KIO::UDSEntry &entry, bool listing) co
     if (mimetype.isEmpty()) {
         QUrl new_url(d->m_processedURL);
         if (url_found && listing) {
-            new_url.setPath(concatPaths(new_url.path(), url.fileName()));
+            new_url.setPath(Utils::concatPaths(new_url.path(), url.fileName()));
         } else if (listing) {
-            new_url.setPath(concatPaths(new_url.path(), name));
+            new_url.setPath(Utils::concatPaths(new_url.path(), name));
         }
 
         QMimeDatabase db;
@@ -122,7 +124,7 @@ void ForwardingSlaveBase::prepareUDSEntry(KIO::UDSEntry &entry, bool listing) co
     if (d->m_processedURL.isLocalFile()) {
         QUrl new_url(d->m_processedURL);
         if (listing) {
-            new_url.setPath(concatPaths(new_url.path(), name));
+            new_url.setPath(Utils::concatPaths(new_url.path(), name));
         }
 
         entry.replace(KIO::UDSEntry::UDS_LOCAL_PATH, new_url.toLocalFile());
@@ -466,3 +468,5 @@ void ForwardingSlaveBasePrivate::_k_slotCanResume(KIO::Job * /*job*/, KIO::files
 }
 
 #include "moc_forwardingslavebase.cpp"
+
+#endif

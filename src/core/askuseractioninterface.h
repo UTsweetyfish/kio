@@ -12,6 +12,7 @@
 #include <kiocore_export.h>
 
 #include <QObject>
+#include <QUrl>
 
 #include <memory>
 
@@ -25,8 +26,8 @@ class AskUserActionInterfacePrivate;
  * @class KIO::AskUserActionInterface askuseractioninterface.h <KIO/AskUserActionInterface>
  *
  * @brief The AskUserActionInterface class allows a KIO::Job to prompt the user
- * for a decision when e.g. copying directories/files and there is a conflict
- * (e.g. a file with the same name already exists at the destination).
+ * for a decision when e.g.\ copying directories/files and there is a conflict
+ * (e.g.\ a file with the same name already exists at the destination).
  *
  * The methods in this interface are similar to their counterparts in
  * KIO::JobUiDelegateExtension, the main difference is that AskUserActionInterface
@@ -65,7 +66,7 @@ public:
      * @see KIO::RenameDialog_Result enum.
      *
      * @param job the job that called this method
-     * @param caption the title for the dialog box
+     * @param title the title for the dialog box
      * @param src the URL of the file/dir being copied/moved
      * @param dest the URL of the destination file/dir, i.e. the one that already exists
      * @param options parameters for the dialog (which buttons to show... etc), OR'ed values
@@ -78,7 +79,7 @@ public:
      * @param mtimeDest modification time of the destination file
      */
     virtual void askUserRename(KJob *job,
-                               const QString &caption,
+                               const QString &title,
                                const QUrl &src,
                                const QUrl &dest,
                                KIO::RenameDialog_Options options,
@@ -112,6 +113,13 @@ public:
         Delete, /// Delete the files/directories directly, i.e. without moving them to Trash
         Trash, /// Move the files/directories to Trash
         EmptyTrash, /// Empty the Trash
+        /**
+         * This is the same as Delete, but more text is added to the message to inform
+         * the user that moving to Trash was tried but failed due to size constraints.
+         * Typical use case is re-asking the user about deleting instead of Trashing.
+         * @since 5.100
+         */
+        DeleteInsteadOfTrash,
     };
 
     /**
@@ -149,27 +157,40 @@ public:
                                QWidget *parent = nullptr) = 0; // TODO KF6: replace QWidget* with QObject*
 
     enum MessageDialogType {
-        QuestionYesNo = 1,
-        QuestionYesNoCancel = 2,
-        WarningYesNo = 3,
-        WarningYesNoCancel = 4,
+        QuestionTwoActions = 1, ///< @since 5.100
+        QuestionTwoActionsCancel = 2, ///< @since 5.100
+        WarningTwoActions = 3, ///< @since 5.100
+        WarningTwoActionsCancel = 4, ///< @since 5.100
         WarningContinueCancel = 5,
         SSLMessageBox = 6,
         Information = 7,
-        Sorry = 8,
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 97)
+        Sorry ///< @deprecated Since 5.97, use Error.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 97, "Use Error.") = 8,
+#endif
         Error = 9,
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 100)
+        QuestionYesNo ///< @deprecated Since 5.100, use QuestionTwoActions.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use QuestionTwoActions.") = QuestionTwoActions,
+        QuestionYesNoCancel ///< @deprecated Since 5.100, use QuestionTwoActionsCancel.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use QuestionTwoActionsCancel.") = QuestionTwoActionsCancel,
+        WarningYesNo ///< @deprecated Since 5.100, use WarningTwoActions.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use WarningTwoActions.") = WarningTwoActions,
+        WarningYesNoCancel ///< @deprecated Since 5.100, use WarningTwoActionsCancel.
+            KIOCORE_ENUMERATOR_DEPRECATED_VERSION(5, 100, "Use WarningTwoActionsCancel.") = WarningTwoActionsCancel,
+#endif
     };
 
     /**
-     * This function allows for the delegation of user prompts from the ioslaves.
+     * This function allows for the delegation of user prompts from the KIO worker.
      *
      * @param type the desired type of message box, see the MessageDialogType enum
      * @param text the message to show to the user
-     * @param caption the title of the message dialog box
-     * @param buttonYes the text for the YES button
-     * @param buttonNo the text for the NO button
-     * @param iconYes the icon to show on the YES button
-     * @param iconNo the icon to show on the NO button
+     * @param title the title of the message dialog box
+     * @param primaryActionText the text for the primary action
+     * @param secondatyActionText the text for the secondary action
+     * @param primaryActionIconName the icon to show on the primary action
+     * @param secondatyActionIconName the icon to show on the secondary action
      * @param dontAskAgainName the config key name used to store the result from
      *                     'Do not ask again' checkbox
      * @param details more details about the message shown to the user
@@ -178,11 +199,11 @@ public:
      */
     virtual void requestUserMessageBox(MessageDialogType type,
                                        const QString &text,
-                                       const QString &caption,
-                                       const QString &buttonYes,
-                                       const QString &buttonNo,
-                                       const QString &iconYes = {},
-                                       const QString &iconNo = {},
+                                       const QString &title,
+                                       const QString &primaryActionText,
+                                       const QString &secondatyActionText,
+                                       const QString &primaryActionIconName = {},
+                                       const QString &secondatyActionIconName = {},
                                        const QString &dontAskAgainName = {},
                                        const QString &details = {},
                                        const KIO::MetaData &sslMetaData = {},
@@ -229,7 +250,7 @@ Q_SIGNALS:
      * by requestUserMessageBox() finishes, to notify the caller of the dialog's result
      * (exit code).
      *
-     * @param result the exit code of the dialog, one of KIO::SlaveBase::ButtonCode enum
+     * @param result the exit code of the dialog, one of KIO::WorkerBase::ButtonCode enum
      */
     void messageBoxResult(int result); // TODO KF6: add a QObject* to identify requests? Or return an int from the request method and pass it back here?
 

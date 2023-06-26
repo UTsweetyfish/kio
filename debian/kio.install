@@ -10,10 +10,7 @@ usr/lib/*/libexec/kf5/kiod5
 usr/lib/*/libexec/kf5/kioexec
 usr/lib/*/libexec/kf5/kioslave5
 usr/lib/*/libexec/kf5/kpac_dhcp_helper
-usr/lib/*/qt5/plugins/kcm_cookies.so
-usr/lib/*/qt5/plugins/kcm_netpref.so
 usr/lib/*/qt5/plugins/kcm_proxy.so
-usr/lib/*/qt5/plugins/kcm_smb.so
 usr/lib/*/qt5/plugins/kcm_trash.so
 usr/lib/*/qt5/plugins/kcm_webshortcuts.so
 usr/lib/*/qt5/plugins/kf5/kded/kcookiejar.so
@@ -22,7 +19,13 @@ usr/lib/*/qt5/plugins/kf5/kded/remotenotifier.so
 usr/lib/*/qt5/plugins/kf5/kio/
 usr/lib/*/qt5/plugins/kf5/kiod/
 usr/lib/*/qt5/plugins/kf5/urifilters/
+usr/lib/*/qt5/plugins/plasma/kcms/systemsettings/kcm_smb.so
+usr/lib/*/qt5/plugins/plasma/kcms/systemsettings_qwidgets/kcm_cookies.so
+usr/lib/*/qt5/plugins/plasma/kcms/systemsettings_qwidgets/kcm_netpref.so
+usr/lib/*/qt5/plugins/plasma/kcms/systemsettings_qwidgets/kcm_proxy.so
+usr/lib/*/qt5/plugins/plasma/kcms/systemsettings_qwidgets/kcm_webshortcuts.so
 usr/share/applications/ktelnetservice5.desktop
+usr/share/applications/kcm_trash.desktop
 usr/share/dbus-1/services/org.kde.kcookiejar5.service
 usr/share/dbus-1/services/org.kde.kiod5.service
 usr/share/dbus-1/services/org.kde.kioexecd.service

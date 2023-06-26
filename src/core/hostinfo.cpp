@@ -14,7 +14,6 @@
 #include <QMetaType>
 #include <QPair>
 #include <QSemaphore>
-#include <QSharedPointer>
 #include <QThread>
 #include <QTime>
 #include <QTimer>
@@ -63,7 +62,11 @@ private:
     class Result;
 
     QHash<QString, Query *> openQueries;
-    QCache<QString, QPair<QHostInfo, QTime>> dnsCache;
+    struct HostCacheInfo {
+        QHostInfo hostInfo;
+        QTime time;
+    };
+    QCache<QString, HostCacheInfo> dnsCache;
     QDateTime resolvConfMTime;
     int ttl;
 };
@@ -158,7 +161,7 @@ private:
 };
 }
 
-Q_DECLARE_METATYPE(QSharedPointer<KIO::NameLookupThreadRequest>)
+Q_DECLARE_METATYPE(std::shared_ptr<KIO::NameLookupThreadRequest>)
 
 namespace KIO
 {
@@ -166,7 +169,7 @@ class NameLookUpThreadWorker : public QObject
 {
     Q_OBJECT
 public Q_SLOTS:
-    void lookupHost(const QSharedPointer<KIO::NameLookupThreadRequest> &request)
+    void lookupHost(const std::shared_ptr<KIO::NameLookupThreadRequest> &request)
     {
         const QString hostName = request->hostName();
         const int lookupId = QHostInfo::lookupHost(hostName, this, SLOT(lookupFinished(QHostInfo)));
@@ -174,7 +177,7 @@ public Q_SLOTS:
         m_lookups.insert(lookupId, request);
     }
 
-    void abortLookup(const QSharedPointer<KIO::NameLookupThreadRequest> &request)
+    void abortLookup(const std::shared_ptr<KIO::NameLookupThreadRequest> &request)
     {
         QHostInfo::abortHostLookup(request->lookupId());
         m_lookups.remove(request->lookupId());
@@ -191,7 +194,7 @@ public Q_SLOTS:
     }
 
 private:
-    QMap<int, QSharedPointer<NameLookupThreadRequest>> m_lookups;
+    QMap<int, std::shared_ptr<NameLookupThreadRequest>> m_lookups;
 };
 
 class NameLookUpThread : public QThread
@@ -201,7 +204,7 @@ public:
     NameLookUpThread()
         : m_worker(nullptr)
     {
-        qRegisterMetaType<QSharedPointer<NameLookupThreadRequest>>();
+        qRegisterMetaType<std::shared_ptr<NameLookupThreadRequest>>();
         start();
     }
 
@@ -264,20 +267,24 @@ QHostInfo HostInfo::lookupHost(const QString &hostName, unsigned long timeout)
     }
 
     // Failing all of the above, do the lookup...
-    QSharedPointer<NameLookupThreadRequest> request = QSharedPointer<NameLookupThreadRequest>(new NameLookupThreadRequest(hostName));
+    std::shared_ptr<NameLookupThreadRequest> request = std::make_shared<NameLookupThreadRequest>(hostName);
     nameLookUpThread()->semaphore()->acquire();
     nameLookUpThread()->semaphore()->release();
-    QMetaObject::invokeMethod(nameLookUpThread()->worker(), "lookupHost", Qt::QueuedConnection, Q_ARG(QSharedPointer<KIO::NameLookupThreadRequest>, request));
+    NameLookUpThreadWorker *worker = nameLookUpThread()->worker();
+    auto lookupFunc = [worker, request]() {
+        worker->lookupHost(request);
+    };
+    QMetaObject::invokeMethod(worker, lookupFunc, Qt::QueuedConnection);
     if (request->semaphore()->tryAcquire(1, timeout)) {
         hostInfo = request->result();
         if (!hostInfo.hostName().isEmpty() && hostInfo.error() == QHostInfo::NoError) {
             HostInfo::cacheLookup(hostInfo); // cache the look up...
         }
     } else {
-        QMetaObject::invokeMethod(nameLookUpThread()->worker(),
-                                  "abortLookup",
-                                  Qt::QueuedConnection,
-                                  Q_ARG(QSharedPointer<KIO::NameLookupThreadRequest>, request));
+        auto abortFunc = [worker, request]() {
+            worker->abortLookup(request);
+        };
+        QMetaObject::invokeMethod(worker, abortFunc, Qt::QueuedConnection);
     }
 
     // qDebug() << "Name look up succeeded for" << hostName;
@@ -330,12 +337,12 @@ void HostInfoAgentPrivate::lookupHost(const QString &hostName, QObject *receiver
     }
 #endif
 
-    if (QPair<QHostInfo, QTime> *info = dnsCache.object(hostName)) {
-        if (QTime::currentTime() <= info->second.addSecs(ttl)) {
+    if (HostCacheInfo *info = dnsCache.object(hostName)) {
+        if (QTime::currentTime() <= info->time.addSecs(ttl)) {
             Result result;
             if (receiver) {
                 QObject::connect(&result, SIGNAL(result(QHostInfo)), receiver, member);
-                Q_EMIT result.result(info->first);
+                Q_EMIT result.result(info->hostInfo);
             }
             return;
         }
@@ -362,9 +369,9 @@ void HostInfoAgentPrivate::lookupHost(const QString &hostName, QObject *receiver
 
 QHostInfo HostInfoAgentPrivate::lookupCachedHostInfoFor(const QString &hostName)
 {
-    QPair<QHostInfo, QTime> *info = dnsCache.object(hostName);
-    if (info && info->second.addSecs(ttl) >= QTime::currentTime()) {
-        return info->first;
+    HostCacheInfo *info = dnsCache.object(hostName);
+    if (info && info->time.addSecs(ttl) >= QTime::currentTime()) {
+        return info->hostInfo;
     }
 
     // not found in dnsCache
@@ -383,7 +390,7 @@ void HostInfoAgentPrivate::cacheLookup(const QHostInfo &info)
         return;
     }
 
-    dnsCache.insert(info.hostName(), new QPair<QHostInfo, QTime>(info, QTime::currentTime()));
+    dnsCache.insert(info.hostName(), new HostCacheInfo{info, QTime::currentTime()});
 }
 
 void HostInfoAgentPrivate::queryFinished(const QHostInfo &info, Query *sender)
@@ -391,7 +398,7 @@ void HostInfoAgentPrivate::queryFinished(const QHostInfo &info, Query *sender)
     const auto host = sender->hostName();
     openQueries.remove(host);
     if (info.error() == QHostInfo::NoError) {
-        dnsCache.insert(host, new QPair<QHostInfo, QTime>(info, QTime::currentTime()));
+        dnsCache.insert(host, new HostCacheInfo{info, QTime::currentTime()});
     }
     sender->deleteLater();
 }

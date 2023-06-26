@@ -2,8 +2,9 @@
 Keys=wa,wolfram
 Name=Wolfram Alpha
 Name[ar]=Wolfram Alpha
-Name[ast]=Wolfram Alpha
 Name[az]=Wolfram Alpha
+Name[be]=Wolfram Alpha
+Name[be@latin]=Wolfram Alpha
 Name[bg]=Wolfram Alpha
 Name[bn]=উলফ্র্যাম আলফা
 Name[bs]=Volframova alfa
@@ -11,6 +12,7 @@ Name[ca]=Wolfram Alpha
 Name[ca@valencia]=Wolfram Alpha
 Name[cs]=Wolfram Alpha
 Name[csb]=Wolfram Alpha
+Name[cy]=Alffa Wolfram
 Name[da]=Wolfram Alpha
 Name[de]=Wolfram Alpha
 Name[el]=Wolfram Άλφα
@@ -33,8 +35,10 @@ Name[hr]=Wolfram Alpha
 Name[hu]=Wolfram Alpha
 Name[ia]=Wolfram Alpha
 Name[id]=Wolfram Alpha
+Name[ie]=Wolfram Alpha
 Name[is]=Wolfram Alpha
 Name[it]=Wolfram Alpha
+Name[ka]=Wolfram Alpha
 Name[kk]=Wolfram Alpha
 Name[km]=Wolfram Alpha
 Name[kn]=ವೂಲ್ಫ್ರಾಮ್ ಆಲ್ಫಾ
@@ -66,6 +70,7 @@ Name[sr@latin]=Volframova alfa
 Name[sv]=Wolfram Alpha
 Name[tg]=Wolfram Alpha
 Name[th]=Wolfram Alpha
+Name[tok]=ilo pi nasin nanpa WolframAlpha
 Name[tr]=Tungsten Işığı
 Name[ug]=Wolfram Alpha
 Name[uk]=Wolfram Alpha
@@ -78,11 +83,14 @@ Query=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ar]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ast]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[az]=https://www.wolframalpha.com/input/?i=\\{@}
+Query[be]=https://www.wolframalpha.com/input/?i=\\{@}
+Query[be@latin]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[bg]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[bs]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ca]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ca@valencia]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[cs]=https://www.wolframalpha.com/input/?i=\\{@}
+Query[cy]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[da]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[de]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[el]=https://www.wolframalpha.com/input/?i=\\{@}
@@ -99,8 +107,10 @@ Query[hi]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[hu]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ia]=http://www.wolframalpha.com/input/?i=\\{@}
 Query[id]=https://www.wolframalpha.com/input/?i=\\{@}
+Query[ie]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[is]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[it]=https://www.wolframalpha.com/input/?i=\\{@}
+Query[ka]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[kk]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ko]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[lt]=https://www.wolframalpha.com/input/?i=\\{@}
@@ -124,6 +134,7 @@ Query[sr@ijekavianlatin]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[sr@latin]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[sv]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[tg]=https://www.wolframalpha.com/input/?i=\\{@}
+Query[tok]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[tr]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[ug]=https://www.wolframalpha.com/input/?i=\\{@}
 Query[uk]=https://www.wolframalpha.com/input/?i=\\{@}

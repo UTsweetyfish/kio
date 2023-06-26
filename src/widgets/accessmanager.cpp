@@ -10,14 +10,17 @@
 #include "accessmanager.h"
 
 #include "accessmanagerreply_p.h"
-#include "job.h"
 #include "kio_widgets_debug.h"
 #include "scheduler.h"
+#include <kio/mimetypejob.h>
+#include <kio/statjob.h>
+#include <kio/storedtransferjob.h>
+#include <kprotocolinfo.h>
+
 #include <KConfigGroup>
 #include <KJobWidgets>
 #include <KLocalizedString>
 #include <KSharedConfig>
-#include <kprotocolinfo.h>
 
 #include <QDBusInterface>
 #include <QDBusReply>
@@ -29,7 +32,6 @@
 #include <QSslConfiguration>
 #include <QUrl>
 #include <QWidget>
-
 
 static const QNetworkRequest::Attribute gSynchronousNetworkRequestAttribute = QNetworkRequest::SynchronousRequestAttribute;
 
@@ -231,7 +233,7 @@ QNetworkReply *AccessManager::createRequest(Operation op, const QNetworkRequest 
 
             QVariant len = req.header(QNetworkRequest::ContentLengthHeader);
             if (len.isValid()) {
-                storedJob->setTotalSize(len.toInt());
+                storedJob->setTotalSize(len.toULongLong());
             }
 
             kioJob = storedJob;

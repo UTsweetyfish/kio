@@ -10,7 +10,6 @@
 #include "global.h"
 #include "job.h" // for buildErrorString
 #include "kiocoredebug.h"
-#include "scheduler.h"
 #include "statjob.h"
 
 #include <KLocalizedString>
@@ -169,7 +168,7 @@ void KIO::MimeTypeFinderJobPrivate::statFile()
         } else { // It's a file
             // Start the timer. Once we get the timer event this
             // protocol server is back in the pool and we can reuse it.
-            // This gives better performance than starting a new slave
+            // This gives better performance than starting a new worker
             QTimer::singleShot(0, q, [this] {
                 scanFileWithGet();
             });
@@ -219,7 +218,7 @@ void KIO::MimeTypeFinderJobPrivate::scanFileWithGet()
         }
         // if the job succeeded, we certainly hope it emitted mimeTypeFound()...
         if (m_mimeTypeName.isEmpty()) {
-            qCWarning(KIO_CORE) << "KIO::get didn't emit a mimetype! Please fix the ioslave for URL" << m_url;
+            qCWarning(KIO_CORE) << "KIO::get didn't emit a mimetype! Please fix the KIO worker for URL" << m_url;
             q->setError(KIO::ERR_INTERNAL);
             q->setErrorText(i18n("Unable to determine the type of file for %1", m_url.toDisplayString()));
             q->emitResult();
@@ -230,7 +229,7 @@ void KIO::MimeTypeFinderJobPrivate::scanFileWithGet()
             m_url = job->url();
         }
         if (mimetype.isEmpty()) {
-            qCWarning(KIO_CORE) << "get() didn't emit a MIME type! Probably a kioslave bug, please check the implementation of" << m_url.scheme();
+            qCWarning(KIO_CORE) << "get() didn't emit a MIME type! Probably a KIO worker bug, please check the implementation of" << m_url.scheme();
         }
         m_mimeTypeName = mimetype;
 
@@ -245,9 +244,6 @@ void KIO::MimeTypeFinderJobPrivate::scanFileWithGet()
             m_suggestedFileName = job->queryMetaData(QStringLiteral("content-disposition-filename"));
         }
 
-        if (!m_url.isLocalFile()) { // #434455
-            job->putOnHold();
-        }
         q->emitResult();
     });
 }

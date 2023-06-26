@@ -13,7 +13,7 @@ macro(KIOWIDGETS_EXECUTABLE_TESTS)
        KF5::KIOGui
        KF5::KIOWidgets
        KF5::KIOFileWidgets
-       Qt5::Test
+       Qt${QT_MAJOR_VERSION}::Test
        KF5::WidgetsAddons
        KF5::IconThemes)
     ecm_mark_as_test(${_testname})
@@ -27,28 +27,31 @@ endif()
 
 if (NOT ANDROID)
 KIOWIDGETS_EXECUTABLE_TESTS(
-  getalltest
-  kruntest
-  kioslavetest
-  kopenwithtest
-  kencodingfiledialogtest_gui
-  kdirmodeltest_gui
-  kdirlistertest_gui
-  kfilecustomdialogtest_gui
-  previewtest
-  kurlrequestertest_gui
-  kpropertiesdialogtest
-  kmountpoint_debug
-  listjobtest
-  kionetrctest
-  ksycocaupdatetest
-  kurlnavigatortest_gui
-  kprotocolinfo_dumper
-  kfilewidgettest_gui
-  kfilewidgettest_saving_gui
-  openfilemanagerwindowtest
-  kemailclientlauncherjobtest_gui
-  kterminallauncherjobtest_gui
-  ${runapplication_EXE}
+    getalltest
+    kdirlistertest_gui
+    kdirmodeltest_gui
+    kemailclientlauncherjobtest_gui
+    kencodingfiledialogtest_gui
+    kfilecustomdialogtest_gui
+    kfilecustomdialogtest_gui_select_dir_mode
+    kfilewidgettest_gui
+    kfilewidgettest_saving_gui
+    kionetrctest
+    kioworkertest
+    kmountpoint_debug
+    kopenwithtest
+    kpropertiesdialogtest
+    kprotocolinfo_dumper
+    kruntest
+    ksycocaupdatetest
+    kterminallauncherjobtest_gui
+    kurlnavigatortest_gui
+    kurlrequestertest_gui
+    listjobtest
+    openfilemanagerwindowtest
+    previewtest
+    ${runapplication_EXE}
 )
+
+add_subdirectory(messageboxworker)
 endif()

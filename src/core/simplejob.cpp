@@ -77,7 +77,7 @@ void SimpleJob::putOnHold()
     Q_D(SimpleJob);
     Q_ASSERT(d->m_slave);
     if (d->m_slave) {
-        Scheduler::putSlaveOnHold(this, d->m_url);
+        Scheduler::putWorkerOnHold(this, d->m_url);
     }
     // we should now be disassociated from the slave
     Q_ASSERT(!d->m_slave);
@@ -86,7 +86,7 @@ void SimpleJob::putOnHold()
 
 void SimpleJob::removeOnHold()
 {
-    Scheduler::removeSlaveOnHold();
+    Scheduler::removeWorkerOnHold();
 }
 
 bool SimpleJob::isRedirectionHandlingEnabled() const
@@ -171,7 +171,7 @@ void SimpleJobPrivate::start(Slave *slave)
         slave->send(CMD_META_DATA, packedArgs);
     }
 
-    if (!m_subUrl.isEmpty()) {
+    if (!m_subUrl.isEmpty()) { // TODO KF6 remove
         KIO_ARGS << m_subUrl;
         slave->send(CMD_SUBURL, packedArgs);
     }
@@ -216,7 +216,10 @@ void SimpleJob::slotFinished()
                 QDataStream str(d->m_packedArgs);
                 str >> src >> dst;
                 if (src.adjusted(QUrl::RemoveFilename) == dst.adjusted(QUrl::RemoveFilename) // For the user, moving isn't renaming. Only renaming is.
-                    && !KProtocolInfo::slaveHandlesNotify(dst.scheme()).contains(QLatin1String("Rename"))) {
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
+                    && !KProtocolInfo::slaveHandlesNotify(dst.scheme()).contains(QLatin1String("Rename"))
+#endif
+                ) {
 #ifndef KIO_ANDROID_STUB
                     org::kde::KDirNotify::emitFileRenamed(src, dst);
 #endif
@@ -296,24 +299,6 @@ void SimpleJobPrivate::restartAfterRedirection(QUrl *redirectionUrl)
     }
 }
 
-int SimpleJobPrivate::requestMessageBox(int _type,
-                                        const QString &text,
-                                        const QString &caption,
-                                        const QString &buttonYes,
-                                        const QString &buttonNo,
-                                        const QString &iconYes,
-                                        const QString &iconNo,
-                                        const QString &dontAskAgainName,
-                                        const KIO::MetaData &sslMetaData)
-{
-    if (m_uiDelegateExtension) {
-        const JobUiDelegateExtension::MessageBoxType type = static_cast<JobUiDelegateExtension::MessageBoxType>(_type);
-        return m_uiDelegateExtension->requestMessageBox(type, text, caption, buttonYes, buttonNo, iconYes, iconNo, dontAskAgainName, sslMetaData);
-    }
-    qCWarning(KIO_CORE) << "JobUiDelegate not set! Returning -1";
-    return -1;
-}
-
 void SimpleJob::slotMetaData(const KIO::MetaData &_metaData)
 {
     Q_D(SimpleJob);
@@ -328,17 +313,19 @@ void SimpleJob::slotMetaData(const KIO::MetaData &_metaData)
     }
 
     // Update the internal meta-data values as soon as possible. Waiting until
-    // the ioslave is finished has unintended consequences if the client starts
-    // a new connection without waiting for the ioslave to finish.
+    // the KIO worker is finished has unintended consequences if the client starts
+    // a new connection without waiting for the KIO worker to finish.
     if (!d->m_internalMetaData.isEmpty()) {
         Scheduler::updateInternalMetaData(this);
     }
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 void SimpleJob::storeSSLSessionFromJob(const QUrl &redirectionURL)
 {
     Q_UNUSED(redirectionURL);
 }
+#endif
 
 void SimpleJobPrivate::slotPrivilegeOperationRequested()
 {

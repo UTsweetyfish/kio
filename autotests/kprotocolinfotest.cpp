@@ -6,11 +6,14 @@
 
 #include <KConfig>
 #include <KConfigGroup>
+#include <KPluginMetaData>
 #include <QDebug>
 #include <QFile>
+#include <QJsonObject>
 #include <QStandardPaths>
 #include <QTest>
 #include <QUrl>
+#include <algorithm>
 #include <kprotocolmanager.h>
 
 // Tests both KProtocolInfo and KProtocolManager
@@ -24,7 +27,7 @@ private Q_SLOTS:
     void testBasic();
     void testExtraFields();
     void testShowFilePreview();
-    void testSlaveProtocol();
+    void testWorkerProtocol();
     void testProxySettings_data();
     void testProxySettings();
     void testCapabilities();
@@ -42,7 +45,7 @@ void KProtocolInfoTest::testBasic()
 {
     QVERIFY(KProtocolInfo::isKnownProtocol(QUrl(QStringLiteral("http:/"))));
     QVERIFY(KProtocolInfo::isKnownProtocol(QUrl(QStringLiteral("file:/"))));
-    QVERIFY(KProtocolInfo::exec(QStringLiteral("file")).contains(QLatin1String("kf5/kio/kio_file")));
+    QVERIFY(KProtocolInfo::exec(QStringLiteral("file")).contains(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/kio/kio_file")));
     QCOMPARE(KProtocolInfo::protocolClass(QStringLiteral("file")), QStringLiteral(":local"));
 
     QCOMPARE(KProtocolInfo::protocolClass(QStringLiteral("http")), QStringLiteral(":internet"));
@@ -74,16 +77,16 @@ void KProtocolInfoTest::testShowFilePreview()
     QVERIFY(!KProtocolInfo::showFilePreview(QStringLiteral("audiocd")));
 }
 
-void KProtocolInfoTest::testSlaveProtocol()
+void KProtocolInfoTest::testWorkerProtocol()
 {
     QString proxy;
-    QString protocol = KProtocolManager::slaveProtocol(QUrl(QStringLiteral("http://bugs.kde.org")), proxy);
+    QString protocol = KProtocolManager::workerProtocol(QUrl(QStringLiteral("http://bugs.kde.org")), proxy);
     QCOMPARE(protocol, QStringLiteral("http"));
     QVERIFY(!KProtocolManager::useProxy());
 
     // Just to test it doesn't deadlock
     KProtocolManager::reparseConfiguration();
-    protocol = KProtocolManager::slaveProtocol(QUrl(QStringLiteral("http://bugs.kde.org")), proxy);
+    protocol = KProtocolManager::workerProtocol(QUrl(QStringLiteral("http://bugs.kde.org")), proxy);
     QCOMPARE(protocol, QStringLiteral("http"));
 }
 
@@ -107,7 +110,7 @@ void KProtocolInfoTest::testProxySettings()
     cfg.sync();
     KProtocolManager::reparseConfiguration();
     QString proxy;
-    QString protocol = KProtocolManager::slaveProtocol(QUrl(QStringLiteral("http://bugs.kde.org")), proxy);
+    QString protocol = KProtocolManager::workerProtocol(QUrl(QStringLiteral("http://bugs.kde.org")), proxy);
     QCOMPARE(protocol, QStringLiteral("http"));
     QVERIFY(KProtocolManager::useProxy());
 
@@ -126,10 +129,18 @@ void KProtocolInfoTest::testCapabilities()
 
 void KProtocolInfoTest::testProtocolForArchiveMimetype()
 {
-    if (!QFile::exists(QStandardPaths::locate(QStandardPaths::GenericDataLocation, QLatin1String("kservices5/") + "zip.protocol"))) {
-        QSKIP("kdebase not installed");
+    // The zip protocol is available at least with the kio_archive worker from kio-extras repo (11 2022)
+    auto supportsZipProtocol = [](const KPluginMetaData &metaData) {
+        const QJsonObject protocols = metaData.rawData().value(QStringLiteral("KDE-KIO-Protocols")).toObject();
+        return (protocols.find(QLatin1String("zip")) != protocols.end());
+    };
+
+    const QVector<KPluginMetaData> workers = KPluginMetaData::findPlugins(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/kio"));
+    if (std::none_of(workers.cbegin(), workers.cend(), supportsZipProtocol)) {
+        QSKIP("kio-extras not installed");
     } else {
         const QString zip = KProtocolManager::protocolForArchiveMimetype(QStringLiteral("application/zip"));
+        // Krusader's kio_krarc.so also provides the zip protocol and might be found before/instead
         QVERIFY(zip == QLatin1String("zip") || zip == QLatin1String("krarc"));
     }
 }

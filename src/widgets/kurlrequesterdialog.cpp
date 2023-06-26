@@ -31,7 +31,7 @@ public:
     void initDialog(const QString &text, const QUrl &url);
 
     // slots
-    void _k_slotTextChanged(const QString &);
+    void slotTextChanged(const QString &);
 
     KUrlRequester *urlRequester;
     QDialogButtonBox *buttonBox;
@@ -66,7 +66,7 @@ void KUrlRequesterDialogPrivate::initDialog(const QString &text, const QUrl &url
     topLayout->addWidget(urlRequester);
     urlRequester->setFocus();
     QObject::connect(urlRequester->lineEdit(), &KLineEdit::textChanged, q, [this](const QString &text) {
-        _k_slotTextChanged(text);
+        slotTextChanged(text);
     });
     /*
     KFile::Mode mode = static_cast<KFile::Mode>( KFile::File |
@@ -80,10 +80,10 @@ void KUrlRequesterDialogPrivate::initDialog(const QString &text, const QUrl &url
     QObject::connect(buttonBox, &QDialogButtonBox::rejected, q, &QDialog::reject);
     topLayout->addWidget(buttonBox);
 
-    _k_slotTextChanged(urlName.toString());
+    slotTextChanged(urlName.toString());
 }
 
-void KUrlRequesterDialogPrivate::_k_slotTextChanged(const QString &text)
+void KUrlRequesterDialogPrivate::slotTextChanged(const QString &text)
 {
     bool state = !text.trimmed().isEmpty();
     buttonBox->button(QDialogButtonBox::Ok)->setEnabled(state);
@@ -98,11 +98,11 @@ QUrl KUrlRequesterDialog::selectedUrl() const
     }
 }
 
-QUrl KUrlRequesterDialog::getUrl(const QUrl &dir, QWidget *parent, const QString &caption)
+QUrl KUrlRequesterDialog::getUrl(const QUrl &dir, QWidget *parent, const QString &title)
 {
     KUrlRequesterDialog dlg(dir, parent);
 
-    dlg.setWindowTitle(caption.isEmpty() ? i18n("Open") : caption);
+    dlg.setWindowTitle(title.isEmpty() ? i18n("Open") : title);
 
     dlg.exec();
 

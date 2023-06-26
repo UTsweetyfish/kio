@@ -13,6 +13,8 @@
 
 #include "config-kioslave-file.h"
 
+#include "../utils_p.h"
+
 #if HAVE_POSIX_ACL
 #include <../../aclhelpers_p.h>
 #endif
@@ -30,12 +32,13 @@
 #include <QDebug>
 #include <kmountpoint.h>
 
-#include <cerrno>
 #include <array>
+#include <cerrno>
 #include <stdint.h>
 #include <utime.h>
 
-#include <KAuth>
+#include <KAuth/Action>
+#include <KAuth/ExecuteJob>
 #include <KRandom>
 
 #include "fdreceiver.h"
@@ -87,7 +90,7 @@ static bool same_inode(const QT_STATBUF &src, const QT_STATBUF &dest)
 static const QString socketPath()
 {
     const QString runtimeDir = QStandardPaths::writableLocation(QStandardPaths::RuntimeLocation);
-    return QStringLiteral("%1/filehelper%2%3").arg(runtimeDir, KRandom::randomString(6)).arg(getpid());
+    return QStringLiteral("%1/filehelper%2%3").arg(runtimeDir, KRandom::randomString(6)).arg(qlonglong(QThread::currentThreadId()));
 }
 
 static QString actionDetails(ActionType actionType, const QVariantList &args)
@@ -130,6 +133,10 @@ static QString actionDetails(ActionType actionType, const QVariantList &args)
     case UTIME:
         action = i18n("Change Timestamp");
         break;
+    case COPY:
+        action = i18n("Copy");
+        detail = i18n("From: %1, To: %2", args[0].toString(), args[1].toString());
+        break;
     default:
         action = i18n("Unknown Action");
         break;
@@ -158,11 +165,9 @@ bool FileProtocol::isExtendedACL(acl_t acl)
 }
 #endif
 
-static QHash<KUserId, QString> staticUserCache;
-static QHash<KGroupId, QString> staticGroupCache;
-
 static QString getUserName(KUserId uid)
 {
+    thread_local QHash<KUserId, QString> staticUserCache;
     if (Q_UNLIKELY(!uid.isValid())) {
         return QString();
     }
@@ -180,6 +185,7 @@ static QString getUserName(KUserId uid)
 
 static QString getGroupName(KGroupId gid)
 {
+    thread_local QHash<KGroupId, QString> staticGroupCache;
     if (Q_UNLIKELY(!gid.isValid())) {
         return QString();
     }
@@ -366,7 +372,7 @@ static bool createUDSEntry(const QString &filename, const QByteArray &path, UDSE
 #endif
 
     if (LSTAT(path.data(), &buff, details) == 0) {
-        if ((stat_mode(buff) & QT_STAT_MASK) == QT_STAT_LNK) {
+        if (Utils::isLinkMask(stat_mode(buff))) {
             QByteArray linkTargetBuffer;
             if (details & (KIO::StatBasic | KIO::StatResolveSymlink)) {
 // Use readlink on Unix because symLinkTarget turns relative targets into absolute (#352927)
@@ -596,11 +602,15 @@ bool FileProtocol::copyXattrs(const int src_fd, const int dest_fd)
         // Get size of the key
 #if HAVE_SYS_XATTR_H
         keyLen = strlen(keyPtr);
-        auto next_key = [&]() { keyPtr += keyLen + 1; };
+        auto next_key = [&]() {
+            keyPtr += keyLen + 1;
+        };
 #elif HAVE_SYS_EXTATTR_H
         keyLen = static_cast<unsigned char>(*keyPtr);
         keyPtr++;
-        auto next_key = [&]() { keyPtr += keyLen; };
+        auto next_key = [&]() {
+            keyPtr += keyLen;
+        };
 #endif
         QByteArray key(keyPtr, keyLen);
 
@@ -784,7 +794,8 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
     posix_fadvise(destFile.handle(), 0, 0, POSIX_FADV_SEQUENTIAL);
 #endif
 
-    totalSize(buffSrc.st_size);
+    const auto srcSize = buffSrc.st_size;
+    totalSize(srcSize);
 
     off_t sizeProcessed = 0;
 
@@ -792,8 +803,8 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
     // Share data blocks ("reflink") on supporting filesystems, like brfs and XFS
     int ret = ::ioctl(destFile.handle(), FICLONE, srcFile.handle());
     if (ret != -1) {
-        sizeProcessed = srcFile.size();
-        processedSize(srcFile.size());
+        sizeProcessed = srcSize;
+        processedSize(srcSize);
     }
     // if fs does not support reflinking, files are on different devices...
 #endif
@@ -803,7 +814,7 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
     processedSize(sizeProcessed);
 
 #if HAVE_COPY_FILE_RANGE
-    while (!wasKilled() && sizeProcessed < srcFile.size()) {
+    while (!wasKilled() && sizeProcessed < srcSize) {
         if (testMode && destFile.fileName().contains(QLatin1String("slow"))) {
             QThread::msleep(50);
         }
@@ -828,7 +839,7 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
                 }
                 error(KIO::ERR_DISK_FULL, dest);
             } else {
-                error(KIO::ERR_SLAVE_DEFINED, i18n("Cannot copy file from %1 to %2. (Errno: %3)", src, dest, errno));
+                error(KIO::ERR_WORKER_DEFINED, i18n("Cannot copy file from %1 to %2. (Errno: %3)", src, dest, errno));
             }
 
             if (!QFile::remove(dest)) { // don't keep partly copied file
@@ -843,9 +854,9 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
 #endif
 
     /* standard read/write fallback */
-    if (sizeProcessed < srcFile.size()) {
+    if (sizeProcessed < srcSize) {
         std::array<char, s_maxIPCSize> buffer;
-        while (!wasKilled() && sizeProcessed < srcFile.size()) {
+        while (!wasKilled() && sizeProcessed < srcSize) {
             if (testMode && destFile.fileName().contains(QLatin1String("slow"))) {
                 QThread::msleep(50);
             }
@@ -958,13 +969,15 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
 #endif
 
     // preserve ownership
-    if (::chown(_dest.data(), -1 /*keep user*/, buffSrc.st_gid) == 0) {
-        // as we are the owner of the new file, we can always change the group, but
-        // we might not be allowed to change the owner
-        (void)::chown(_dest.data(), buffSrc.st_uid, -1 /*keep group*/);
-    } else {
-        if (tryChangeFileAttr(CHOWN, {_dest, buffSrc.st_uid, buffSrc.st_gid}, errno)) {
-            qCWarning(KIO_FILE) << "Couldn't preserve group for" << dest;
+    if (_mode != -1) {
+        if (::chown(_dest.data(), -1 /*keep user*/, buffSrc.st_gid) == 0) {
+            // as we are the owner of the new file, we can always change the group, but
+            // we might not be allowed to change the owner
+            (void)::chown(_dest.data(), buffSrc.st_uid, -1 /*keep group*/);
+        } else {
+            if (tryChangeFileAttr(CHOWN, {_dest, buffSrc.st_uid, buffSrc.st_gid}, errno)) {
+                qCWarning(KIO_FILE) << "Couldn't preserve group for" << dest;
+            }
         }
     }
 
@@ -978,7 +991,7 @@ void FileProtocol::copy(const QUrl &srcUrl, const QUrl &destUrl, int _mode, JobF
         }
     }
 
-    processedSize(buffSrc.st_size);
+    processedSize(srcSize);
     finished();
 }
 
@@ -1053,7 +1066,7 @@ void FileProtocol::listDir(const QUrl &url)
             break;
 #ifdef ENOMEDIUM
         case ENOMEDIUM:
-            error(ERR_SLAVE_DEFINED, i18n("No media in device for %1", path));
+            error(ERR_WORKER_DEFINED, i18n("No media in device for %1", path));
             break;
 #endif
         default:
@@ -1063,19 +1076,7 @@ void FileProtocol::listDir(const QUrl &url)
         return;
     }
 
-    /* set the current dir to the path to speed up
-       in not having to pass an absolute path.
-       We restore the path later to get out of the
-       path - the kernel wouldn't unmount or delete
-       directories we keep as active directory. And
-       as the slave runs in the background, it's hard
-       to see for the user what the problem would be */
-    const QString pathBuffer(QDir::currentPath());
-    if (!QDir::setCurrent(path)) {
-        closedir(dp);
-        error(ERR_CANNOT_ENTER_DIRECTORY, path);
-        return;
-    }
+    const QByteArray encodedBasePath = _path + '/';
 
     const KIO::StatDetails details = getStatDetails();
     // qDebug() << "========= LIST " << url << "details=" << details << " =========";
@@ -1121,20 +1122,17 @@ void FileProtocol::listDir(const QUrl &url)
             listEntry(entry);
 
         } else {
-            QString fullPath(path);
-            if (!fullPath.endsWith(QLatin1Char('/'))) {
-                fullPath += QLatin1Char('/');
-            }
+            QString fullPath = Utils::slashAppended(path);
             fullPath += filename;
 
-            if (createUDSEntry(filename, QByteArray(ep->d_name), entry, details, fullPath)) {
+            if (createUDSEntry(filename, encodedBasePath + QByteArray(ep->d_name), entry, details, fullPath)) {
 #if HAVE_SYS_XATTR_H
-                if (isNtfsHidden(filename)) {
+                if (isNtfsHidden(fullPath)) {
                     bool ntfsHidden = true;
 
                     // Bug 392913: NTFS root volume is always "hidden", ignore this
                     if (ep->d_type == DT_DIR || ep->d_type == DT_UNKNOWN || ep->d_type == DT_LNK) {
-                        const QString fullFilePath = QDir(filename).canonicalPath();
+                        const QString fullFilePath = QDir(fullPath).canonicalPath();
                         auto mountPoint = KMountPoint::currentMountPoints().findByPath(fullFilePath);
                         if (mountPoint && mountPoint->mountPoint() == fullFilePath) {
                             ntfsHidden = false;
@@ -1152,9 +1150,6 @@ void FileProtocol::listDir(const QUrl &url)
     }
 
     closedir(dp);
-
-    // Restore the path
-    QDir::setCurrent(pathBuffer);
 
     finished();
 }
@@ -1284,7 +1279,7 @@ void FileProtocol::symlink(const QString &target, const QUrl &destUrl, KIO::JobF
                 dest,
                 KFileSystemType::fileSystemName(fsType));
 
-            error(KIO::ERR_SLAVE_DEFINED, msg);
+            error(KIO::ERR_WORKER_DEFINED, msg);
             return;
         }
     }
@@ -1364,7 +1359,7 @@ void FileProtocol::chown(const QUrl &url, const QString &owner, const QString &g
         struct passwd *p = ::getpwnam(owner.toLocal8Bit().constData());
 
         if (!p) {
-            error(KIO::ERR_SLAVE_DEFINED, i18n("Could not get user id for given user name %1", owner));
+            error(KIO::ERR_WORKER_DEFINED, i18n("Could not get user id for given user name %1", owner));
             return;
         }
 
@@ -1376,7 +1371,7 @@ void FileProtocol::chown(const QUrl &url, const QString &owner, const QString &g
         struct group *p = ::getgrnam(group.toLocal8Bit().constData());
 
         if (!p) {
-            error(KIO::ERR_SLAVE_DEFINED, i18n("Could not get group id for given group name %1", group));
+            error(KIO::ERR_WORKER_DEFINED, i18n("Could not get group id for given group name %1", group));
             return;
         }
 

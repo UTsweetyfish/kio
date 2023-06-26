@@ -1,5 +1,4 @@
 report_error_removing_dirs
 #fix_kfreebsd_build
-fix_hurd_build.patch
-#Use-CXX_FLAGS-for-moc_predefs.h.patch
-#upstream-aef544eb-Fix_copying_between_different_filesystems_on_Linux
+hurd_disable_unimplemented.diff
+Use-CXX_FLAGS-for-moc_predefs.h.patch

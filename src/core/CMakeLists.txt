@@ -7,7 +7,7 @@ configure_file(config-kmountpoint.h.cmake ${CMAKE_CURRENT_BINARY_DIR}/config-kmo
 # KSSL_HAVE_SSL only used in kssl/ksslsettings.cpp, but currently ifdefed out
 #find_package(OpenSSL)
 #set_package_properties(OpenSSL PROPERTIES DESCRIPTION "Support for secure network communications (SSL and TLS)"
-#                       URL "http://openssl.org"
+#                       URL "https://www.openssl.org/"
 #                       TYPE RECOMMENDED
 #                       PURPOSE "KDE uses OpenSSL for the bulk of secure communications, including secure web browsing via HTTPS"
 #                      )
@@ -49,7 +49,8 @@ target_sources(KF5KIOCore PRIVATE
   kremoteencoding.cpp
   sessiondata.cpp
   slavebase.cpp
-  dataslave.cpp
+  workerbase.cpp
+  dataworker.cpp
   dataprotocol.cpp
   desktopexecparser.cpp
   emptytrashjob.cpp
@@ -90,18 +91,23 @@ target_sources(KF5KIOCore PRIVATE
   kcoredirlister.cpp
   faviconscache.cpp
   untrustedprogramhandlerinterface.cpp
-
   kioglobal_p.cpp
   batchrenamejob.cpp
+  workerconfig.cpp
+  workerfactory.cpp
+  workerthread.cpp
+  kfilefilter.cpp
 )
 
 if (NOT ANDROID)
 target_sources(KF5KIOCore PRIVATE
   tcpslavebase.cpp
+  tcpworkerbase.cpp
   forwardingslavebase.cpp
   kpasswdserverloop.cpp
   kpasswdserverclient.cpp
   kdirnotify.cpp
+  forwardingworkerbase.cpp
 
   ksslcertificatemanager.cpp
   ksslerroruidata.cpp
@@ -158,7 +164,7 @@ if (WIN32)
 endif()
 
 set(kiocore_dbus_SRCS)
-if (TARGET Qt5::DBus)
+if (TARGET Qt${QT_MAJOR_VERSION}::DBus)
     qt_add_dbus_interface(kiocore_dbus_SRCS org.kde.KIOFuse.VFS.xml kiofuse_interface)
 
     set_source_files_properties(org.kde.KPasswdServer.xml
@@ -189,7 +195,7 @@ ecm_generate_export_header(KF5KIOCore
     GROUP_BASE_NAME KF
     VERSION ${KF_VERSION}
     DEPRECATED_BASE_VERSION 0
-    DEPRECATION_VERSIONS 3.0 3.1 3.4 4.0 4.3 4.5 4.6 5.0 5.2 5.8 5.24 5.45 5.48 5.63 5.61 5.64 5.65 5.66 5.69 5.72 5.78 5.79 5.80 5.81 5.82 5.83 5.84 5.86 5.88 5.90
+    DEPRECATION_VERSIONS 3.0 3.1 3.4 4.0 4.3 4.5 4.6 5.0 5.2 5.8 5.24 5.45 5.48 5.63 5.61 5.64 5.65 5.66 5.69 5.72 5.78 5.79 5.80 5.81 5.82 5.83 5.84 5.86 5.88 5.90 5.91 5.94 5.96 5.97 5.98 5.100 5.101 5.102 5.103
     EXCLUDE_DEPRECATED_BEFORE_AND_AT ${EXCLUDE_DEPRECATED_BEFORE_AND_AT}
 )
 # TODO: add support for EXCLUDE_DEPRECATED_BEFORE_AND_AT to all KIO libs
@@ -200,32 +206,39 @@ target_include_directories(KF5KIOCore PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/kssl>"
 )
 
-target_include_directories(KF5KIOCore INTERFACE "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR_KF5}/KIOCore>")
+target_include_directories(KF5KIOCore INTERFACE
+    "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR_KF}/KIOCore>"
+    "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR_KF}/KIO>"
+)
 
 target_link_libraries(KF5KIOCore
 PUBLIC
  KF5::CoreAddons   # KJob
  KF5::Service # TODO KF6 move to PRIVATE
- Qt5::Network
+ Qt${QT_MAJOR_VERSION}::Network
 PRIVATE
- Qt5::Xml                   # davjob.cpp uses QDom
+ Qt${QT_MAJOR_VERSION}::Xml # davjob.cpp uses QDom
  KF5::ConfigCore
  KF5::I18n
- KF5::Crash
 )
-if (TARGET Qt5::DBus)
+
+if (NOT ANDROID)
+    target_link_libraries(KF5KIOCore PRIVATE KF5::Crash)
+endif()
+
+if (TARGET Qt${QT_MAJOR_VERSION}::DBus)
     target_link_libraries(KF5KIOCore
     PUBLIC
-        Qt5::DBus
+        Qt${QT_MAJOR_VERSION}::DBus
     PRIVATE
         KF5::DBusAddons            # KDEInitInterface
     )
 endif()
 
 if(KIO_NO_PUBLIC_QTCONCURRENT)
-  target_link_libraries(KF5KIOCore PRIVATE Qt5::Concurrent) # QtConcurrentRun in hostinfo.cpp
+  target_link_libraries(KF5KIOCore PRIVATE Qt${QT_MAJOR_VERSION}::Concurrent) # QtConcurrentRun in hostinfo.cpp
 else()
-  target_link_libraries(KF5KIOCore PUBLIC Qt5::Concurrent) # TODO KF6: remove
+  target_link_libraries(KF5KIOCore PUBLIC Qt${QT_MAJOR_VERSION}::Concurrent) # TODO KF6: remove
 endif()
 
 if (TARGET KF5::AuthCore)
@@ -240,8 +253,12 @@ if(HAVE_LIB_MOUNT)
   target_link_libraries(KF5KIOCore PRIVATE LibMount::LibMount)
 endif()
 
+if (TARGET Qt6::Core5Compat)
+    target_link_libraries(KF5KIOCore PRIVATE Qt6::Core5Compat) # QTextCodec
+endif()
+
 # this should be done by cmake, see bug 371721
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND Qt5Core_VERSION VERSION_GREATER 5.8.0)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND Qt${QT_MAJOR_VERSION}Core_VERSION VERSION_GREATER 5.8.0)
     add_custom_command(
         OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/moc_predefs.h
         COMMAND "${CMAKE_CXX_COMPILER}" "${CMAKE_CXX_COMPILER_ARG1}" "-dM" "-E" "-c" "${CMAKE_ROOT}/Modules/CMakeCXXCompilerABI.cpp" > ${CMAKE_CURRENT_BINARY_DIR}/moc_predefs.h
@@ -256,6 +273,7 @@ ecm_generate_headers(KIOCore_CamelCase_HEADERS
   IdleSlave
   ConnectionServer
   TCPSlaveBase
+  TCPWorkerBase
   DirectorySizeJob
   ForwardingSlaveBase
   Job #     ### should forward to job_base.h, not job.h...
@@ -296,6 +314,9 @@ ecm_generate_headers(KIOCore_CamelCase_HEADERS
   DesktopExecParser
   FileSystemFreeSpaceJob
   BatchRenameJob
+  WorkerBase
+  WorkerFactory
+  ForwardingWorkerBase
 
   PREFIX KIO
   REQUIRED_HEADERS KIO_namespaced_HEADERS
@@ -308,17 +329,25 @@ if (NOT EXISTS ${REGULAR_HEADER_NAME})
 endif()
 
 
-install(TARGETS KF5KIOCore EXPORT KF5KIOTargets ${KF5_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS KF5KIOCore EXPORT KF5KIOTargets ${KF_INSTALL_TARGETS_DEFAULT_ARGS})
 
 list(APPEND KIO_namespaced_HEADERS
-  http_slave_defaults.h
-  ioslave_defaults.h
+  http_worker_defaults.h
+  ioworker_defaults.h
   job_base.h
   jobclasses.h
 )
+if(NOT EXCLUDE_DEPRECATED_BEFORE_AND_AT STREQUAL "CURRENT" AND
+   EXCLUDE_DEPRECATED_BEFORE_AND_AT VERSION_LESS 5.101.0)
+    list(APPEND KIO_namespaced_HEADERS
+      ioslave_defaults.h
+      http_slave_defaults.h
+    )
+endif()
+
 install(FILES
   ${KIO_namespaced_HEADERS}
-  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOCore/kio COMPONENT Devel
+  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIOCore/kio COMPONENT Devel
 )
 
 # Headers not prefixed with KIO/
@@ -343,6 +372,7 @@ ecm_generate_headers(KIOCore_HEADERS
   KSslCertificateManager
   KSslErrorUiData
   KTcpSocket
+  KFileFilter
 
   REQUIRED_HEADERS KIOCore_HEADERS
 )
@@ -354,13 +384,13 @@ ecm_generate_headers(KIOCore_HEADERS
   RELATIVE kssl
   REQUIRED_HEADERS KIOCore_HEADERS
 )
-install(FILES ${KIOCore_CamelCase_HEADERS} DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOCore/KIO COMPONENT Devel)
+install(FILES ${KIOCore_CamelCase_HEADERS} DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIOCore/KIO COMPONENT Devel)
 
 install(FILES
   ksslcertificatemanager_p.h
   ${KIOCore_HEADERS}
   ${CMAKE_CURRENT_BINARY_DIR}/kiocore_export.h
-  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOCore COMPONENT Devel)
+  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIOCore COMPONENT Devel)
 
 install(FILES accept-languages.codes DESTINATION ${KDE_INSTALL_CONFDIR})
 
@@ -368,5 +398,13 @@ install(FILES accept-languages.codes DESTINATION ${KDE_INSTALL_CONFDIR})
 set(KIOCore_QCH_SOURCES ${KIOCore_HEADERS} ${KIO_namespaced_HEADERS} PARENT_SCOPE)
 
 include(ECMGeneratePriFile)
-ecm_generate_pri_file(BASE_NAME KIOCore LIB_NAME KF5KIOCore DEPS "KCoreAddons KService" FILENAME_VAR PRI_FILENAME INCLUDE_INSTALL_DIR ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOCore)
+ecm_generate_pri_file(
+  BASE_NAME KIOCore
+  LIB_NAME KF5KIOCore
+  DEPS "KCoreAddons KService"
+  FILENAME_VAR PRI_FILENAME
+  INCLUDE_INSTALL_DIRS
+    ${KDE_INSTALL_INCLUDEDIR_KF}/KIO
+    ${KDE_INSTALL_INCLUDEDIR_KF}/KIOCore
+)
 install(FILES ${PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})

@@ -76,7 +76,11 @@ public:
                                        const QProcessEnvironment &environment);
 
     /**
-     * Run an executable with arguments (no shell involved)
+     * Run an executable with arguments (without invoking a shell, by starting a new process).
+     *
+     * @note: Starting from 5.92, if an actual executable named @p executable cannot be found
+     * in PATH, this will return a nullptr.
+     *
      * @param executable the name of (or full path to) the executable, mandatory
      * @param args the arguments to pass to the executable
      * @param desktopName name of the desktop file, if known.
@@ -117,6 +121,11 @@ Q_SIGNALS:
     void processStarted(qint64 pid);
 
     /**
+     * @brief emitted when the process was finished
+     */
+    void processFinished();
+
+    /**
      * Notifies about having received the token were waiting for.
      *
      * It only gets emitted when on Wayland.
@@ -131,16 +140,21 @@ protected:
     void setPid(qint64 pid);
     void terminateStartupNotification();
     QString name() const;
+    QString maybeAliasedName(const QString &pattern) const;
+    static QString escapeUnitName(const QString &input);
 
     std::unique_ptr<KProcess> m_process;
     QString m_executable; // can be a full path
     QString m_desktopName;
     QString m_desktopFilePath;
     QString m_description;
+    QString m_cmd;
     qint64 m_pid = 0;
     KService::Ptr m_service;
     QString m_serviceEntryPath;
     bool m_waitingForXdgToken = false;
+    QList<QUrl> m_urls;
+    KStartupInfoId m_startupId;
 
 private:
     void emitDelayedError(const QString &errorMsg);
@@ -151,8 +165,6 @@ private:
                              const QString &workingDirectory,
                              const QProcessEnvironment &environment);
     void init(const KService::Ptr &service, const QString &serviceEntryPath, const QString &userVisibleName, const QString &iconName, const QByteArray &asn);
-
-    KStartupInfoId m_startupId;
 
     Q_DISABLE_COPY(KProcessRunner)
 };

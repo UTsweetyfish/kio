@@ -13,6 +13,7 @@
 #endif
 
 #include "config-kiogui.h"
+#include "dbusactivationrunner_p.h"
 #include "kiogui_debug.h"
 
 #include "desktopexecparser.h"
@@ -71,13 +72,28 @@ KProcessRunner *KProcessRunner::fromApplication(const KService::Ptr &service,
                                                 const QString &suggestedFileName,
                                                 const QByteArray &asn)
 {
-    auto instance = makeInstance();
+    KProcessRunner *instance;
+    // special case for applicationlauncherjob
+    // FIXME: KProcessRunner is currently broken and fails to prepare the m_urls member
+    // DBusActivationRunner uses, which then only calls "Activate", not "Open".
+    // Possibly will need some special mode of DesktopExecParser
+    // for the D-Bus activation call scenario to handle URLs with protocols
+    // the invoked service/executable might not support.
+    const bool notYetSupportedOpenActivationNeeded = !urls.isEmpty();
+    if (!notYetSupportedOpenActivationNeeded && DBusActivationRunner::activationPossible(service, flags, suggestedFileName)) {
+        const auto actions = service->actions();
+        auto action = std::find_if(actions.cbegin(), actions.cend(), [service](const KServiceAction &action) {
+            return action.exec() == service->exec();
+        });
+        instance = new DBusActivationRunner(action != actions.cend() ? action->name() : QString());
+    } else {
+        instance = makeInstance();
+    }
 
     if (!service->isValid()) {
         instance->emitDelayedError(i18n("The desktop entry file\n%1\nis not valid.", serviceEntryPath));
         return instance;
     }
-
     instance->m_executable = KIO::DesktopExecParser::executablePath(service->exec());
 
     KIO::DesktopExecParser execParser(*service, urls);
@@ -146,6 +162,7 @@ KProcessRunner *KProcessRunner::fromCommand(const QString &cmd,
     auto instance = makeInstance();
 
     instance->m_executable = KIO::DesktopExecParser::executablePath(execName);
+    instance->m_cmd = cmd;
 #ifdef Q_OS_WIN
     if (cmd.startsWith(QLatin1String("wt.exe")) || cmd.startsWith(QLatin1String("pwsh.exe")) || cmd.startsWith(QLatin1String("powershell.exe"))) {
         instance->m_process->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
@@ -171,6 +188,12 @@ KProcessRunner *KProcessRunner::fromExecutable(const QString &executable,
                                                const QString &workingDirectory,
                                                const QProcessEnvironment &environment)
 {
+    const QString actualExec = QStandardPaths::findExecutable(executable);
+    if (actualExec.isEmpty()) {
+        qCWarning(KIO_GUI) << "Could not find an executable named:" << executable;
+        return {};
+    }
+
     auto instance = makeInstance();
 
     instance->m_executable = KIO::DesktopExecParser::executablePath(executable);
@@ -248,7 +271,6 @@ void KProcessRunner::init(const KService::Ptr &service,
             if (silent) {
                 data.setSilent(KStartupInfoData::Yes);
             }
-            data.setDesktop(KWindowSystem::currentDesktop());
             if (service && !serviceEntryPath.isEmpty()) {
                 data.setApplicationId(serviceEntryPath);
             }
@@ -400,18 +422,43 @@ QString KProcessRunner::name() const
     return !m_desktopName.isEmpty() ? m_desktopName : m_executable;
 }
 
+// Only alphanum, ':' and '_' allowed in systemd unit names
+QString KProcessRunner::escapeUnitName(const QString &input)
+{
+    QString res;
+    const QByteArray bytes = input.toUtf8();
+    for (const auto &c : bytes) {
+        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == ':' || c == '_' || c == '.') {
+            res += QLatin1Char(c);
+        } else {
+            res += QStringLiteral("\\x%1").arg(c, 2, 16, QLatin1Char('0'));
+        }
+    }
+    return res;
+}
+
+QString KProcessRunner::maybeAliasedName(const QString &pattern) const
+{
+    // Don't actually load aliased desktop file to avoid having to deal with recursion
+    QString servName = m_service ? m_service->aliasFor() : QString{};
+    if (servName.isEmpty()) {
+        servName = name();
+    }
+
+    // As specified in "XDG standardization for applications" in https://systemd.io/DESKTOP_ENVIRONMENTS/
+    return pattern.arg(escapeUnitName(servName), QUuid::createUuid().toString(QUuid::Id128));
+}
+
 void KProcessRunner::emitDelayedError(const QString &errorMsg)
 {
     qCWarning(KIO_GUI) << errorMsg;
     terminateStartupNotification();
     // Use delayed invocation so the caller has time to connect to the signal
-    QMetaObject::invokeMethod(
-        this,
-        [this, errorMsg]() {
-            Q_EMIT error(errorMsg);
-            deleteLater();
-        },
-        Qt::QueuedConnection);
+    auto func = [this, errorMsg]() {
+        Q_EMIT error(errorMsg);
+        deleteLater();
+    };
+    QMetaObject::invokeMethod(this, func, Qt::QueuedConnection);
 }
 
 void ForkingProcessRunner::slotProcessExited(int exitCode, QProcess::ExitStatus exitStatus)
@@ -419,6 +466,15 @@ void ForkingProcessRunner::slotProcessExited(int exitCode, QProcess::ExitStatus 
     qCDebug(KIO_GUI) << name() << "exitCode=" << exitCode << "exitStatus=" << exitStatus;
     terminateStartupNotification();
     deleteLater();
+#ifdef Q_OS_UNIX
+    if (exitCode == 127) {
+#else
+    if (exitCode == 9009) {
+#endif
+        const QStringList args = m_cmd.split(QLatin1Char(' '));
+        Q_EMIT error(xi18nc("@info", "The command <command>%1</command> could not be found.", args[0]));
+    }
+    Q_EMIT processFinished();
 }
 
 // This code is also used in klauncher (and KRun).

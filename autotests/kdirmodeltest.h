@@ -17,9 +17,6 @@
 
 #include <memory>
 
-// If you disable this, you need to change all exitLoop into quit in connect() statements...
-#define USE_QTESTEVENTLOOP
-
 class KDirModelTest : public QObject
 {
     Q_OBJECT
@@ -33,6 +30,13 @@ private Q_SLOTS:
     void testItemForIndex();
     void testIndexForItem();
     void testData();
+
+    /**
+     * Test if the icon is valid if "Icon" is specified in the desktop file, and can fall back to "unknown"
+     * if KDirModel fails to load the icon.
+     */
+    void testIcon();
+
     void testReload();
     void testModifyFile();
     void testRenameFile();
@@ -74,24 +78,17 @@ private Q_SLOTS:
     void testQUrlHash();
 
 protected Q_SLOTS: // 'more private than private slots' - i.e. not seen by qtestlib
-    void slotListingCompleted();
     void slotExpand(const QModelIndex &index);
     void slotRowsInserted(const QModelIndex &index, int, int);
 
 private:
     void recreateTestData();
-    void enterLoop();
     void fillModel(bool reload, bool expectAllIndexes = true);
     void collectKnownIndexes();
     void testMoveDirectory(const QString &srcdir);
     void testUpdateParentAfterExpand();
 
 private:
-#ifdef USE_QTESTEVENTLOOP
-    QTestEventLoop m_eventLoop;
-#else
-    QEventLoop m_eventLoop;
-#endif
     std::unique_ptr<QTemporaryDir> m_tempDir;
     KDirModel *m_dirModel;
     QModelIndex m_fileIndex;

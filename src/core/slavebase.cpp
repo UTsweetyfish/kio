@@ -30,22 +30,29 @@
 
 #include <KConfig>
 #include <KConfigGroup>
-#include <KCrash>
 #include <KLocalizedString>
+#include <QThread>
+
+#ifndef Q_OS_ANDROID
+#include <KCrash>
+#endif
 
 #include "kremoteencoding.h"
 
 #include "commands_p.h"
 #include "connection_p.h"
-#include "ioslave_defaults.h"
+#include "ioworker_defaults.h"
 #include "kiocoredebug.h"
 #include "kioglobal_p.h"
 #include "kpasswdserverclient.h"
 #include "slaveinterface.h"
 
 #if defined(Q_OS_UNIX) && !defined(Q_OS_ANDROID)
-#include <KAuth>
+#include <KAuth/Action>
 #endif
+
+// TODO: Enable once file KIO worker is ported away and add endif, similar in the header file
+// #if KIOCORE_BUILD_DEPRECATED_SINCE(version where file:/ KIO worker was ported)
 
 #if KIO_ASSERT_SLAVE_STATES
 #define KIO_STATE_ASSERT(cond, where, what) Q_ASSERT_X(cond, where, what)
@@ -109,9 +116,10 @@ public:
     bool resume : 1;
     bool needSendCanResume : 1;
     bool onHold : 1;
-    bool wasKilled : 1;
     bool inOpenLoop : 1;
-    bool exit_loop : 1;
+    std::atomic<bool> wasKilled = false;
+    std::atomic<bool> exit_loop = false;
+    std::atomic<bool> runInThread = false;
     MetaData configData;
     KConfig *config = nullptr;
     KConfigGroup *configGroup = nullptr;
@@ -123,7 +131,7 @@ public:
     qint64 nextTimeoutMsecs;
     KIO::filesize_t totalSize;
     KRemoteEncoding *remotefile = nullptr;
-    enum { Idle, InsideMethod, FinishedCalled, ErrorCalled } m_state;
+    enum { Idle, InsideMethod, InsideTimeoutSpecial, FinishedCalled, ErrorCalled } m_state;
     bool m_finalityCommand = true; // whether finished() or error() may/must be called
     QByteArray timeoutData;
 
@@ -134,7 +142,7 @@ public:
 
     bool m_confirmationAsked;
     QSet<QString> m_tempAuths;
-    QString m_warningCaption;
+    QString m_warningTitle;
     QString m_warningMessage;
     int m_privilegeOperationStatus;
 
@@ -190,7 +198,7 @@ public:
     {
         KIO_STATE_ASSERT(finalState(),
                          Q_FUNC_INFO,
-                         qUtf8Printable(QStringLiteral("%1 did not call finished() or error()! Please fix the %2 KIO slave")
+                         qUtf8Printable(QStringLiteral("%1 did not call finished() or error()! Please fix the %2 KIO worker.")
                                             .arg(QLatin1String(cmdName))
                                             .arg(QCoreApplication::applicationName())));
         // Force the command into finished state. We'll not reach this for Debug builds
@@ -206,7 +214,7 @@ public:
     {
         KIO_STATE_ASSERT(!finalState(),
                          Q_FUNC_INFO,
-                         qUtf8Printable(QStringLiteral("%1 called finished() or error(), but it's not supposed to! Please fix the %2 KIO slave")
+                         qUtf8Printable(QStringLiteral("%1 called finished() or error(), but it's not supposed to! Please fix the %2 KIO worker.")
                                             .arg(QLatin1String(cmdName))
                                             .arg(QCoreApplication::applicationName())));
     }
@@ -225,13 +233,11 @@ public:
 
 }
 
-static SlaveBase *globalSlave;
-
 static volatile bool slaveWriteError = false;
 
-static const char *s_protocol;
-
 #ifdef Q_OS_UNIX
+static SlaveBase *globalSlave;
+
 extern "C" {
 static void genericsig_handler(int sigNumber)
 {
@@ -259,23 +265,26 @@ SlaveBase::SlaveBase(const QByteArray &protocol, const QByteArray &pool_socket, 
 {
     Q_ASSERT(!app_socket.isEmpty());
     d->poolSocket = QFile::decodeName(pool_socket);
-    s_protocol = protocol.data();
 
-    KCrash::initialize();
-
-#ifdef Q_OS_UNIX
-    struct sigaction act;
-    act.sa_handler = sigpipe_handler;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(SIGPIPE, &act, nullptr);
-
-    ::signal(SIGINT, &genericsig_handler);
-    ::signal(SIGQUIT, &genericsig_handler);
-    ::signal(SIGTERM, &genericsig_handler);
+    if (QThread::currentThread() == qApp->thread()) {
+#ifndef Q_OS_ANDROID
+        KCrash::initialize();
 #endif
 
-    globalSlave = this;
+#ifdef Q_OS_UNIX
+        struct sigaction act;
+        act.sa_handler = sigpipe_handler;
+        sigemptyset(&act.sa_mask);
+        act.sa_flags = 0;
+        sigaction(SIGPIPE, &act, nullptr);
+
+        ::signal(SIGINT, &genericsig_handler);
+        ::signal(SIGQUIT, &genericsig_handler);
+        ::signal(SIGTERM, &genericsig_handler);
+
+        globalSlave = this;
+#endif
+    }
 
     d->isConnectedToApp = true;
 
@@ -285,14 +294,12 @@ SlaveBase::SlaveBase(const QByteArray &protocol, const QByteArray &pool_socket, 
     d->needSendCanResume = false;
     d->mapConfig = QMap<QString, QVariant>();
     d->onHold = false;
-    d->wasKilled = false;
     //    d->processed_size = 0;
     d->totalSize = 0;
     connectSlave(QFile::decodeName(app_socket));
 
     d->remotefile = nullptr;
     d->inOpenLoop = false;
-    d->exit_loop = false;
 }
 
 SlaveBase::~SlaveBase()
@@ -300,7 +307,6 @@ SlaveBase::~SlaveBase()
     delete d->configGroup;
     delete d->config;
     delete d->remotefile;
-    s_protocol = "";
 }
 
 void SlaveBase::dispatchLoop()
@@ -310,7 +316,9 @@ void SlaveBase::dispatchLoop()
             QByteArray data = d->timeoutData;
             d->nextTimeout.invalidate();
             d->timeoutData = QByteArray();
+            d->m_state = d->InsideTimeoutSpecial;
             special(data);
+            d->m_state = d->Idle;
         }
 
         Q_ASSERT(d->appConnection.inited());
@@ -353,7 +361,7 @@ void SlaveBase::dispatchLoop()
 
         // I think we get here when we were killed in dispatch() and not in select()
         if (wasKilled()) {
-            // qDebug() << "slave was killed, returning";
+            // qDebug() << "worker was killed, returning";
             break;
         }
 
@@ -498,21 +506,26 @@ void SlaveBase::opened()
 
 void SlaveBase::error(int _errid, const QString &_text)
 {
+    if (d->m_state == d->InsideTimeoutSpecial) {
+        qWarning(KIO_CORE) << "TimeoutSpecialCommand failed with" << _errid << _text;
+        return;
+    }
+
     KIO_STATE_ASSERT(
         d->m_finalityCommand,
         Q_FUNC_INFO,
-        qUtf8Printable(QStringLiteral("error() was called, but it's not supposed to! Please fix the %1 KIO slave").arg(QCoreApplication::applicationName())));
+        qUtf8Printable(QStringLiteral("error() was called, but it's not supposed to! Please fix the %1 KIO worker.").arg(QCoreApplication::applicationName())));
 
     if (d->m_state == d->ErrorCalled) {
         KIO_STATE_ASSERT(false,
                          Q_FUNC_INFO,
-                         qUtf8Printable(QStringLiteral("error() called twice! Please fix the %1 KIO slave").arg(QCoreApplication::applicationName())));
+                         qUtf8Printable(QStringLiteral("error() called twice! Please fix the %1 KIO worker.").arg(QCoreApplication::applicationName())));
         return;
     } else if (d->m_state == d->FinishedCalled) {
         KIO_STATE_ASSERT(
             false,
             Q_FUNC_INFO,
-            qUtf8Printable(QStringLiteral("error() called after finished()! Please fix the %1 KIO slave").arg(QCoreApplication::applicationName())));
+            qUtf8Printable(QStringLiteral("error() called after finished()! Please fix the %1 KIO worker.").arg(QCoreApplication::applicationName())));
         return;
     }
 
@@ -537,9 +550,13 @@ void SlaveBase::connected()
 
 void SlaveBase::finished()
 {
+    if (d->m_state == d->InsideTimeoutSpecial) {
+        return;
+    }
+
     if (!d->pendingListEntries.isEmpty()) {
         if (!d->m_rootEntryListed) {
-            qCWarning(KIO_CORE) << "UDSEntry for '.' not found, creating a default one. Please fix the" << QCoreApplication::applicationName() << "KIO slave";
+            qCWarning(KIO_CORE) << "UDSEntry for '.' not found, creating a default one. Please fix the" << QCoreApplication::applicationName() << "KIO worker.";
             KIO::UDSEntry entry;
             entry.reserve(4);
             entry.fastInsert(KIO::UDSEntry::UDS_NAME, QStringLiteral("."));
@@ -557,18 +574,18 @@ void SlaveBase::finished()
         d->m_finalityCommand,
         Q_FUNC_INFO,
         qUtf8Printable(
-            QStringLiteral("finished() was called, but it's not supposed to! Please fix the %2 KIO slave").arg(QCoreApplication::applicationName())));
+            QStringLiteral("finished() was called, but it's not supposed to! Please fix the %2 KIO worker.").arg(QCoreApplication::applicationName())));
 
     if (d->m_state == d->FinishedCalled) {
         KIO_STATE_ASSERT(false,
                          Q_FUNC_INFO,
-                         qUtf8Printable(QStringLiteral("finished() called twice! Please fix the %1 KIO slave").arg(QCoreApplication::applicationName())));
+                         qUtf8Printable(QStringLiteral("finished() called twice! Please fix the %1 KIO worker.").arg(QCoreApplication::applicationName())));
         return;
     } else if (d->m_state == d->ErrorCalled) {
         KIO_STATE_ASSERT(
             false,
             Q_FUNC_INFO,
-            qUtf8Printable(QStringLiteral("finished() called after error()! Please fix the %1 KIO slave").arg(QCoreApplication::applicationName())));
+            qUtf8Printable(QStringLiteral("finished() called after error()! Please fix the %1 KIO worker.").arg(QCoreApplication::applicationName())));
         return;
     }
 
@@ -727,14 +744,18 @@ void SlaveBase::mimeType(const QString &_type)
     mOutgoingMetaData.clear();
 }
 
-void SlaveBase::exit()
+void SlaveBase::exit() // possibly called from another thread, only use atomics in here
 {
     d->exit_loop = true;
-    // Using ::exit() here is too much (crashes in qdbus's qglobalstatic object),
-    // so let's cleanly exit dispatchLoop() instead.
-    // Update: we do need to call exit(), otherwise a long download (get()) would
-    // keep going until it ends, even though the application exited.
-    ::exit(255);
+    if (d->runInThread) {
+        d->wasKilled = true;
+    } else {
+        // Using ::exit() here is too much (crashes in qdbus's qglobalstatic object),
+        // so let's cleanly exit dispatchLoop() instead.
+        // Update: we do need to call exit(), otherwise a long download (get()) would
+        // keep going until it ends, even though the application exited.
+        ::exit(255);
+    }
 }
 
 void SlaveBase::warning(const QString &_msg)
@@ -1040,22 +1061,38 @@ int SlaveBase::openPasswordDialogV2(AuthInfo &info, const QString &errorMsg)
 #endif
 }
 
-int SlaveBase::messageBox(MessageBoxType type, const QString &text, const QString &caption, const QString &buttonYes, const QString &buttonNo)
+int SlaveBase::messageBox(MessageBoxType type, const QString &text, const QString &title, const QString &primaryActionText, const QString &secondaryActionText)
 {
-    return messageBox(text, type, caption, buttonYes, buttonNo, QString());
+    return messageBox(text, type, title, primaryActionText, secondaryActionText, QString());
 }
 
 int SlaveBase::messageBox(const QString &text,
                           MessageBoxType type,
-                          const QString &caption,
-                          const QString &_buttonYes,
-                          const QString &_buttonNo,
+                          const QString &title,
+                          const QString &primaryActionText,
+                          const QString &secondaryActionText,
                           const QString &dontAskAgainName)
 {
-    QString buttonYes = _buttonYes.isNull() ? i18n("&Yes") : _buttonYes;
-    QString buttonNo = _buttonNo.isNull() ? i18n("&No") : _buttonNo;
-    // qDebug() << "messageBox " << type << " " << text << " - " << caption << buttonYes << buttonNo;
-    KIO_DATA << static_cast<qint32>(type) << text << caption << buttonYes << buttonNo << dontAskAgainName;
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 100)
+    if ((type != Information) || (type != SSLMessageBox)) {
+        if (primaryActionText.isNull()) {
+            qCWarning(KIO_CORE) << "Deprecated: messageBox() called with null primaryActionText arg."
+                                << "type:" << type << "text:" << text;
+        }
+        if ((type != WarningContinueCancel) || (type != WarningContinueCancelDetailed)) {
+            if (secondaryActionText.isNull()) {
+                qCWarning(KIO_CORE) << "Deprecated: messageBox() called with null secondaryActionText arg."
+                                    << "type:" << type << "text:" << text;
+            }
+        }
+    }
+    const QString _primaryActionText = primaryActionText.isNull() ? i18n("&Yes") : primaryActionText;
+    const QString _secondaryActionText = secondaryActionText.isNull() ? i18n("&No") : secondaryActionText;
+    // qDebug() << "messageBox " << type << " " << text << " - " << title << _primaryActionText << _secondaryActionText;
+    KIO_DATA << static_cast<qint32>(type) << text << title << _primaryActionText << _secondaryActionText << dontAskAgainName;
+#else
+    KIO_DATA << static_cast<qint32>(type) << text << title << primaryActionText << secondaryActionText << dontAskAgainName;
+#endif
     send(INF_MESSAGEBOX, data);
     if (waitForAnswer(CMD_MESSAGEBOXANSWER, 0, data) != -1) {
         QDataStream stream(data);
@@ -1531,14 +1568,20 @@ void SlaveBase::setKillFlag()
 
 void SlaveBase::send(int cmd, const QByteArray &arr)
 {
-    slaveWriteError = false;
-    if (!d->appConnection.send(cmd, arr))
-    // Note that slaveWriteError can also be set by sigpipe_handler
-    {
-        slaveWriteError = true;
-    }
-    if (slaveWriteError) {
-        exit();
+    if (d->runInThread) {
+        if (!d->appConnection.send(cmd, arr)) {
+            exit();
+        }
+    } else {
+        slaveWriteError = false;
+        if (!d->appConnection.send(cmd, arr))
+        // Note that slaveWriteError can also be set by sigpipe_handler
+        {
+            slaveWriteError = true;
+        }
+        if (slaveWriteError) {
+            exit();
+        }
     }
 }
 
@@ -1556,6 +1599,11 @@ void SlaveBase::virtual_hook(int id, void *data)
         break;
     }
     }
+}
+
+void SlaveBase::setRunInThread(bool b)
+{
+    d->runInThread = b;
 }
 
 void SlaveBase::lookupHost(const QString &host)
@@ -1598,15 +1646,20 @@ PrivilegeOperationStatus SlaveBase::requestPrivilegeOperation(const QString &ope
         send(MSG_PRIVILEGE_EXEC);
         waitForAnswer(MSG_PRIVILEGE_EXEC, 0, buffer);
         QDataStream ds(buffer);
-        ds >> d->m_privilegeOperationStatus >> d->m_warningCaption >> d->m_warningMessage;
+        ds >> d->m_privilegeOperationStatus >> d->m_warningTitle >> d->m_warningMessage;
     }
 
     if (metaData(QStringLiteral("UnitTesting")) != QLatin1String("true") && d->m_privilegeOperationStatus == OperationAllowed && !d->m_confirmationAsked) {
-        // KF6 TODO Remove. We don't want to pass details as meta-data. Pass it as a parameter in messageBox().
+        // WORKER_MESSAGEBOX_DETAILS_HACK
+        // SlaveBase::messageBox() overloads miss a parameter to pass an details argument.
+        // As workaround details are passed instead via metadata before and then cached by the SlaveInterface,
+        // to be used in the upcoming messageBox call (needs WarningContinueCancelDetailed type)
+        // TODO: add a messageBox() overload taking details and use here,
+        // then remove or adapt all code marked with WORKER_MESSAGEBOX_DETAILS
         setMetaData(QStringLiteral("privilege_conf_details"), operationDetails);
         sendMetaData();
 
-        int result = messageBox(d->m_warningMessage, WarningContinueCancelDetailed, d->m_warningCaption, QString(), QString(), QString());
+        int result = messageBox(d->m_warningMessage, WarningContinueCancelDetailed, d->m_warningTitle, QString(), QString(), QString());
         d->m_privilegeOperationStatus = result == Continue ? OperationAllowed : OperationCanceled;
         d->m_confirmationAsked = true;
     }

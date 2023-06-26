@@ -7,13 +7,13 @@ Name[ar]=ويكيبيديا - الموسوعة الحرّة
 Name[as]=Wikipedia - The Free Encyclopedia
 Name[ast]=Wikipedia - La enciclopedia llibre
 Name[az]=Vikipedia - Azad Ensklopediya
-Name[be]=Wikipedia - Свабодная Энцыклапедыя
-Name[be@latin]=Wikipedia: svabodnaja encyklapedyja
+Name[be]=Wikipedia - свабодная энцыклапедыя
+Name[be@latin]=Wikipedia - svabodnaja encyklapiedyja
 Name[bg]=Уикипедия - свободната енциклопедия
 Name[bn]=উইকিপেডিয়া - মুক্ত বিশ্বকোষ
 Name[bn_IN]=Wikipedia (উইকিপিডিয়া) - মুক্ত বিশ্বকোষ
 Name[br]=Wikipedia - Ar geriadur ouiziegezh frank
-Name[bs]=Vikipedija — slobodna enciklopedija
+Name[bs]=Vikipedija â€” slobodna enciklopedija
 Name[ca]=Viquipèdia: L'enciclopèdia lliure
 Name[ca@valencia]=Viquipèdia: L'enciclopèdia lliure
 Name[cs]=Wikipedia - volně dostupná encyklopedie
@@ -23,7 +23,7 @@ Name[da]=Wikipedia - Det frie leksikon
 Name[de]=Wikipedia – Die freie Enzyklopädie
 Name[el]=Wikipedia - Η ελεύθερη εγκυκλοπαίδεια
 Name[en_GB]=Wikipedia - The Free Encyclopedia
-Name[eo]=Vikipedio - la libera enciklopedio
+Name[eo]=Vikipedio - La Libera Enciklopedio
 Name[es]=Wikipedia - La enciclopedia libre
 Name[et]=Wikipedia - Vaba entsüklopeedia
 Name[eu]=Wikipedia, entziklopedia askea
@@ -43,8 +43,10 @@ Name[hsb]=Wikipedia - Swobodna encyklopedija
 Name[hu]=Wikipédia - A szabad enciklopédia
 Name[ia]=Wikipedia - Le Encyclopedia Libere e Gratuite
 Name[id]=Wikipedia - Ensiklopedia Gratis
-Name[is]=Wikipedia - Frjálst alfræðiorðasafn
+Name[ie]=Wikipedia - Li líber enciclopedie
+Name[is]=Wikipedia - Frjálsa alfræðiritið
 Name[it]=Wikipedia - L'enciclopedia libera
+Name[ka]=Wikipedia - უფასო ენციკლოპედია
 Name[kk]=Wikipedia - ашық энциклопедия
 Name[km]=Wikipedia - Encyclopedia ​ឥត​គិត​ថ្លៃ
 Name[kn]=ವಿಕಿಪೀಡಿಯಾ - ಮುಕ್ತ ವಿಶ್ವಕೋಶ
@@ -64,7 +66,7 @@ Name[ne]=विकिपिडिया - नि:शुल्क इन्सा
 Name[nl]=Wikipedia - de vrije encyclopedie
 Name[nn]=Wikipedia – det frie oppslagsverket
 Name[or]=Wikipedia - ମୁକ୍ତ ବିଶ୍ୱକୋଶ
-Name[pa]=ਵਿੱਕੀਪੀਡਿਆ - ਮੁਫਤ ਵਿਸ਼ਵਕੋਸ਼
+Name[pa]=ਵਿਕੀਪੀਡਿਆ - ਮੁਫਤ ਵਿਸ਼ਵਕੋਸ਼
 Name[pl]=Wikipedia - otwarta encyklopedia
 Name[pt]=Wikipedia - A Enciclopédia Livre
 Name[pt_BR]=Wikipédia - a enciclopédia livre
@@ -82,6 +84,7 @@ Name[sv]=Wikipedia - den fria encyklopedin
 Name[te]=వికీపీడియా - స్వేఛ్ఛా విజ్ఞాన సర్వస్వము
 Name[tg]=Wikipedia - Донишномаи озод
 Name[th]=วิกิพีเดีย - สารานุกรมเสรี
+Name[tok]=lipu Wikipedia
 Name[tr]=Wikipedia - Ücretsiz Ansiklopedi
 Name[ug]=ۋىكىپېدىيە(Wikipedia) - ھەقسىز قامۇس
 Name[uk]=Вікіпедія — вільна енциклопедія
@@ -97,11 +100,14 @@ Query=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ar]=https://ar.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ast]=https://ast.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[az]=https://az.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[be]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[be@latin]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[bg]=https://bg.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[bs]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ca]=https://ca.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ca@valencia]=https://ca.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[cs]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[cy]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[da]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[de]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[el]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
@@ -118,8 +124,10 @@ Query[hi]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[hu]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ia]=http://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[id]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[ie]=https://ie.wikipedia.org/wiki/Special:Serchar?search=\\{@}&go=Continuar
 Query[is]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[it]=https://it.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[ka]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[kk]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ko]=https://ko.wikipedia.org/wiki/특수:검색?search=\\{@}&go=Go
 Query[lt]=https://lt.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
@@ -143,6 +151,7 @@ Query[sr@ijekavianlatin]=https://en.wikipedia.org/wiki/Special:Search?search=\\{
 Query[sr@latin]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[sv]=https://sv.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[tg]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
+Query[tok]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[tr]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[ug]=https://en.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go
 Query[uk]=https://uk.wikipedia.org/wiki/Special:Search?search=\\{@}&go=Go

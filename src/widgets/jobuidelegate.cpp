@@ -4,6 +4,7 @@
     SPDX-FileCopyrightText: 2000 David Faure <faure@kde.org>
     SPDX-FileCopyrightText: 2006 Kevin Ottens <ervin@kde.org>
     SPDX-FileCopyrightText: 2013 Dawit Alemayehu <adawit@kde.org>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
@@ -36,25 +37,50 @@
 #include <QUrl>
 #include <QWidget>
 
-#include "kio/scheduler.h"
-
 class KIO::JobUiDelegatePrivate
 {
 public:
-    JobUiDelegatePrivate(KIO::JobUiDelegate *qq)
+    JobUiDelegatePrivate(KIO::JobUiDelegate *qq, const QList<QObject *> &ifaces)
     {
-        // Create extension objects. See KIO::delegateExtension<T>().
-        new WidgetsUntrustedProgramHandler(qq);
-        new WidgetsOpenWithHandler(qq);
-        new WidgetsOpenOrExecuteFileHandler(qq);
-        new WidgetsAskUserActionHandler(qq);
+        for (auto iface : ifaces) {
+            iface->setParent(qq);
+            if (auto obj = qobject_cast<UntrustedProgramHandlerInterface *>(iface)) {
+                m_untrustedProgramHandler = obj;
+            } else if (auto obj = qobject_cast<OpenWithHandlerInterface *>(iface)) {
+                m_openWithHandler = obj;
+            } else if (auto obj = qobject_cast<OpenOrExecuteFileInterface *>(iface)) {
+                m_openOrExecuteFileHandler = obj;
+            } else if (auto obj = qobject_cast<AskUserActionInterface *>(iface)) {
+                m_askUserActionHandler = obj;
+            }
+        }
+
+        if (!m_untrustedProgramHandler) {
+            m_untrustedProgramHandler = new WidgetsUntrustedProgramHandler(qq);
+        }
+        if (!m_openWithHandler) {
+            m_openWithHandler = new WidgetsOpenWithHandler(qq);
+        }
+        if (!m_openOrExecuteFileHandler) {
+            m_openOrExecuteFileHandler = new WidgetsOpenOrExecuteFileHandler(qq);
+        }
+        if (!m_askUserActionHandler) {
+            m_askUserActionHandler = new WidgetsAskUserActionHandler(qq);
+        }
     }
+
+    UntrustedProgramHandlerInterface *m_untrustedProgramHandler = nullptr;
+    OpenWithHandlerInterface *m_openWithHandler = nullptr;
+    OpenOrExecuteFileInterface *m_openOrExecuteFileHandler = nullptr;
+    AskUserActionInterface *m_askUserActionHandler = nullptr;
 };
 
+#if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 98)
 KIO::JobUiDelegate::JobUiDelegate()
-    : d(new JobUiDelegatePrivate(this))
+    : JobUiDelegate(Version::V2)
 {
 }
+#endif
 
 KIO::JobUiDelegate::~JobUiDelegate() = default;
 
@@ -131,16 +157,31 @@ private:
 
 Q_GLOBAL_STATIC(JobUiDelegateStatic, s_static)
 
+#if KIOWIDGETS_ENABLE_DEPRECATED_SINCE(5, 98)
 KIO::JobUiDelegate::JobUiDelegate(KJobUiDelegate::Flags flags, QWidget *window)
-    : KDialogJobUiDelegate(flags, window)
-    , d(new JobUiDelegatePrivate(this))
+    : JobUiDelegate(Version::V2, flags, window)
 {
-    s_static()->registerWindow(window);
+    setWindow(window);
 }
+#endif
 
 void KIO::JobUiDelegate::setWindow(QWidget *window)
 {
     KDialogJobUiDelegate::setWindow(window);
+
+    if (auto obj = qobject_cast<WidgetsUntrustedProgramHandler *>(d->m_openWithHandler)) {
+        obj->setWindow(window);
+    }
+    if (auto obj = qobject_cast<WidgetsOpenWithHandler *>(d->m_untrustedProgramHandler)) {
+        obj->setWindow(window);
+    }
+    if (auto obj = qobject_cast<WidgetsOpenOrExecuteFileHandler *>(d->m_openOrExecuteFileHandler)) {
+        obj->setWindow(window);
+    }
+    if (auto obj = qobject_cast<WidgetsAskUserActionHandler *>(d->m_askUserActionHandler)) {
+        obj->setWindow(window);
+    }
+
     s_static()->registerWindow(window);
 }
 
@@ -150,7 +191,7 @@ void KIO::JobUiDelegate::unregisterWindow(QWidget *window)
 }
 
 KIO::RenameDialog_Result KIO::JobUiDelegate::askFileRename(KJob *job,
-                                                           const QString &caption,
+                                                           const QString &title,
                                                            const QUrl &src,
                                                            const QUrl &dest,
                                                            KIO::RenameDialog_Options options,
@@ -165,7 +206,7 @@ KIO::RenameDialog_Result KIO::JobUiDelegate::askFileRename(KJob *job,
     // qDebug() << "job=" << job;
     // We now do it in process, so that opening the rename dialog
     // doesn't start uiserver for nothing if progressId=0 (e.g. F2 in konq)
-    KIO::RenameDialog dlg(KJobWidgets::window(job), caption, src, dest, options, sizeSrc, sizeDest, ctimeSrc, ctimeDest, mtimeSrc, mtimeDest);
+    KIO::RenameDialog dlg(KJobWidgets::window(job), title, src, dest, options, sizeSrc, sizeDest, ctimeSrc, ctimeDest, mtimeSrc, mtimeDest);
     dlg.setWindowModality(Qt::WindowModal);
     connect(job, &KJob::finished, &dlg, &QDialog::reject); // #192976
     KIO::RenameDialog_Result res = static_cast<RenameDialog_Result>(dlg.exec());
@@ -240,7 +281,7 @@ bool KIO::JobUiDelegate::askDeleteConfirmation(const QList<QUrl> &urls, Deletion
                            "cannot be undone.</emphasis>",
                            prettyList.first()),
                     i18n("Delete Permanently"),
-                    KStandardGuiItem::del(),
+                    KGuiItem(i18nc("@action:button", "Delete Permanently"), QStringLiteral("edit-delete")),
                     KStandardGuiItem::cancel(),
                     keyName,
                     options);
@@ -254,7 +295,7 @@ bool KIO::JobUiDelegate::askDeleteConfirmation(const QList<QUrl> &urls, Deletion
                         prettyList.count()),
                     prettyList,
                     i18n("Delete Permanently"),
-                    KStandardGuiItem::del(),
+                    KGuiItem(i18nc("@action:button", "Delete Permanently"), QStringLiteral("edit-delete")),
                     KStandardGuiItem::cancel(),
                     keyName,
                     options);
@@ -313,59 +354,81 @@ bool KIO::JobUiDelegate::askDeleteConfirmation(const QList<QUrl> &urls, Deletion
 
 int KIO::JobUiDelegate::requestMessageBox(KIO::JobUiDelegate::MessageBoxType type,
                                           const QString &text,
-                                          const QString &caption,
-                                          const QString &buttonYes,
-                                          const QString &buttonNo,
-                                          const QString &iconYes,
-                                          const QString &iconNo,
+                                          const QString &title,
+                                          const QString &primaryActionText,
+                                          const QString &secondaryActionText,
+                                          const QString &primaryActionIconName,
+                                          const QString &secondaryActionIconName,
                                           const QString &dontAskAgainName,
                                           const KIO::MetaData &metaData)
 {
     int result = -1;
 
-    // qDebug() << type << text << "caption=" << caption;
+    // qDebug() << type << text << "title=" << title;
 
     KConfig config(QStringLiteral("kioslaverc"));
     KMessageBox::setDontShowAgainConfig(&config);
 
-    KGuiItem buttonYesGui = KStandardGuiItem::yes();
-    if (!buttonYes.isEmpty()) {
-        buttonYesGui.setText(buttonYes);
+#if KWIDGETSADDONS_BUILD_DEPRECATED_SINCE(5, 100)
+    QT_WARNING_PUSH
+    QT_WARNING_DISABLE_DEPRECATED
+    KGuiItem primaryActionTextGui = KStandardGuiItem::yes();
+    KGuiItem secondaryActionTextGui = KStandardGuiItem::no();
+    QT_WARNING_POP
+
+    if (!primaryActionText.isEmpty()) {
+        primaryActionTextGui.setText(primaryActionText);
     }
-    if (!iconYes.isNull()) {
-        buttonYesGui.setIconName(iconYes);
+    if (!primaryActionIconName.isNull()) {
+        primaryActionTextGui.setIconName(primaryActionIconName);
     }
 
-    KGuiItem buttonNoGui = KStandardGuiItem::no();
-    if (!buttonNo.isEmpty()) {
-        buttonNoGui.setText(buttonNo);
+    if (!secondaryActionText.isEmpty()) {
+        secondaryActionTextGui.setText(secondaryActionText);
     }
-    if (!iconNo.isNull()) {
-        buttonNoGui.setIconName(iconNo);
+    if (!secondaryActionIconName.isNull()) {
+        secondaryActionTextGui.setIconName(secondaryActionIconName);
     }
+#else
+    KGuiItem primaryActionTextGui(primaryActionText, primaryActionIconName);
+    KGuiItem secondaryActionTextGui(secondaryActionText, secondaryActionIconName);
+#endif
 
     KMessageBox::Options options(KMessageBox::Notify | KMessageBox::WindowModal);
 
     switch (type) {
-    case QuestionYesNo:
-        result = KMessageBox::questionYesNo(window(), text, caption, buttonYesGui, buttonNoGui, dontAskAgainName, options);
+    case QuestionTwoActions:
+        result = KMessageBox::questionTwoActions(window(), text, title, primaryActionTextGui, secondaryActionTextGui, dontAskAgainName, options);
         break;
-    case WarningYesNo:
-        result = KMessageBox::warningYesNo(window(), text, caption, buttonYesGui, buttonNoGui, dontAskAgainName, options | KMessageBox::Dangerous);
+    case WarningTwoActions:
+        result = KMessageBox::warningTwoActions(window(),
+                                                text,
+                                                title,
+                                                primaryActionTextGui,
+                                                secondaryActionTextGui,
+                                                dontAskAgainName,
+                                                options | KMessageBox::Dangerous);
         break;
-    case WarningYesNoCancel:
-        result = KMessageBox::warningYesNoCancel(window(), text, caption, buttonYesGui, buttonNoGui, KStandardGuiItem::cancel(), dontAskAgainName, options);
+    case WarningTwoActionsCancel:
+        result = KMessageBox::warningTwoActionsCancel(window(),
+                                                      text,
+                                                      title,
+                                                      primaryActionTextGui,
+                                                      secondaryActionTextGui,
+                                                      KStandardGuiItem::cancel(),
+                                                      dontAskAgainName,
+                                                      options);
         break;
     case WarningContinueCancel:
-        result = KMessageBox::warningContinueCancel(window(), text, caption, buttonYesGui, KStandardGuiItem::cancel(), dontAskAgainName, options);
+        result = KMessageBox::warningContinueCancel(window(), text, title, primaryActionTextGui, KStandardGuiItem::cancel(), dontAskAgainName, options);
         break;
     case Information:
-        KMessageBox::information(window(), text, caption, dontAskAgainName, options);
+        KMessageBox::information(window(), text, title, dontAskAgainName, options);
         result = 1; // whatever
         break;
     case SSLMessageBox: {
         QPointer<KSslInfoDialog> kid(new KSslInfoDialog(window()));
-        //### this is boilerplate code and appears in khtml_part.cpp almost unchanged!
+        // ### this is boilerplate code and appears in khtml_part.cpp almost unchanged!
         const QStringList sl = metaData.value(QStringLiteral("ssl_peer_chain")).split(QLatin1Char('\x01'), Qt::SkipEmptyParts);
         QList<QSslCertificate> certChain;
         bool decodedOk = true;
@@ -400,7 +463,7 @@ int KIO::JobUiDelegate::requestMessageBox(KIO::JobUiDelegate::MessageBoxType typ
         const QString details = metaData.value(QStringLiteral("privilege_conf_details"));
         result = KMessageBox::warningContinueCancelDetailed(window(),
                                                             text,
-                                                            caption,
+                                                            title,
                                                             KStandardGuiItem::cont(),
                                                             KStandardGuiItem::cancel(),
                                                             dontAskAgainName,
@@ -432,23 +495,49 @@ void KIO::JobUiDelegate::updateUrlInClipboard(const QUrl &src, const QUrl &dest)
     }
 }
 
-class KIOWidgetJobUiDelegateFactory : public KIO::JobUiDelegateFactory
+KIO::JobUiDelegate::JobUiDelegate(Version version, KJobUiDelegate::Flags /*flags*/, QWidget *window, const QList<QObject *> &ifaces)
+    : d(new JobUiDelegatePrivate(this, ifaces))
+{
+    // TODO KF6: drop the version argument and replace the deprecated constructor
+    // TODO KF6: change the API to accept QWindows rather than QWidgets (this also carries through to the Interfaces)
+    if (window) {
+        s_static()->registerWindow(window);
+        setWindow(window);
+    }
+
+    Q_UNUSED(version); // only serves to disambiguate constructors
+}
+
+class KIOWidgetJobUiDelegateFactory : public KIO::JobUiDelegateFactoryV2
 {
 public:
+    using KIO::JobUiDelegateFactoryV2::JobUiDelegateFactoryV2;
+
     KJobUiDelegate *createDelegate() const override
     {
-        return new KIO::JobUiDelegate;
+        return new KIO::JobUiDelegate(KIO::JobUiDelegate::Version::V2);
+    }
+
+    KJobUiDelegate *createDelegate(KJobUiDelegate::Flags flags, QWidget *window) const override
+    {
+        return new KIO::JobUiDelegate(KIO::JobUiDelegate::Version::V2, flags, window);
+    }
+
+    static void registerJobUiDelegate()
+    {
+        static KIOWidgetJobUiDelegateFactory factory;
+        KIO::setDefaultJobUiDelegateFactoryV2(&factory);
+
+        static KIO::JobUiDelegate delegate(KIO::JobUiDelegate::Version::V2);
+        KIO::setDefaultJobUiDelegateExtension(&delegate);
     }
 };
-
-Q_GLOBAL_STATIC(KIOWidgetJobUiDelegateFactory, globalUiDelegateFactory)
-Q_GLOBAL_STATIC(KIO::JobUiDelegate, globalUiDelegate)
 
 // Simply linking to this library, creates a GUI job delegate and delegate extension for all KIO jobs
 static void registerJobUiDelegate()
 {
-    KIO::setDefaultJobUiDelegateFactory(globalUiDelegateFactory());
-    KIO::setDefaultJobUiDelegateExtension(globalUiDelegate());
+    // Inside the factory class so it is a friend of the delegate and can construct it.
+    KIOWidgetJobUiDelegateFactory::registerJobUiDelegate();
 }
 
 Q_CONSTRUCTOR_FUNCTION(registerJobUiDelegate)

@@ -7,7 +7,7 @@
 */
 
 #include "kurlrequester.h"
-#include "../pathhelpers_p.h" // concatPaths(), isAbsoluteLocalPath()
+#include "../utils_p.h"
 #include "kio_widgets_debug.h"
 
 #include <KComboBox>
@@ -183,14 +183,14 @@ public:
             enteredPath = txt;
         }
 
-        if (isAbsoluteLocalPath(enteredPath)) {
+        if (Utils::isAbsoluteLocalPath(enteredPath)) {
             return QUrl::fromLocalFile(enteredPath);
         }
 
         const QUrl enteredUrl = QUrl(enteredPath); // absolute or relative
         if (enteredUrl.isRelative() && !txt.isEmpty()) {
             QUrl finalUrl(m_startDir);
-            finalUrl.setPath(concatPaths(finalUrl.path(), enteredPath));
+            finalUrl.setPath(Utils::concatPaths(finalUrl.path(), enteredPath));
             return finalUrl;
         } else {
             return enteredUrl;
@@ -270,9 +270,9 @@ public:
     }
 
     // slots
-    void _k_slotUpdateUrl();
-    void _k_slotOpenDialog();
-    void _k_slotFileDialogAccepted();
+    void slotUpdateUrl();
+    void slotOpenDialog();
+    void slotFileDialogAccepted();
 
     QUrl m_startDir;
     bool m_startDirCustomized;
@@ -351,7 +351,7 @@ void KUrlRequester::KUrlRequesterPrivate::init()
     myButton->setToolTip(i18n("Open file dialog"));
 
     connect(myButton, &KUrlDragPushButton::pressed, m_parent, [this]() {
-        _k_slotUpdateUrl();
+        slotUpdateUrl();
     });
 
     widget->installEventFilter(m_parent);
@@ -361,7 +361,7 @@ void KUrlRequester::KUrlRequesterPrivate::init()
 
     connectSignals(m_parent);
     connect(myButton, &KUrlDragPushButton::clicked, m_parent, [this]() {
-        _k_slotOpenDialog();
+        slotOpenDialog();
     });
 
     m_startDir = QUrl::fromLocalFile(QDir::currentPath());
@@ -375,7 +375,7 @@ void KUrlRequester::KUrlRequesterPrivate::init()
     QAction *openAction = new QAction(m_parent);
     openAction->setShortcut(QKeySequence::Open);
     m_parent->connect(openAction, &QAction::triggered, m_parent, [this]() {
-        _k_slotOpenDialog();
+        slotOpenDialog();
     });
 }
 
@@ -428,7 +428,7 @@ QString KUrlRequester::text() const
     return d->text();
 }
 
-void KUrlRequester::KUrlRequesterPrivate::_k_slotOpenDialog()
+void KUrlRequester::KUrlRequesterPrivate::slotOpenDialog()
 {
     if (myFileDialog) {
         if (myFileDialog->isVisible()) {
@@ -491,7 +491,7 @@ void KUrlRequester::KUrlRequesterPrivate::_k_slotOpenDialog()
     }
 }
 
-void KUrlRequester::KUrlRequesterPrivate::_k_slotFileDialogAccepted()
+void KUrlRequester::KUrlRequesterPrivate::slotFileDialogAccepted()
 {
     if (!myFileDialog) {
         return;
@@ -591,7 +591,7 @@ QFileDialog *KUrlRequester::fileDialog() const
 
         d->myFileDialog->setWindowModality(d->fileDialogModality);
         connect(d->myFileDialog, &QFileDialog::accepted, this, [this]() {
-            d->_k_slotFileDialogAccepted();
+            d->slotFileDialogAccepted();
         });
     }
 
@@ -613,7 +613,7 @@ KComboBox *KUrlRequester::comboBox() const
     return d->combo;
 }
 
-void KUrlRequester::KUrlRequesterPrivate::_k_slotUpdateUrl()
+void KUrlRequester::KUrlRequesterPrivate::slotUpdateUrl()
 {
     const QUrl visibleUrl = url();
     QUrl u = visibleUrl;

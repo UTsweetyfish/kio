@@ -121,7 +121,10 @@ private Q_SLOTS:
     void testCopyAfterListingAndMove(); // #353195
     void testRenameDirectory(); // #401552
     void testRequestMimeType();
-    void testDeleteCurrentDir(); // must be last!
+    void testMimeFilter_data();
+    void testMimeFilter();
+    void testDeleteCurrentDir(); // must be just before last!
+    void testForgetDir(); // must be last!
 
 protected Q_SLOTS: // 'more private than private slots' - i.e. not seen by qtestlib
     void slotNewItems(const KFileItemList &);

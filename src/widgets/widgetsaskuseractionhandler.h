@@ -28,12 +28,14 @@ namespace KIO
  * @sa KIO::JobUiDelegateExtension()
  *
  * @since 5.78
+ * @note This header wasn't installed until 5.98
  */
 
 class WidgetsAskUserActionHandlerPrivate;
 
 class KIOWIDGETS_EXPORT WidgetsAskUserActionHandler : public AskUserActionInterface
 {
+    Q_OBJECT
 public:
     explicit WidgetsAskUserActionHandler(QObject *parent = nullptr);
 
@@ -43,7 +45,7 @@ public:
      * @copydoc KIO::AskUserActionInterface::askUserRename()
      */
     void askUserRename(KJob *job,
-                       const QString &caption,
+                       const QString &title,
                        const QUrl &src,
                        const QUrl &dest,
                        KIO::RenameDialog_Options options,
@@ -69,15 +71,17 @@ public:
      */
     void requestUserMessageBox(MessageDialogType type,
                                const QString &text,
-                               const QString &caption,
-                               const QString &buttonYes,
-                               const QString &buttonNo,
-                               const QString &iconYes = {},
-                               const QString &iconNo = {},
+                               const QString &title,
+                               const QString &primaryActionText,
+                               const QString &secondaryActionText,
+                               const QString &primaryActionIconName = {},
+                               const QString &secondaryActionIconName = {},
                                const QString &dontAskAgainName = {},
                                const QString &details = {},
                                const KIO::MetaData &metaData = {},
                                QWidget *parent = nullptr) override;
+
+    void setWindow(QWidget *window);
 
 private:
     std::unique_ptr<WidgetsAskUserActionHandlerPrivate> d;

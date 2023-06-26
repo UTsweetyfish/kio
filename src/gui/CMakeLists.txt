@@ -13,12 +13,15 @@ target_sources(KF5KIOGui PRIVATE
    applicationlauncherjob.cpp
    commandlauncherjob.cpp
    faviconrequestjob.cpp
+   kcoreurlnavigator.cpp
    openurljob.cpp
    openwithhandlerinterface.cpp
    openorexecutefileinterface.cpp
    kprocessrunner.cpp
    kterminallauncherjob.cpp
    kemailclientlauncherjob.cpp
+   dbusactivationrunner.cpp
+   thumbnailcreator.cpp
 )
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -57,19 +60,33 @@ ecm_qt_declare_logging_category(KF5KIOGui
     EXPORT KIO
 )
 
-generate_export_header(KF5KIOGui BASE_NAME KIOGui)
+ecm_generate_export_header(KF5KIOGui
+    BASE_NAME KIOGui
+    GROUP_BASE_NAME KF
+    VERSION ${KF_VERSION}
+    DEPRECATED_BASE_VERSION 0
+    DEPRECATION_VERSIONS 5.101 5.103
+    EXCLUDE_DEPRECATED_BEFORE_AND_AT ${EXCLUDE_DEPRECATED_BEFORE_AND_AT}
+)
 
-target_include_directories(KF5KIOGui INTERFACE "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR_KF5}/KIOGui>")
+target_include_directories(KF5KIOGui INTERFACE "$<INSTALL_INTERFACE:${KDE_INSTALL_INCLUDEDIR_KF}/KIOGui>")
 
 target_link_libraries(KF5KIOGui
   PUBLIC
     KF5::KIOCore
+    KF5::ConfigCore
     KF5::Service
-    KF5::WindowSystem
-    Qt5::Gui
+    Qt${QT_MAJOR_VERSION}::Gui
   PRIVATE
     KF5::I18n
 )
+
+if(NOT EXCLUDE_DEPRECATED_BEFORE_AND_AT STREQUAL "CURRENT" AND
+   EXCLUDE_DEPRECATED_BEFORE_AND_AT VERSION_LESS 5.102.0)
+  target_link_libraries(KF5KIOGui PUBLIC KF5::WindowSystem)
+else()
+  target_link_libraries(KF5KIOGui PRIVATE KF5::WindowSystem)
+endif()
 
 # Headers prefixed with KIO/
 ecm_generate_headers(KIOGui_CamelCase_HEADERS
@@ -78,6 +95,8 @@ ecm_generate_headers(KIOGui_CamelCase_HEADERS
   CommandLauncherJob
   FavIconRequestJob
   OpenUrlJob
+  OpenWithHandlerInterface
+  ThumbnailCreator
 
   PREFIX KIO
   REQUIRED_HEADERS KIO_namespaced_gui_HEADERS
@@ -86,28 +105,35 @@ ecm_generate_headers(KIOGui_CamelCase_HEADERS
 # Headers not prefixed with KIO/
 ecm_generate_headers(KIOGui_HEADERS
   HEADER_NAMES
+  KCoreUrlNavigator
   KEMailClientLauncherJob
   KTerminalLauncherJob
 
   REQUIRED_HEADERS KIOGui_HEADERS
 )
 
-install(FILES ${KIOGui_CamelCase_HEADERS} DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOGui/KIO COMPONENT Devel)
+if(NOT EXCLUDE_DEPRECATED_BEFORE_AND_AT STREQUAL "CURRENT" AND
+   EXCLUDE_DEPRECATED_BEFORE_AND_AT VERSION_LESS 5.101.0)
+    list(APPEND KIOGui_CamelCase_HEADERS compatheaders/KCoreUrlNavigator)
+    list(APPEND KIO_namespaced_gui_HEADERS compatheaders/kcoreurlnavigator.h)
+endif()
 
-install(TARGETS KF5KIOGui EXPORT KF5KIOTargets ${KF5_INSTALL_TARGETS_DEFAULT_ARGS})
+install(FILES ${KIOGui_CamelCase_HEADERS} DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIOGui/KIO COMPONENT Devel)
+
+install(TARGETS KF5KIOGui EXPORT KF5KIOTargets ${KF_INSTALL_TARGETS_DEFAULT_ARGS})
 
 install(FILES
   ${KIO_namespaced_gui_HEADERS}
-  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOGui/kio COMPONENT Devel)
+  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIOGui/kio COMPONENT Devel)
 
 install(FILES
   ${KIOGui_HEADERS}
   ${CMAKE_CURRENT_BINARY_DIR}/kiogui_export.h
-  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOGui COMPONENT Devel)
+  DESTINATION ${KDE_INSTALL_INCLUDEDIR_KF}/KIOGui COMPONENT Devel)
 
 # make available to ecm_add_qch in parent folder
 set(KIOGui_QCH_SOURCES ${KIOGui_HEADERS} ${KIO_namespaced_gui_HEADERS} PARENT_SCOPE)
 
 include(ECMGeneratePriFile)
-ecm_generate_pri_file(BASE_NAME KIOGui LIB_NAME KF5KIOGui DEPS "KIOCore" FILENAME_VAR PRI_FILENAME INCLUDE_INSTALL_DIR ${KDE_INSTALL_INCLUDEDIR_KF5}/KIOGui)
+ecm_generate_pri_file(BASE_NAME KIOGui LIB_NAME KF5KIOGui DEPS "KIOCore" FILENAME_VAR PRI_FILENAME INCLUDE_INSTALL_DIR ${KDE_INSTALL_INCLUDEDIR_KF}/KIOGui)
 install(FILES ${PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})

@@ -1,2 +1,5 @@
-kio: no-manual-page usr/bin/ktelnetservice5
-kio: no-manual-page usr/bin/ktrash5
+kio: no-manual-page [usr/bin/ktelnetservice5]
+kio: no-manual-page [usr/bin/ktrash5]
+kio: no-manual-page [usr/bin/protocoltojson]
+kio: desktop-command-not-in-package kcmshell5 [usr/share/applications/kcm_trash.desktop]
+

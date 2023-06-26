@@ -7,23 +7,23 @@
 
 #include "paste.h"
 #include "kio_widgets_debug.h"
-#include "pastedialog_p.h"
 
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 #include "kio/copyjob.h"
 #include "kio/deletejob.h"
 #include "kio/global.h"
-#include "kio/job.h"
 #include "kio/renamedialog.h"
-#include "kprotocolmanager.h"
+#include "kio/statjob.h"
+#include "pastedialog_p.h"
+#include <kdirnotify.h>
+#include <kfileitem.h>
+#include <kfileitemlistproperties.h>
+#include <kio/storedtransferjob.h>
 
 #include <KJobWidgets>
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KUrlMimeData>
-#include <kdirnotify.h>
-#include <kfileitem.h>
-#include <kfileitemlistproperties.h>
 
 #include <QApplication>
 #include <QClipboard>
@@ -105,7 +105,7 @@ static QUrl getNewFileName(const QUrl &u, const QString &text, const QString &su
     }
 
     QUrl myurl(u);
-    myurl.setPath(concatPaths(myurl.path(), file));
+    myurl.setPath(Utils::concatPaths(myurl.path(), file));
 
     return getDestinationUrl(u, myurl, widget);
 }
@@ -157,10 +157,10 @@ static QByteArray chooseFormatAndUrl(const QUrl &u,
 
     const QString chosenFormat = formats[dlg.comboItem()];
     if (clipboard && !qApp->clipboard()->mimeData()->hasFormat(chosenFormat)) {
-        KMessageBox::sorry(widget,
-                           i18n("The clipboard has changed since you used 'paste': "
-                                "the chosen data format is no longer applicable. "
-                                "Please copy again what you wanted to paste."));
+        KMessageBox::information(widget,
+                                 i18n("The clipboard has changed since you used 'paste': "
+                                      "the chosen data format is no longer applicable. "
+                                      "Please copy again what you wanted to paste."));
         return QByteArray();
     }
 
@@ -168,7 +168,7 @@ static QByteArray chooseFormatAndUrl(const QUrl &u,
 
     // qDebug() << " result=" << result << " chosenFormat=" << chosenFormat;
     *newUrl = u;
-    newUrl->setPath(concatPaths(newUrl->path(), result));
+    newUrl->setPath(Utils::concatPaths(newUrl->path(), result));
 
     const QUrl destUrl = getDestinationUrl(u, *newUrl, widget);
     *newUrl = destUrl;

@@ -26,7 +26,7 @@ public:
         MimetypeJob *job = new MimetypeJob(*new MimetypeJobPrivate(url, command, packedArgs));
         job->setUiDelegate(KIO::createDefaultJobUiDelegate());
         if (!(flags & HideProgressInfo)) {
-            JobPrivate::setTransient(job);
+            job->setFinishedNotificationHidden();
             KIO::getJobTracker()->registerJob(job);
             emitStating(job, url);
         }
@@ -78,7 +78,7 @@ void MimetypeJob::slotFinished()
         }
     }
 
-    // Return slave to the scheduler
+    // Return worker to the scheduler
     TransferJob::slotFinished();
 }
 

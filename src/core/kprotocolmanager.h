@@ -4,6 +4,7 @@
     SPDX-FileCopyrightText: 2000 Waldo Bastain <bastain@kde.org>
     SPDX-FileCopyrightText: 2000 Dawit Alemayehu <adawit@kde.org>
     SPDX-FileCopyrightText: 2008 Jarosław Staniek <staniek@kde.org>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-only
 */
@@ -23,7 +24,7 @@ class QExplicitlySharedDataPointer;
 typedef QExplicitlySharedDataPointer<KSharedConfig> KSharedConfigPtr;
 namespace KIO
 {
-class SlaveConfigPrivate;
+class WorkerConfigPrivate;
 } // namespace KIO
 
 /**
@@ -296,7 +297,7 @@ public:
      * Returns the maximum size that can be used for caching.
      *
      * By default this function returns the DEFAULT_MAX_CACHE_SIZE
-     * value as defined in http_slave_defaults.h.  Not that the
+     * value as defined in http_worker_defaults.h.  Not that the
      * value returned is in bytes, hence a value of 5120 would mean
      * 5 Kb.
      *
@@ -539,7 +540,7 @@ public:
      * This setting defines the strategy to use for generating a filename, when
      * copying a file or directory to another directory. By default the destination
      * filename is made out of the filename in the source URL. However if the
-     * ioslave displays names that are different from the filename of the URL
+     * KIO worker displays names that are different from the filename of the URL
      * (e.g. kio_fonts shows Arial for arial.ttf, or kio_trash shows foo.txt and
      * uses some internal URL), using Name means that the display name (UDS_NAME)
      * will be used to as the filename in the destination directory.
@@ -632,10 +633,11 @@ public:
 
     /**
      * Force a reload of the general config file of
-     * io-slaves ( kioslaverc).
+     * KIO workers ( kioslaverc).
      */
     static void reparseConfiguration();
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Return the protocol to use in order to handle the given @p url
      * It's usually the same, except that FTP, when handled by a proxy,
@@ -645,15 +647,43 @@ public:
      * @param url the url to check
      * @param proxy the URL of the proxy to use
      * @return the slave protocol (e.g. 'http'), can be null if unknown
+     *
+     * @deprecated Since 5.101, use workerProtocol(const QUrl &, QString &)
      */
-    static QString slaveProtocol(const QUrl &url, QString &proxy);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use workerProtocol(const QUrl &, QString &)") QString slaveProtocol(const QUrl &url, QString &proxy);
+#endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Overloaded function that returns a list of all available proxy servers.
      *
      * @since 4.7
+     *
+     * @deprecated Since 5.101, use workerProtocol(const QUrl &, QStringList &)
      */
-    static QString slaveProtocol(const QUrl &url, QStringList &proxy);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use workerProtocol(const QUrl &, QStringList &)") QString slaveProtocol(const QUrl &url, QStringList &proxy);
+#endif
+
+    /**
+     * Return the protocol to use in order to handle the given @p url
+     * It's usually the same, except that FTP, when handled by a proxy,
+     * needs an HTTP KIO worker.
+     *
+     * When a proxy is to be used, proxy contains the URL for the proxy.
+     * @param url the url to check
+     * @param proxy the URL of the proxy to use
+     * @return the worker protocol (e.g. 'http'), can be null if unknown
+     *
+     * @since 5.101
+     */
+    static QString workerProtocol(const QUrl &url, QString &proxy);
+
+    /**
+     * Overloaded function that returns a list of all available proxy servers.
+     *
+     * @since 5.101
+     */
+    static QString workerProtocol(const QUrl &url, QStringList &proxy);
 
     /**
      * Return Accept-Languages header built up according to user's desktop
@@ -669,12 +699,24 @@ public:
      */
     static QString charsetFor(const QUrl &url);
 
+    /**
+     * @brief Returns whether the protocol suppports KIO/POSIX permissions handling.
+     *
+     * When this is false the Permissions properties tab may be hidden, for example. The protocol may still support
+     * permission control through other means, specific to the individual KIO worker.
+     *
+     * @param url the url to check
+     * @return whether the protocol supports permissions
+     * @since 5.98
+     */
+    static bool supportsPermissions(const QUrl &url);
+
 private:
-    friend class KIO::SlaveConfigPrivate;
+    friend class KIO::WorkerConfigPrivate;
 
     /**
      * @internal
-     * (Shared with SlaveConfig)
+     * (Shared with WorkerConfig)
      */
     KIOCORE_NO_EXPORT static QMap<QString, QString> entryMap(const QString &group);
 };

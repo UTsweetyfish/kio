@@ -26,7 +26,6 @@ public:
     void startProcess() override;
     bool waitForStarted(int timeout) override;
     static bool isAvailable();
-    static QString escapeUnitName(const QString &input);
 
 private:
     void handleProperties(QDBusPendingCallWatcher *watcher);

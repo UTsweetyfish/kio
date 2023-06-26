@@ -19,6 +19,15 @@
 #include "../file_p.h"
 #include "fdsender.h"
 
+#include <KAuth/HelperSupport>
+
+#include <QDateTime>
+#include <QDebug>
+#include <QDir>
+#include <QFileInfo>
+#include <QScopeGuard>
+#include <QUrl>
+
 #ifndef O_PATH
 #define O_PATH O_RDONLY
 #endif
@@ -143,28 +152,40 @@ ActionReply FileHelper::exec(const QVariantMap &args)
         reply.setError(errno);
         return reply;
     }
+    auto parentFdCleanup = qScopeGuard([parent_fd]() {
+        close(parent_fd);
+    });
 
-    Privilege *origPrivilege = new Privilege{geteuid(), getegid()};
-    Privilege *targetPrivilege = nullptr;
+    Privilege origPrivilege{geteuid(), getegid()};
+    std::unique_ptr<Privilege> targetPrivilege;
 
     if (action != CHMOD && action != UTIME) {
-        targetPrivilege = getTargetPrivilege(parent_fd);
+        targetPrivilege.reset(getTargetPrivilege(parent_fd));
     } else {
         if ((base_fd = openat(parent_fd, baseName.data(), O_NOFOLLOW)) != -1) {
-            targetPrivilege = getTargetPrivilege(base_fd);
+            targetPrivilege.reset(getTargetPrivilege(base_fd));
         } else {
             reply.setError(errno);
         }
     }
 
-    if (dropPrivilege(targetPrivilege)) {
+    auto baseFdCleanup = qScopeGuard([base_fd]() {
+        if (base_fd != -1) {
+            close(base_fd);
+        }
+    });
+
+    if (dropPrivilege(targetPrivilege.get())) {
+        auto privilegeRestore = qScopeGuard([&origPrivilege]() {
+            gainPrivilege(&origPrivilege);
+        });
+
         switch (action) {
         case CHMOD: {
             int mode = arg2.toInt();
             if (fchmod(base_fd, mode) == -1) {
                 reply.setError(errno);
             }
-            close(base_fd);
             break;
         }
 
@@ -197,7 +218,7 @@ ActionReply FileHelper::exec(const QVariantMap &args)
                 extraFlag |= O_DIRECTORY;
             }
             if (int fd = openat(parent_fd, baseName.data(), oflags | extraFlag, mode) != -1) {
-                gainPrivilege(origPrivilege);
+                gainPrivilege(&origPrivilege);
                 if (!sendFileDescriptor(fd, arg4.toByteArray().constData())) {
                     reply.setError(errno);
                 }
@@ -238,7 +259,6 @@ ActionReply FileHelper::exec(const QVariantMap &args)
             if (futimens(base_fd, times) == -1) {
                 reply.setError(errno);
             }
-            close(base_fd);
             break;
         }
 
@@ -246,18 +266,9 @@ ActionReply FileHelper::exec(const QVariantMap &args)
             reply.setError(ENOTSUP);
             break;
         }
-        gainPrivilege(origPrivilege);
     } else {
         reply.setError(errno);
     }
-
-    if (origPrivilege) {
-        delete origPrivilege;
-    }
-    if (targetPrivilege) {
-        delete targetPrivilege;
-    }
-    close(parent_fd);
     return reply;
 }
 

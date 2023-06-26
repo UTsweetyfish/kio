@@ -7,10 +7,40 @@
 */
 
 #include "knewfilemenu.h"
-#include "../pathhelpers_p.h" // concatPaths(), isAbsoluteLocalPath()
+#include "../utils_p.h"
 #include "knameandurlinputdialog.h"
 
+#include <kdirnotify.h>
+#include <kio/copyjob.h>
+#include <kio/fileundomanager.h>
+#include <kio/jobuidelegate.h>
+#include <kio/mkdirjob.h>
+#include <kio/mkpathjob.h>
+#include <kio/namefinderjob.h>
+#include <kio/statjob.h>
+#include <kio/storedtransferjob.h>
+#include <kpropertiesdialog.h>
+#include <kprotocolinfo.h>
+#include <kprotocolmanager.h>
+#include <krun.h>
+#include <kurifilter.h>
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+#include <KActionCollection>
+#endif
+#include <KConfigGroup>
+#include <KDesktopFile>
+#include <KDirOperator>
+#include <KDirWatch>
+#include <KFileUtils>
+#include <KJobWidgets>
+#include <KLocalizedString>
+#include <KMessageBox>
+#include <KMessageWidget>
+#include <KShell>
+
 #include <QActionGroup>
+#include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QDir>
@@ -18,38 +48,13 @@
 #include <QLineEdit>
 #include <QList>
 #include <QMenu>
+#include <QMimeDatabase>
 #include <QPushButton>
 #include <QStandardPaths>
-#include <QVBoxLayout>
-
-#include <KActionCollection>
-#include <KConfigGroup>
-#include <KDesktopFile>
-#include <KDirOperator>
-#include <KDirWatch>
-#include <KFileUtils>
-#include <KIO/NameFinderJob>
-#include <KJobWidgets>
-#include <KLocalizedString>
-#include <KMessageBox>
-#include <KMessageWidget>
-#include <KShell>
-#include <QDebug>
 #include <QTemporaryFile>
 #include <QTimer>
-#include <kdirnotify.h>
-#include <kio/copyjob.h>
-#include <kio/fileundomanager.h>
-#include <kio/job.h>
-#include <kio/jobuidelegate.h>
-#include <kio/mkpathjob.h>
-#include <kprotocolinfo.h>
-#include <kprotocolmanager.h>
-#include <krun.h>
-#include <kurifilter.h>
+#include <QVBoxLayout>
 
-#include <QMimeDatabase>
-#include <kpropertiesdialog.h>
 #ifdef Q_OS_WIN
 #include <sys/utime.h>
 #else
@@ -226,9 +231,8 @@ public:
 class KNewFileMenuPrivate
 {
 public:
-    explicit KNewFileMenuPrivate(KActionCollection *collection, KNewFileMenu *qq)
-        : m_actionCollection(collection)
-        , q(qq)
+    explicit KNewFileMenuPrivate(KNewFileMenu *qq)
+        : q(qq)
         , m_delayedSlotTextChangedTimer(new QTimer(q))
     {
         m_delayedSlotTextChangedTimer->setInterval(50);
@@ -349,7 +353,11 @@ public:
      */
     void initDialog();
 
-    KActionCollection *m_actionCollection;
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+    KActionCollection *m_actionCollection = nullptr;
+#endif
+    QAction *m_newFolderShortcutAction = nullptr;
+    QAction *m_newFileShortcutAction = nullptr;
 
     KActionMenu *m_menuDev = nullptr;
     int m_menuItemsVersion = 0;
@@ -363,7 +371,6 @@ public:
     // This is used to allow _k_slotTextChanged to know whether it's being used to
     // create a file or a directory without duplicating code across two functions
     bool m_creatingDirectory = false;
-    bool m_viewShowsHiddenFiles = false;
     bool m_modal = true;
 
     /**
@@ -375,6 +382,9 @@ public:
     /**
      * When the user pressed the right mouse button over an URL a popup menu
      * is displayed. The URL belonging to this popup menu is stored here.
+     * For all intents and purposes this is the current directory where the menu is
+     * opened.
+     * TODO KF6 make it a single QUrl.
      */
     QList<QUrl> m_popupFiles;
 
@@ -440,6 +450,10 @@ void KNewFileMenuPrivate::initDialog()
         _k_slotAccepted();
     });
     QObject::connect(m_buttonBox, &QDialogButtonBox::rejected, m_fileDialog, &QDialog::reject);
+
+    QObject::connect(m_fileDialog, &QDialog::finished, m_fileDialog, [this] {
+        m_statRunning = false;
+    });
 
     QVBoxLayout *layout = new QVBoxLayout(m_fileDialog);
     layout->setSizeConstraint(QLayout::SetFixedSize);
@@ -539,15 +553,39 @@ void KNewFileMenuPrivate::executeRealFileOrDir(const KNewFileMenuSingleton::Entr
 {
     initDialog();
 
+    const auto getSelectionLength = [](const QString &text) {
+        // Select the text without MIME-type extension
+        int selectionLength = text.length();
+
+        QMimeDatabase db;
+        const QString extension = db.suffixForFileName(text);
+        if (extension.isEmpty()) {
+            // For an unknown extension just exclude the extension after
+            // the last point. This does not work for multiple extensions like
+            // *.tar.gz but usually this is anyhow a known extension.
+            selectionLength = text.lastIndexOf(QLatin1Char('.'));
+
+            // If no point could be found, use whole text length for selection.
+            if (selectionLength < 1) {
+                selectionLength = text.length();
+            }
+
+        } else {
+            selectionLength -= extension.length() + 1;
+        }
+
+        return selectionLength;
+    };
+
     // The template is not a desktop file
     // Prompt the user to set the destination filename
     QString text = entry.text;
     text.remove(QStringLiteral("...")); // the ... is fine for the menu item but not for the default filename
     text = text.trimmed(); // In some languages, there is a space in front of "...", see bug 268895
     // add the extension (from the templatePath), should work with .txt, .html and with ".tar.gz"... etc
-    const QStringView fileName = QStringView(entry.templatePath).mid(entry.templatePath.lastIndexOf(QLatin1Char('/')));
-    const int dotIndex = fileName.indexOf(QLatin1Char('.'));
-    text += dotIndex > 0 ? fileName.mid(dotIndex) : QStringView{};
+    const QString fileName = entry.templatePath.mid(entry.templatePath.lastIndexOf(QLatin1Char('/')));
+    const int dotIndex = getSelectionLength(fileName);
+    text += dotIndex > 0 ? fileName.mid(dotIndex) : QString();
 
     m_copyData.m_src = entry.templatePath;
 
@@ -579,7 +617,10 @@ void KNewFileMenuPrivate::executeRealFileOrDir(const KNewFileMenuSingleton::Entr
     });
 
     m_fileDialog->show();
-    m_lineEdit->selectAll();
+
+    const int firstDotInBaseName = getSelectionLength(text);
+    m_lineEdit->setSelection(0, firstDotInBaseName > 0 ? firstDotInBaseName : text.size());
+
     m_lineEdit->setFocus();
 }
 
@@ -614,27 +655,10 @@ void KNewFileMenuPrivate::executeStrategy()
         uSrc.setPath(item.linkDest());
     }
 
-    if (!m_copyData.m_isSymlink) {
-        // If the file is not going to be detected as a desktop file, due to a
-        // known extension (e.g. ".pl"), append ".desktop". #224142.
-        QFile srcFile(uSrc.toLocalFile());
-        if (srcFile.open(QIODevice::ReadOnly)) {
-            QMimeDatabase db;
-            QMimeType wantedMime = db.mimeTypeForUrl(uSrc);
-            QMimeType mime = db.mimeTypeForFileNameAndData(m_copyData.m_chosenFileName, srcFile.read(1024));
-            // qDebug() << "mime=" << mime->name() << "wantedMime=" << wantedMime->name();
-            if (!mime.inherits(wantedMime.name())) {
-                if (!wantedMime.preferredSuffix().isEmpty()) {
-                    chosenFileName += QLatin1Char('.') + wantedMime.preferredSuffix();
-                }
-            }
-        }
-    }
-
     // The template is not a desktop file [or it's a URL one] >>> Copy it
     for (const auto &u : std::as_const(m_popupFiles)) {
         QUrl dest = u;
-        dest.setPath(concatPaths(dest.path(), KIO::encodeFileName(chosenFileName)));
+        dest.setPath(Utils::concatPaths(dest.path(), KIO::encodeFileName(chosenFileName)));
 
         QList<QUrl> lstSrc;
         lstSrc.append(uSrc);
@@ -716,15 +740,20 @@ void KNewFileMenuPrivate::fillMenu()
                     act->setText(i18nc("@item:inmenu Create New", "%1", entry.text));
                     act->setActionGroup(m_newMenuGroup);
 
-                    // If there is a shortcut available in the action collection, use it.
-                    QAction *act2 = m_actionCollection->action(QStringLiteral("create_dir"));
-                    if (act2) {
-                        act->setShortcuts(act2->shortcuts());
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+                    if (m_actionCollection) {
+                        m_newFolderShortcutAction = m_actionCollection->action(QStringLiteral("create_dir"));
+                    }
+#endif
+
+                    // If there is a shortcut action copy its shortcut
+                    if (m_newFolderShortcutAction) {
+                        act->setShortcuts(m_newFolderShortcutAction->shortcuts());
                         // Both actions have now the same shortcut, so this will prevent the "Ambiguous shortcut detected" dialog.
                         act->setShortcutContext(Qt::WidgetShortcut);
                         // We also need to react to shortcut changes.
-                        QObject::connect(act2, &QAction::changed, act, [=]() {
-                            act->setShortcuts(act2->shortcuts());
+                        QObject::connect(m_newFolderShortcutAction, &QAction::changed, act, [=]() {
+                            act->setShortcuts(m_newFolderShortcutAction->shortcuts());
                         });
                     }
 
@@ -790,15 +819,21 @@ void KNewFileMenuPrivate::fillMenu()
                     } else {
                         if (!m_firstFileEntry) {
                             m_firstFileEntry = &entry;
-                            // If there is a shortcut available in the action collection, use it.
-                            QAction *act2 = m_actionCollection->action(QStringLiteral("create_file"));
-                            if (act2) {
-                                act->setShortcuts(act2->shortcuts());
+
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
+                            if (m_actionCollection) {
+                                m_newFileShortcutAction = m_actionCollection->action(QStringLiteral("create_file"));
+                            }
+#endif
+
+                            // If there is a shortcut action copy its shortcut
+                            if (m_newFileShortcutAction) {
+                                act->setShortcuts(m_newFileShortcutAction->shortcuts());
                                 // Both actions have now the same shortcut, so this will prevent the "Ambiguous shortcut detected" dialog.
                                 act->setShortcutContext(Qt::WidgetShortcut);
                                 // We also need to react to shortcut changes.
-                                QObject::connect(act2, &QAction::changed, act, [=]() {
-                                    act->setShortcuts(act2->shortcuts());
+                                QObject::connect(m_newFileShortcutAction, &QAction::changed, act, [=]() {
+                                    act->setShortcuts(m_newFileShortcutAction->shortcuts());
                                 });
                             }
                         }
@@ -895,11 +930,11 @@ void KNewFileMenuPrivate::slotCreateDirectory()
     QString name = expandTilde(m_text);
 
     if (!name.isEmpty()) {
-        if (isAbsoluteLocalPath(name)) {
+        if (Utils::isAbsoluteLocalPath(name)) {
             url = QUrl::fromLocalFile(name);
         } else {
             url = baseUrl;
-            url.setPath(concatPaths(url.path(), name));
+            url.setPath(Utils::concatPaths(url.path(), name));
         }
     }
 
@@ -934,7 +969,7 @@ struct EntryInfo {
 static QStringList getInstalledTemplates()
 {
     QStringList list = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("templates"), QStandardPaths::LocateDirectory);
-    // TODO KF6, use QStandardPaths::TemplatesLocations
+    // TODO KF6, use QStandardPaths::TemplatesLocation
 #ifdef Q_OS_UNIX
     QString xdgUserDirs = QStandardPaths::locate(QStandardPaths::ConfigLocation, QStringLiteral("user-dirs.dirs"), QStandardPaths::LocateFile);
     QFile xdgUserDirsFile(xdgUserDirs);
@@ -969,7 +1004,7 @@ static QStringList getTemplateFilePaths(const QStringList &templates)
         const QStringList entryList = dir.entryList(QStringList{QStringLiteral("*.desktop")}, QDir::Files);
         files.reserve(files.size() + entryList.size());
         for (const QString &entry : entryList) {
-            const QString file = concatPaths(dir.path(), entry);
+            const QString file = Utils::concatPaths(dir.path(), entry);
             files.append(file);
         }
     }
@@ -1206,7 +1241,7 @@ void KNewFileMenuPrivate::_k_slotTextChanged(const QString &text)
             url = QUrl(m_baseUrl.toString() + QLatin1Char('/') + text);
         }
         KIO::StatJob *job = KIO::statDetails(url, KIO::StatJob::StatSide::DestinationSide, KIO::StatDetail::StatBasic, KIO::HideProgressInfo);
-        QObject::connect(job, &KJob::result, q, [this](KJob *job) {
+        QObject::connect(job, &KJob::result, m_fileDialog, [this](KJob *job) {
             _k_slotStatResult(job);
         });
         job->start();
@@ -1273,8 +1308,12 @@ void KNewFileMenuPrivate::_k_slotStatResult(KJob *job)
 void KNewFileMenuPrivate::slotUrlDesktopFile()
 {
     KNameAndUrlInputDialog *dlg = static_cast<KNameAndUrlInputDialog *>(m_fileDialog);
-
-    m_copyData.m_chosenFileName = dlg->name(); // no path
+    QString name = dlg->name();
+    const QLatin1String ext(".desktop");
+    if (!name.endsWith(ext)) {
+        name += ext;
+    }
+    m_copyData.m_chosenFileName = name; // no path
     QUrl linkUrl = dlg->url();
 
     // Filter user input so that short uri entries, e.g. www.kde.org, are
@@ -1330,6 +1369,7 @@ void KNewFileMenuPrivate::slotUrlDesktopFile()
     }
 
     group.writePathEntry("URL", linkUrl.toDisplayString());
+    group.writeEntry("Name", dlg->name()); // Used as user-visible name by kio_desktop
     df.sync();
 
     m_copyData.m_src = tempFileName;
@@ -1338,9 +1378,10 @@ void KNewFileMenuPrivate::slotUrlDesktopFile()
     executeStrategy();
 }
 
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 100)
 KNewFileMenu::KNewFileMenu(KActionCollection *collection, const QString &name, QObject *parent)
     : KActionMenu(QIcon::fromTheme(QStringLiteral("document-new")), i18n("Create New"), parent)
-    , d(std::make_unique<KNewFileMenuPrivate>(collection, this))
+    , d(std::make_unique<KNewFileMenuPrivate>(this))
 {
     // Don't fill the menu yet
     // We'll do that in checkUpToDate (should be connected to aboutToShow)
@@ -1351,9 +1392,27 @@ KNewFileMenu::KNewFileMenu(KActionCollection *collection, const QString &name, Q
     d->m_parentWidget = qobject_cast<QWidget *>(parent);
     d->m_newDirAction = nullptr;
 
-    if (d->m_actionCollection) {
-        d->m_actionCollection->addAction(name, this);
+    if (collection) {
+        collection->addAction(name, this);
+        d->m_actionCollection = collection;
     }
+
+    d->m_menuDev = new KActionMenu(QIcon::fromTheme(QStringLiteral("drive-removable-media")), i18n("Link to Device"), this);
+}
+#endif
+
+KNewFileMenu::KNewFileMenu(QObject *parent)
+    : KActionMenu(QIcon::fromTheme(QStringLiteral("document-new")), i18n("Create New"), parent)
+    , d(std::make_unique<KNewFileMenuPrivate>(this))
+{
+    // Don't fill the menu yet
+    // We'll do that in checkUpToDate (should be connected to aboutToShow)
+    d->m_newMenuGroup = new QActionGroup(this);
+    connect(d->m_newMenuGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        d->slotActionTriggered(action);
+    });
+    d->m_parentWidget = qobject_cast<QWidget *>(parent);
+    d->m_newDirAction = nullptr;
 
     d->m_menuDev = new KActionMenu(QIcon::fromTheme(QStringLiteral("drive-removable-media")), i18n("Link to Device"), this);
 }
@@ -1460,16 +1519,19 @@ bool KNewFileMenu::isModal() const
     return d->m_modal;
 }
 
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 97)
 QList<QUrl> KNewFileMenu::popupFiles() const
 {
     return d->m_popupFiles;
 }
+#endif
 
 void KNewFileMenu::setModal(bool modal)
 {
     d->m_modal = modal;
 }
 
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 97)
 void KNewFileMenu::setPopupFiles(const QList<QUrl> &files)
 {
     d->m_popupFiles = files;
@@ -1487,6 +1549,7 @@ void KNewFileMenu::setPopupFiles(const QList<QUrl> &files)
         }
     }
 }
+#endif
 
 void KNewFileMenu::setParentWidget(QWidget *parentWidget)
 {
@@ -1498,10 +1561,12 @@ void KNewFileMenu::setSupportedMimeTypes(const QStringList &mime)
     d->m_supportedMimeTypes = mime;
 }
 
+#if KIOFILEWIDGETS_BUILD_DEPRECATED_SINCE(5, 97)
 void KNewFileMenu::setViewShowsHiddenFiles(bool b)
 {
-    d->m_viewShowsHiddenFiles = b;
+    Q_UNUSED(b)
 }
+#endif
 
 void KNewFileMenu::slotResult(KJob *job)
 {
@@ -1547,6 +1612,39 @@ void KNewFileMenu::slotResult(KJob *job)
 QStringList KNewFileMenu::supportedMimeTypes() const
 {
     return d->m_supportedMimeTypes;
+}
+
+void KNewFileMenu::setWorkingDirectory(const QUrl &directory)
+{
+    d->m_popupFiles = {directory};
+
+    if (directory.isEmpty()) {
+        d->m_newMenuGroup->setEnabled(false);
+    } else {
+        if (KProtocolManager::supportsWriting(directory)) {
+            d->m_newMenuGroup->setEnabled(true);
+            if (d->m_newDirAction) {
+                d->m_newDirAction->setEnabled(KProtocolManager::supportsMakeDir(directory)); // e.g. trash:/
+            }
+        } else {
+            d->m_newMenuGroup->setEnabled(true);
+        }
+    }
+}
+
+QUrl KNewFileMenu::workingDirectory() const
+{
+    return d->m_popupFiles.isEmpty() ? QUrl() : d->m_popupFiles.first();
+}
+
+void KNewFileMenu::setNewFolderShortcutAction(QAction *action)
+{
+    d->m_newFolderShortcutAction = action;
+}
+
+void KNewFileMenu::setNewFileShortcutAction(QAction *action)
+{
+    d->m_newFileShortcutAction = action;
 }
 
 #include "moc_knewfilemenu.cpp"

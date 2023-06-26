@@ -10,9 +10,11 @@
 
 #include <stdlib.h>
 
+#include "../utils_p.h"
 #include <config-kmountpoint.h>
 #include <kioglobal_p.h> // Defines QT_LSTAT on windows to kio_windows_lstat
 
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -32,7 +34,7 @@ static const Qt::CaseSensitivity cs = Qt::CaseSensitive;
 #if HAVE_SYS_PARAM_H
 #include <sys/param.h>
 #endif
-// FreeBSD has a table of names of mount-options in mount.h, which is only 
+// FreeBSD has a table of names of mount-options in mount.h, which is only
 // defined (as MNTOPT_NAMES) if _WANT_MNTOPTNAMES is defined.
 #define _WANT_MNTOPTNAMES
 #include <sys/mount.h>
@@ -46,7 +48,6 @@ static const Qt::CaseSensitivity cs = Qt::CaseSensitive;
 // Linux
 #if HAVE_LIB_MOUNT
 #include <libmount/libmount.h>
-#include <blkid/blkid.h>
 #endif
 
 static bool isNetfs(const QString &mountType)
@@ -97,23 +98,21 @@ KMountPoint::~KMountPoint() = default;
 #if HAVE_GETMNTINFO
 
 #ifdef MNTOPT_NAMES
-static struct mntoptnames bsdOptionNames[] = {
-    MNTOPT_NAMES
-};
+static struct mntoptnames bsdOptionNames[] = {MNTOPT_NAMES};
 
 /** @brief Get mount options from @p flags and puts human-readable version in @p list
- * 
+ *
  * Appends all positive options found in @p flags to the @p list
  * This is roughly paraphrased from FreeBSD's mount.c, prmount().
  */
 static void translateMountOptions(QStringList &list, uint64_t flags)
 {
-    const struct mntoptnames* optionInfo = bsdOptionNames;
+    const struct mntoptnames *optionInfo = bsdOptionNames;
 
     // Not all 64 bits are useful option names
     flags = flags & MNT_VISFLAGMASK;
     // Chew up options as long as we're in the table and there
-    // are any flags left. 
+    // are any flags left.
     for (; flags != 0 && optionInfo->o_opt != 0; ++optionInfo) {
         if (flags & optionInfo->o_opt) {
             list.append(QString::fromLatin1(optionInfo->o_name));
@@ -123,7 +122,7 @@ static void translateMountOptions(QStringList &list, uint64_t flags)
 }
 #else
 /** @brief Get mount options from @p flags and puts human-readable version in @p list
- * 
+ *
  * This default version just puts the hex representation of @p flags
  * in the list, because there is no human-readable version.
  */
@@ -155,9 +154,7 @@ void KMountPointPrivate::finalizePossibleMountPoint(KMountPoint::DetailsNeededFl
     }
 
     // Chop trailing slash
-    if (m_mountedFrom.endsWith(QLatin1Char('/'))) {
-        m_mountedFrom.chop(1);
-    }
+    Utils::removeTrailingSlash(m_mountedFrom);
 }
 
 void KMountPointPrivate::finalizeCurrentMountPoint(KMountPoint::DetailsNeededFlags infoNeeded)
@@ -473,7 +470,7 @@ bool KMountPoint::probablySlow() const
     return isOnNetwork()
         || d->m_mountType == QLatin1String("autofs")
         || d->m_mountType == QLatin1String("subfs")
-        // Technically KIOFUSe mounts local slaves as well,
+        // Technically KIOFUSe mounts local workers as well,
         // such as recents:/, but better safe than sorry...
         || d->m_mountType == QLatin1String("fuse.kio-fuse");
     /* clang-format on */
@@ -508,4 +505,24 @@ bool KMountPoint::testFileSystemFlag(FileSystemFlag flag) const
         return isMsDos;
     }
     return false;
+}
+
+KIOCORE_EXPORT QDebug operator<<(QDebug debug, const KMountPoint::Ptr &mp)
+{
+    QDebugStateSaver saver(debug);
+    if (!mp) {
+        debug << "QDebug operator<< called on a null KMountPoint::Ptr";
+        return debug;
+    }
+
+    // clang-format off
+    debug.nospace() << "KMountPoint ["
+                    << "Mounted from: "  << mp->d->m_mountedFrom
+                    << ", device name: " << mp->d->m_device
+                    << ", mount point: " << mp->d->m_mountPoint
+                    << ", mount type: "  << mp->d->m_mountType
+                    <<']';
+
+    // clang-format on
+    return debug;
 }

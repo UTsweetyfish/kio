@@ -2,8 +2,16 @@
 <ui version="4.0">
  <class>KPropertiesDesktopBase</class>
  <widget class="QWidget" name="KPropertiesDesktopBase">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>365</width>
+    <height>415</height>
+   </rect>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
-   <property name="margin">
+   <property name="margin" stdset="0">
     <number>0</number>
    </property>
    <item>
@@ -69,6 +77,19 @@
       </widget>
      </item>
      <item row="3" column="0">
+      <widget class="QLabel" name="labelenvvars">
+       <property name="text">
+        <string>Environment Variables:</string>
+       </property>
+       <property name="buddy">
+        <cstring>envarsEdit</cstring>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="1">
+      <widget class="QLineEdit" name="envarsEdit"/>
+     </item>
+     <item row="4" column="0">
       <widget class="QLabel" name="textLabel4">
        <property name="whatsThis">
         <string>Type the command to start this application here.
@@ -84,17 +105,17 @@ Following the command, you can have several placeholders which will be replaced 
 %k - the location of the .desktop file</string>
        </property>
        <property name="text">
-        <string>Co&amp;mmand:</string>
+        <string>Program:</string>
        </property>
        <property name="buddy">
-        <cstring>commandEdit</cstring>
+        <cstring>programEdit</cstring>
        </property>
       </widget>
      </item>
-     <item row="3" column="1">
+     <item row="4" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QLineEdit" name="commandEdit">
+        <widget class="QLineEdit" name="programEdit">
          <property name="whatsThis">
           <string>Type the command to start this application here.
 
@@ -122,7 +143,7 @@ Following the command, you can have several placeholders which will be replaced 
        </item>
       </layout>
      </item>
-     <item row="4" column="0">
+     <item row="6" column="0">
       <widget class="QLabel" name="textLabel5">
        <property name="whatsThis">
         <string>Sets the working directory for your application.</string>
@@ -135,12 +156,22 @@ Following the command, you can have several placeholders which will be replaced 
        </property>
       </widget>
      </item>
-     <item row="4" column="1">
+     <item row="6" column="1">
       <widget class="KUrlRequester" name="pathEdit">
        <property name="whatsThis">
         <string>Sets the working directory for your application.</string>
        </property>
       </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Arguments:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1">
+      <widget class="QLineEdit" name="argumentsEdit"/>
      </item>
     </layout>
    </item>
@@ -259,6 +290,7 @@ Following the command, you can have several placeholders which will be replaced 
    <class>KSeparator</class>
    <extends>QFrame</extends>
    <header>kseparator.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -17,43 +17,45 @@
 namespace KIO
 {
 class Slave;
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 102)
 class SlaveConfig;
+#endif
 
 class SchedulerPrivate;
 /**
  * @class KIO::Scheduler scheduler.h <KIO/Scheduler>
  *
- * The KIO::Scheduler manages io-slaves for the application.
- * It also queues jobs and assigns the job to a slave when one
+ * The KIO::Scheduler manages KIO workers for the application.
+ * It also queues jobs and assigns the job to a worker when one
  * becomes available.
  *
- * There are 3 possible ways for a job to get a slave:
+ * There are 3 possible ways for a job to get a worker:
  *
  * <h3>1. Direct</h3>
  * This is the default. When you create a job the
  * KIO::Scheduler will be notified and will find either an existing
- * slave that is idle or it will create a new slave for the job.
+ * worker that is idle or it will create a new worker for the job.
  *
  * Example:
  * \code
- *    TransferJob *job = KIO::get(QUrl("http://www.kde.org"));
+ *    TransferJob *job = KIO::get(QUrl("https://www.kde.org"));
  * \endcode
  *
  *
  * <h3>2. Scheduled</h3>
  * If you create a lot of jobs, you might want not want to have a
- * slave for each job. If you schedule a job, a maximum number
- * of slaves will be created. When more jobs arrive, they will be
- * queued. When a slave is finished with a job, it will be assigned
+ * worker for each job. If you schedule a job, a maximum number
+ * of workers will be created. When more jobs arrive, they will be
+ * queued. When a worker is finished with a job, it will be assigned
  * a job from the queue.
  *
  * Example:
  * \code
- *    TransferJob *job = KIO::get(QUrl("http://www.kde.org"));
+ *    TransferJob *job = KIO::get(QUrl("https://www.kde.org"));
  *    KIO::Scheduler::setJobPriority(job, 1);
  * \endcode
  *
- * <h3>3. Connection Oriented</h3>
+ * <h3>3. Connection Oriented (TODO KF6 remove this section)</h3>
  * For some operations it is important that multiple jobs use
  * the same connection. This can only be ensured if all these jobs
  * use the same slave.
@@ -100,7 +102,7 @@ class KIOCORE_EXPORT Scheduler : public QObject
 public:
     /**
      * Register @p job with the scheduler.
-     * The default is to create a new slave for the job if no slave
+     * The default is to create a new worker for the job if no worker
      * is available. This can be changed by calling setJobPriority.
      * @param job the job to register
      */
@@ -149,6 +151,7 @@ public:
      */
     static void jobFinished(KIO::SimpleJob *job, KIO::Slave *slave);
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Puts a slave on notice. A next job may reuse this slave if it
      * requests the same URL.
@@ -159,14 +162,44 @@ public:
      * by simply asking for the same URL again.
      * @param job the job that should be stopped
      * @param url the URL that is handled by the @p url
+     *
+     * @deprecated Since 5.101, use putWorkerOnHold(KIO::SimpleJob *, const QUrl &)
      */
-    static void putSlaveOnHold(KIO::SimpleJob *job, const QUrl &url);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use putWorkerOnHold(KIO::SimpleJob *, const QUrl &)") void putSlaveOnHold(KIO::SimpleJob *job, const QUrl &url);
+#endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Removes any slave that might have been put on hold. If a slave
      * was put on hold it will be killed.
+     *
+     * @deprecated Since 5.101, use removeWorkerOnHold()
      */
-    static void removeSlaveOnHold();
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use removeWorkerOnHold()") void removeSlaveOnHold();
+#endif
+
+    /**
+     * Puts a worker on notice. A next job may reuse this worker if it
+     * requests the same URL.
+     *
+     * A job can be put on hold after it has emit'ed its mimetype() signal.
+     * Based on the MIME type, the program can give control to another
+     * component in the same process which can then resume the job
+     * by simply asking for the same URL again.
+     * @param job the job that should be stopped
+     * @param url the URL that is handled by the @p url
+     *
+     * @since 5.101
+     */
+    static void putWorkerOnHold(KIO::SimpleJob *job, const QUrl &url);
+
+    /**
+     * Removes any worker that might have been put on hold. If a worker
+     * was put on hold it will be killed.
+     *
+     * @since 5.101
+     */
+    static void removeWorkerOnHold();
 
 #if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 88)
     /**
@@ -179,6 +212,7 @@ public:
     static void publishSlaveOnHold();
 #endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 91)
     /**
      * Requests a slave for use in connection-oriented mode.
      *
@@ -189,9 +223,13 @@ public:
      * @return A pointer to a connected slave or @c nullptr if an error occurred.
      * @see assignJobToSlave()
      * @see disconnectSlave()
+     * @deprecated since 5.91 Port away from the connected slave feature, e.g. making a library out of the slave code.
      */
+    KIOCORE_DEPRECATED_VERSION(5, 91, "Port away from the connected slave feature, e.g. making a library out of the slave code.")
     static KIO::Slave *getConnectedSlave(const QUrl &url, const KIO::MetaData &config = MetaData());
+#endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 91)
     /**
      * Uses @p slave to do @p job.
      * This function should be called immediately after creating a Job.
@@ -207,9 +245,13 @@ public:
      * @see disconnectSlave()
      * @see slaveConnected()
      * @see slaveError()
+     * @deprecated since 5.91 Port away from the connected slave feature, e.g. making a library out of the slave code.
      */
+    KIOCORE_DEPRECATED_VERSION(5, 91, "Port away from the connected slave feature, e.g. making a library out of the slave code.")
     static bool assignJobToSlave(KIO::Slave *slave, KIO::SimpleJob *job);
+#endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 91)
     /**
      * Disconnects @p slave.
      *
@@ -221,23 +263,32 @@ public:
      *
      * @see getConnectedSlave
      * @see assignJobToSlave
+     * @deprecated since 5.91 Port away from the connected slave feature, e.g. making a library out of the slave code.
      */
+    KIOCORE_DEPRECATED_VERSION(5, 91, "Port away from the connected slave feature, e.g. making a library out of the slave code.")
     static bool disconnectSlave(KIO::Slave *slave);
+#endif
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 103)
     /**
      * Function to connect signals emitted by the scheduler.
      *
      * @see slaveConnected()
      * @see slaveError()
+     * @deprecated Since 5.103, due to no known users.
      */
-    // KDE5: those methods should probably be removed, ugly and only marginally useful
+    KIOCORE_DEPRECATED_VERSION(5, 103, "No known users")
     static bool connect(const char *signal, const QObject *receiver, const char *member);
 
+    KIOCORE_DEPRECATED_VERSION(5, 103, "No known users")
     static bool connect(const QObject *sender, const char *signal, const QObject *receiver, const char *member);
 
+    KIOCORE_DEPRECATED_VERSION(5, 103, "No known users")
     static bool disconnect(const QObject *sender, const char *signal, const QObject *receiver, const char *member);
 
+    KIOCORE_DEPRECATED_VERSION(5, 103, "No known users")
     bool connect(const QObject *sender, const char *signal, const char *member);
+#endif
 
 #if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 88)
     /**
@@ -251,13 +302,24 @@ public:
 #endif
 
     static void emitReparseSlaveConfiguration();
+    // KF6 TODO: rename to emitReparseWorkerConfiguration. See also T15956.
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Returns true if there is a slave on hold for @p url.
      *
      * @since 4.7
+     * @deprecated Since 5.101, use isWorkerOnHoldFor(const QUrl &)
      */
-    static bool isSlaveOnHoldFor(const QUrl &url);
+    static KIOCORE_DEPRECATED_VERSION(5, 101, "Use isWorkerOnHoldFor(const QUrl &)") bool isSlaveOnHoldFor(const QUrl &url);
+#endif
+
+    /**
+     * Returns true if there is a worker on hold for @p url.
+     *
+     * @since 5.101
+     */
+    static bool isWorkerOnHoldFor(const QUrl &url);
 
     /**
      * Updates the internal metadata from job.
@@ -267,12 +329,31 @@ public:
     static void updateInternalMetaData(SimpleJob *job);
 
 Q_SIGNALS:
-    void slaveConnected(KIO::Slave *slave);
-    void slaveError(KIO::Slave *slave, int error, const QString &errorMsg);
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 91)
+    /**
+     * @deprecated since 5.91 Port away from the connected slave feature, e.g. making a library out of the slave code.
+     */
+    KIOCORE_DEPRECATED_VERSION(5, 91, "Port away from the connected slave feature, e.g. making a library out of the slave code.")
+    QT_MOC_COMPAT void slaveConnected(KIO::Slave *slave);
+
+    /**
+     * @deprecated since 5.91 Port away from the connected slave feature, e.g. making a library out of the slave code.
+     */
+    KIOCORE_DEPRECATED_VERSION(5, 91, "Port away from the connected slave feature, e.g. making a library out of the slave code.")
+    QT_MOC_COMPAT void slaveError(KIO::Slave *slave, int error, const QString &errorMsg);
+#endif
 
     // DBUS
     Q_SCRIPTABLE void reparseSlaveConfiguration(const QString &);
+    // KF6 TODO: rename to reparseWorkerConfiguration. See also T15956.
+
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 91)
+    /**
+     * @deprecated since 5.91 Port away from the connected slave feature, e.g. making a library out of the slave code.
+     */
+    KIOCORE_DEPRECATED_VERSION(5, 91, "Removed for lack of usage, and due to feature removal.")
     Q_SCRIPTABLE void slaveOnHoldListChanged();
+#endif
 
 private:
     Q_DISABLE_COPY(Scheduler)
@@ -289,10 +370,11 @@ private:
 #ifndef KIO_ANDROID_STUB
     Q_PRIVATE_SLOT(d_func(), void slotReparseSlaveConfiguration(const QString &, const QDBusMessage &))
 #endif
-    Q_PRIVATE_SLOT(d_func(), void slotSlaveOnHoldListChanged())
 
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 91)
     Q_PRIVATE_SLOT(d_func(), void slotSlaveConnected())
     Q_PRIVATE_SLOT(d_func(), void slotSlaveError(int error, const QString &errorMsg))
+#endif
 private:
     friend class SchedulerPrivate;
     SchedulerPrivate *d_func();

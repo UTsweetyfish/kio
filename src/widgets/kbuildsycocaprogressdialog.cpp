@@ -5,8 +5,11 @@
     SPDX-License-Identifier: LGPL-2.0-only
 */
 #include "kbuildsycocaprogressdialog.h"
+#include "kio_widgets_debug.h"
+
 #include <KLocalizedString>
 #include <KSycoca>
+
 #include <QDBusConnection>
 #include <QDBusInterface>
 #include <QDialogButtonBox>
@@ -28,27 +31,23 @@ void KBuildSycocaProgressDialog::rebuildKSycoca(QWidget *parent)
 {
     KBuildSycocaProgressDialog dlg(parent, i18n("Updating System Configuration"), i18n("Updating system configuration."));
 
-    // FIXME HACK: kdelibs 4 doesn't evaluate mimeapps.list at query time; refresh
-    // its cache as well.
-    QDBusInterface kbuildsycoca4(QStringLiteral("org.kde.kded"), QStringLiteral("/kbuildsycoca"), QStringLiteral("org.kde.kbuildsycoca"));
-    if (kbuildsycoca4.isValid()) {
-        kbuildsycoca4.call(QDBus::NoBlock, QStringLiteral("recreate"));
-    } else {
-        QProcess::startDetached(QStringLiteral("kbuildsycoca4"), QStringList());
+    const QString exec = QStandardPaths::findExecutable(QStringLiteral(KBUILDSYCOCA_EXENAME));
+    if (exec.isEmpty()) {
+        qCWarning(KIO_WIDGETS) << "Could not find kbuildsycoca executable:" << KBUILDSYCOCA_EXENAME;
+        return;
     }
-
     QProcess *proc = new QProcess(&dlg);
-    proc->start(QStringLiteral(KBUILDSYCOCA_EXENAME), QStringList());
+    proc->start(exec, QStringList());
     QObject::connect(proc, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), &dlg, &QWidget::close);
 
     dlg.exec();
 }
 
-KBuildSycocaProgressDialog::KBuildSycocaProgressDialog(QWidget *_parent, const QString &_caption, const QString &text)
+KBuildSycocaProgressDialog::KBuildSycocaProgressDialog(QWidget *_parent, const QString &title, const QString &text)
     : QProgressDialog(_parent)
     , d(new KBuildSycocaProgressDialogPrivate(this))
 {
-    setWindowTitle(_caption);
+    setWindowTitle(title);
     setModal(true);
     setLabelText(text);
     setRange(0, 0);

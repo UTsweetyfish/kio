@@ -5,6 +5,7 @@
 */
 
 #include "listdirtest.h"
+#include <kio/listjob.h>
 
 #include <QDir>
 #include <QFile>
@@ -13,12 +14,6 @@
 #include <QTest>
 
 QTEST_MAIN(ListDirTest)
-
-void ListDirTest::initTestCase()
-{
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
-}
 
 void ListDirTest::numFilesTestCase_data()
 {

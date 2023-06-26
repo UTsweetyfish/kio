@@ -42,9 +42,7 @@
 >A</emphasis
 >uthoring and <emphasis
 >V</emphasis
->ersioning) para la Web. Le permite la administración sencilla de documentos y procedimientos (scripts) en un servidor <ulink url="help:/kioslave/webdav.html"
->&HTTP;</ulink
-> y tiene características diseñadas para simplificar la administración de versiones entre varios autores.</para>
+>ersioning) para la Web. Le permite la administración sencilla de documentos y guiones en un servidor &HTTP; y tiene características diseñadas para simplificar la administración de versiones entre varios autores.</para>
 
 <para
 >Su uso es sencillo. Teclee la dirección que desea visualizar, similar a una &URL; &HTTP;, excepto por el prefijo del nombre del protocolo webdav:// al inicio. Por ejemplo, <userinput
@@ -85,7 +83,7 @@
 </variablelist>
 
 <para
->Para hacer uso de estas capacidades adicionales, usted necesitará una aplicación que las implemente. Ninguna aplicación las implementa actualmente a través de este kioslave.</para>
+>Para hacer uso de estas capacidades adicionales, usted necesitará una aplicación que las implemente. Ninguna aplicación las implementa actualmente a través de este módulo de trabajo KIO.</para>
 
 <para
 ><acronym

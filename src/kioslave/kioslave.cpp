@@ -18,17 +18,13 @@
 #include <QPluginLoader>
 #include <QString>
 
-#if defined(Q_OS_WIN) || defined(Q_OS_MAC)
-#define USE_KPROCESS_FOR_KIOSLAVES
-#endif
-
-#ifdef USE_KPROCESS_FOR_KIOSLAVES
-#include <QProcess>
-#include <QStringList>
 #ifdef Q_OS_WIN
+#include <QProcess>
+#include <QStandardPaths>
+#include <QStringList>
+
 #include <process.h>
 #include <qt_windows.h>
-#endif
 #endif
 
 #ifndef Q_OS_WIN
@@ -93,7 +89,12 @@ int main(int argc, char **argv)
         QStringList params;
         params << QString::fromUtf16((const unsigned short *)buf);
         params << QString::number(GetCurrentProcessId());
-        QProcess::startDetached(QStringLiteral("gdb"), params);
+        const QString gdbExec = QStandardPaths::findExecutable(QStringLiteral("gdb"));
+        if (gdbExec.isEmpty()) {
+            fprintf(stderr, "Could not find 'gdb' executable in PATH\n");
+            return 1;
+        }
+        QProcess::startDetached(gdbExec, params);
         Sleep(1000);
 #endif
     }
@@ -117,10 +118,13 @@ int main(int argc, char **argv)
     // Enter debugger in case debugging is activated
     if (slaveDebugWait == "all" || slaveDebugWait == argv[2]) {
         const pid_t pid = getpid();
-        fprintf(stderr, "kioslave5: Suspending process to debug io slave(s): %s\n"
+        fprintf(stderr,
+                "kioslave5: Suspending process to debug io slave(s): %s\n"
                 "kioslave5: 'gdb kioslave5 %d' to debug\n"
                 "kioslave5: 'kill -SIGCONT %d' to continue\n",
-                slaveDebugWait.constData(), pid, pid);
+                slaveDebugWait.constData(),
+                pid,
+                pid);
 
         kill(pid, SIGSTOP);
     }

@@ -248,7 +248,7 @@ Q_SIGNALS:
      * @param from the source URL
      * @param to the destination URL
      * @param mtime the modification time of the source file, hopefully set on the destination file
-     * too (when the kioslave supports it).
+     * too (when the KIO worker supports it).
      * @param directory indicates whether a file or directory was successfully copied/moved.
      *                  true for a directory, false for file
      * @param renamed indicates that the destination URL was created using a
@@ -273,8 +273,6 @@ protected:
     void emitResult();
 
 private:
-    Q_PRIVATE_SLOT(d_func(), void sourceStated(const KIO::UDSEntry &entry, const QUrl &sourceUrl))
-
     Q_DECLARE_PRIVATE(CopyJob)
 };
 

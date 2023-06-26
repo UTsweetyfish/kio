@@ -39,6 +39,7 @@
 #include <KConfigGroup>
 #include <KMountPoint>
 #include <KPluginInfo>
+#include <KPluginMetaData>
 #include <KService>
 #include <KServiceTypeTrader>
 #include <KSharedConfig>
@@ -53,8 +54,9 @@
 
 #include "job_p.h"
 
-namespace  {
-    static int s_defaultDevicePixelRatio = 1;
+namespace
+{
+static int s_defaultDevicePixelRatio = 1;
 }
 
 namespace KIO
@@ -83,19 +85,21 @@ public:
         , succeeded(false)
         , maximumLocalSize(0)
         , maximumRemoteSize(0)
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
         , iconSize(0)
         , iconAlpha(70)
+#endif
         , shmid(-1)
         , shmaddr(nullptr)
     {
-        // http://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html#DIRECTORY
+        // https://specifications.freedesktop.org/thumbnail-spec/thumbnail-spec-latest.html#DIRECTORY
         thumbRoot = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation) + QLatin1String("/thumbnails/");
     }
 
     enum {
         STATE_STATORIG, // if the thumbnail exists
         STATE_GETORIG, // if we create it
-        STATE_CREATETHUMB, // thumbnail:/ slave
+        STATE_CREATETHUMB, // thumbnail:/ worker
         STATE_DEVICE_INFO, // additional state check to get needed device ids
     } state;
 
@@ -133,10 +137,12 @@ public:
     QString tempName;
     KIO::filesize_t maximumLocalSize;
     KIO::filesize_t maximumRemoteSize;
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
     // the size for the icon overlay
     int iconSize;
     // the transparency of the blended MIME type icon
     int iconAlpha;
+#endif
     // Shared memory segment Id. The segment is allocated to a size
     // of extent x extent x 4 (32 bit image) on first need.
     int shmid;
@@ -146,8 +152,8 @@ public:
     size_t shmsize;
     // Root of thumbnail cache
     QString thumbRoot;
-    // Metadata returned from the KIO thumbnail slave
-    QMap<QString, QString> thumbnailSlaveMetaData;
+    // Metadata returned from the KIO thumbnail worker
+    QMap<QString, QString> thumbnailWorkerMetaData;
     int devicePixelRatio = s_defaultDevicePixelRatio;
     static const int idUnknown = -1;
     // Id of a device storing currently processed file
@@ -177,7 +183,7 @@ public:
         if (!jsonMetaDataPlugins.isEmpty()) {
             return jsonMetaDataPlugins;
         }
-        jsonMetaDataPlugins = KPluginMetaData::findPlugins(QStringLiteral("kf5/thumbcreator"));
+        jsonMetaDataPlugins = KPluginMetaData::findPlugins(QStringLiteral("kf" QT_STRINGIFY(QT_VERSION_MAJOR) "/thumbcreator"));
         std::set<QString> pluginIds;
         for (const KPluginMetaData &data : std::as_const(jsonMetaDataPlugins)) {
             pluginIds.insert(data.pluginId());
@@ -189,11 +195,11 @@ public:
         const KService::List plugins = KServiceTypeTrader::self()->query(QStringLiteral("ThumbCreator"));
         for (const auto &plugin : plugins) {
             if (KPluginInfo info(plugin); info.isValid()) {
-                if (auto [it, inserted] = pluginIds.insert(info.pluginName()); inserted) {
+                if (auto [it, inserted] = pluginIds.insert(plugin->desktopEntryName()); inserted) {
                     jsonMetaDataPlugins << info.toMetaData();
                 }
             } else {
-                // Hack for directory thumbnailer: It has a hardcoded plugin id in the kio-slave and not any C++ plugin
+                // Hack for directory thumbnailer: It has a hardcoded plugin id in the KIO worker and not any C++ plugin
                 // Consequently we just use the base name as the plugin file for our KPluginMetaData object
                 const QString path = QStandardPaths::locate(QStandardPaths::GenericDataLocation, QLatin1String("kservices5/") + plugin->entryPath());
                 KPluginMetaData tmpData = KPluginMetaData::fromDesktopFile(path);
@@ -232,7 +238,9 @@ PreviewJob::PreviewJob(const KFileItemList &items, int width, int height, int ic
     d->bSave = save && scale;
 
     // Return to event loop first, determineNextFile() might delete this;
-    QTimer::singleShot(0, this, SLOT(startPreview()));
+    QTimer::singleShot(0, this, [d]() {
+        d->startPreview();
+    });
 }
 #endif
 
@@ -251,7 +259,9 @@ PreviewJob::PreviewJob(const KFileItemList &items, const QSize &size, const QStr
     }
 
     // Return to event loop first, determineNextFile() might delete this;
-    QTimer::singleShot(0, this, SLOT(startPreview()));
+    QTimer::singleShot(0, this, [d]() {
+        d->startPreview();
+    });
 }
 
 PreviewJob::~PreviewJob()
@@ -265,29 +275,37 @@ PreviewJob::~PreviewJob()
 #endif
 }
 
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
 void PreviewJob::setOverlayIconSize(int size)
 {
     Q_D(PreviewJob);
     d->iconSize = size;
 }
+#endif
 
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
 int PreviewJob::overlayIconSize() const
 {
     Q_D(const PreviewJob);
     return d->iconSize;
 }
+#endif
 
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
 void PreviewJob::setOverlayIconAlpha(int alpha)
 {
     Q_D(PreviewJob);
     d->iconAlpha = qBound(0, alpha, 255);
 }
+#endif
 
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
 int PreviewJob::overlayIconAlpha() const
 {
     Q_D(const PreviewJob);
     return d->iconAlpha;
 }
+#endif
 
 void PreviewJob::setScaleType(ScaleType type)
 {
@@ -370,23 +388,29 @@ void PreviewJobPrivate::startPreview()
         if (!plugin.isValid()) {
             auto pluginIt = mimeMap.constFind(mimeType);
             if (pluginIt == mimeMap.constEnd()) {
-                QString groupMimeType = mimeType;
-                groupMimeType.replace(QRegularExpression(QStringLiteral("/.*")), QStringLiteral("/*"));
-                pluginIt = mimeMap.constFind(groupMimeType);
-
-                if (pluginIt == mimeMap.constEnd()) {
-                    QMimeDatabase db;
-                    // check MIME type inheritance, resolve aliases
-                    const QMimeType mimeInfo = db.mimeTypeForName(mimeType);
-                    if (mimeInfo.isValid()) {
-                        const QStringList parentMimeTypes = mimeInfo.allAncestors();
-                        for (const QString &parentMimeType : parentMimeTypes) {
-                            pluginIt = mimeMap.constFind(parentMimeType);
-                            if (pluginIt != mimeMap.constEnd()) {
-                                break;
-                            }
+                // check MIME type inheritance, resolve aliases
+                QMimeDatabase db;
+                const QMimeType mimeInfo = db.mimeTypeForName(mimeType);
+                if (mimeInfo.isValid()) {
+                    const QStringList parentMimeTypes = mimeInfo.allAncestors();
+                    for (const QString &parentMimeType : parentMimeTypes) {
+                        pluginIt = mimeMap.constFind(parentMimeType);
+                        if (pluginIt != mimeMap.constEnd()) {
+                            break;
                         }
                     }
+                }
+
+                if (pluginIt == mimeMap.constEnd()) {
+                    // Check the wildcards last, see BUG 453480
+                    QString groupMimeType = mimeType;
+                    const int slashIdx = groupMimeType.indexOf(QLatin1Char('/'));
+                    if (slashIdx != -1) {
+                        // Replace everything after '/' with '*'
+                        groupMimeType.truncate(slashIdx + 1);
+                        groupMimeType += QLatin1Char('*');
+                    }
+                    pluginIt = mimeMap.constFind(groupMimeType);
                 }
             }
 
@@ -411,16 +435,18 @@ void PreviewJobPrivate::startPreview()
 
     KConfigGroup cg(KSharedConfig::openConfig(), "PreviewSettings");
     maximumLocalSize = cg.readEntry("MaximumSize", std::numeric_limits<KIO::filesize_t>::max());
-    maximumRemoteSize = cg.readEntry("MaximumRemoteSize", 0);
+    maximumRemoteSize = cg.readEntry<KIO::filesize_t>("MaximumRemoteSize", 0);
 
     if (bNeedCache) {
-
-        if (width <= 128 && height <= 128) {
+        const int longer = std::max(width, height);
+        if (longer <= 128) {
             cacheSize = 128;
-        } else if (width <= 256 && height <= 256) {
+        } else if (longer <= 256) {
             cacheSize = 256;
-        } else {
+        } else if (longer <= 512) {
             cacheSize = 512;
+        } else {
+            cacheSize = 1024;
         }
 
         struct CachePool {
@@ -492,12 +518,12 @@ int KIO::PreviewJob::sequenceIndex() const
 
 float KIO::PreviewJob::sequenceIndexWraparoundPoint() const
 {
-    return d_func()->thumbnailSlaveMetaData.value(QStringLiteral("sequenceIndexWraparoundPoint"), QStringLiteral("-1.0")).toFloat();
+    return d_func()->thumbnailWorkerMetaData.value(QStringLiteral("sequenceIndexWraparoundPoint"), QStringLiteral("-1.0")).toFloat();
 }
 
 bool KIO::PreviewJob::handlesSequences() const
 {
-    return d_func()->thumbnailSlaveMetaData.value(QStringLiteral("handlesSequences")) == QStringLiteral("1");
+    return d_func()->thumbnailWorkerMetaData.value(QStringLiteral("handlesSequences")) == QStringLiteral("1");
 }
 
 #if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 86)
@@ -733,7 +759,7 @@ void PreviewJobPrivate::getOrCreateThumbnail()
             // There's a plugin supporting this protocol and MIME type
             supportsProtocol = true;
         } else if (m_remoteProtocolPlugins.value(QStringLiteral("KIO")).contains(item.mimetype())) {
-            // Assume KIO understands any URL, ThumbCreator slaves who have
+            // Assume KIO understands any URL, ThumbCreator workers who have
             // X-KDE-Protocols=KIO will get fed the remote URL directly.
             supportsProtocol = true;
         }
@@ -854,17 +880,23 @@ void PreviewJobPrivate::createThumbnail(const QString &pixPath)
 
     int thumb_width = width;
     int thumb_height = height;
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
     int thumb_iconSize = iconSize;
+#endif
     if (save) {
         thumb_width = thumb_height = cacheSize;
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
         thumb_iconSize = 64;
+#endif
     }
 
     job->addMetaData(QStringLiteral("mimeType"), currentItem.item.mimetype());
     job->addMetaData(QStringLiteral("width"), QString::number(thumb_width));
     job->addMetaData(QStringLiteral("height"), QString::number(thumb_height));
+#if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 102)
     job->addMetaData(QStringLiteral("iconSize"), QString::number(thumb_iconSize));
     job->addMetaData(QStringLiteral("iconAlpha"), QString::number(iconAlpha));
+#endif
     job->addMetaData(QStringLiteral("plugin"), currentItem.plugin.fileName());
     job->addMetaData(QStringLiteral("enabledPlugins"), enabledPlugins.join(QLatin1Char(',')));
     job->addMetaData(QStringLiteral("devicePixelRatio"), QString::number(devicePixelRatio));
@@ -904,7 +936,7 @@ void PreviewJobPrivate::createThumbnail(const QString &pixPath)
 
 void PreviewJobPrivate::slotThumbData(KIO::Job *job, const QByteArray &data)
 {
-    thumbnailSlaveMetaData = job->metaData();
+    thumbnailWorkerMetaData = job->metaData();
     /* clang-format off */
     const bool save = bSave
                       && !sequenceIndex
@@ -917,7 +949,7 @@ void PreviewJobPrivate::slotThumbData(KIO::Job *job, const QByteArray &data)
     QImage thumb;
 #if WITH_SHM
     if (shmaddr) {
-        // Keep this in sync with kdebase/kioslave/thumbnail.cpp
+        // Keep this in sync with kio-extras|thumbnail/thumbnail.cpp
         QDataStream str(data);
         int width;
         int height;
@@ -971,12 +1003,13 @@ void PreviewJobPrivate::emitPreview(const QImage &thumb)
 {
     Q_Q(PreviewJob);
     QPixmap pix;
-    if (thumb.width() > width * thumb.devicePixelRatio() || thumb.height() > height * thumb.devicePixelRatio()) {
-        pix = QPixmap::fromImage(thumb.scaled(QSize(width * thumb.devicePixelRatio(), height * thumb.devicePixelRatio()), Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    const qreal ratio = thumb.devicePixelRatio();
+    if (thumb.width() > width * ratio || thumb.height() > height * ratio) {
+        pix = QPixmap::fromImage(thumb.scaled(QSize(width * ratio, height * ratio), Qt::KeepAspectRatio, Qt::SmoothTransformation));
     } else {
         pix = QPixmap::fromImage(thumb);
     }
-    pix.setDevicePixelRatio(thumb.devicePixelRatio());
+    pix.setDevicePixelRatio(ratio);
     Q_EMIT q->gotPreview(currentItem.item, pix);
 }
 

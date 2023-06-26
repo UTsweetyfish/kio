@@ -22,14 +22,18 @@ namespace KIO
 
 class WidgetsOpenWithHandler : public OpenWithHandlerInterface
 {
+    Q_OBJECT
 public:
     explicit WidgetsOpenWithHandler(QObject *parent = nullptr);
     ~WidgetsOpenWithHandler() override;
 
     void promptUserForApplication(KJob *job, const QList<QUrl> &urls, const QString &mimeType) override;
 
+    void setWindow(QWidget *widget);
+
 private:
     // Note: no d pointer because not exported at this point
+    QWidget *m_parentWidget = nullptr;
 };
 
 }

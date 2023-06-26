@@ -13,6 +13,8 @@
 
 #include <QDataStream>
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
+
 using namespace KIO;
 
 class KIO::IdleSlavePrivate
@@ -61,7 +63,7 @@ void IdleSlave::gotInput()
                && cmd != MSG_SLAVE_STATUS
 #endif
     ) {
-        qCritical() << "Unexpected data from KIO slave.";
+        qCritical() << "Unexpected data from KIO worker.";
         deleteLater();
     } else {
         QDataStream stream(data);
@@ -154,3 +156,5 @@ bool IdleSlave::hasTempAuthorization() const
 {
     return d->mHasTempAuth;
 }
+
+#endif

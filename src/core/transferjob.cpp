@@ -25,8 +25,8 @@ TransferJob::TransferJob(TransferJobPrivate &dd)
     }
 
     if (d->m_outgoingDataSource) {
-        d->m_readChannelFinishedConnection = connect(d->m_outgoingDataSource, &QIODevice::readChannelFinished, this, [this]() {
-            d_func()->slotIODeviceClosedBeforeStart();
+        d->m_readChannelFinishedConnection = connect(d->m_outgoingDataSource, &QIODevice::readChannelFinished, this, [d]() {
+            d->slotIODeviceClosedBeforeStart();
         });
     }
 }
@@ -35,7 +35,7 @@ TransferJob::~TransferJob()
 {
 }
 
-// Slave sends data
+// Worker sends data
 void TransferJob::slotData(const QByteArray &_data)
 {
     Q_D(TransferJob);
@@ -55,7 +55,7 @@ void KIO::TransferJob::setTotalSize(KIO::filesize_t bytes)
     setTotalAmount(KJob::Bytes, bytes);
 }
 
-// Slave got a redirection request
+// Worker got a redirection request
 void TransferJob::slotRedirection(const QUrl &url)
 {
     Q_D(TransferJob);
@@ -168,15 +168,15 @@ void TransferJob::setAsyncDataEnabled(bool enabled)
     }
 }
 
-void TransferJob::sendAsyncData(const QByteArray &dataForSlave)
+void TransferJob::sendAsyncData(const QByteArray &dataForWorker)
 {
     Q_D(TransferJob);
     if (d->m_extraFlags & JobPrivate::EF_TransferJobNeedData) {
         if (d->m_slave) {
-            d->m_slave->send(MSG_DATA, dataForSlave);
+            d->m_slave->send(MSG_DATA, dataForWorker);
         }
         if (d->m_extraFlags & JobPrivate::EF_TransferJobDataSent) { // put job -> emit progress
-            KIO::filesize_t size = processedAmount(KJob::Bytes) + dataForSlave.size();
+            KIO::filesize_t size = processedAmount(KJob::Bytes) + dataForWorker.size();
             setProcessedAmount(KJob::Bytes, size);
         }
     }
@@ -213,19 +213,19 @@ QUrl TransferJob::redirectUrl() const
     return d_func()->m_redirectionURL;
 }
 
-// Slave requests data
+// Worker requests data
 void TransferJob::slotDataReq()
 {
     Q_D(TransferJob);
-    QByteArray dataForSlave;
+    QByteArray dataForWorker;
 
     d->m_extraFlags |= JobPrivate::EF_TransferJobNeedData;
 
     if (!d->staticData.isEmpty()) {
-        dataForSlave = d->staticData;
+        dataForWorker = d->staticData;
         d->staticData.clear();
     } else {
-        Q_EMIT dataReq(this, dataForSlave);
+        Q_EMIT dataReq(this, dataForWorker);
 
         if (d->m_extraFlags & JobPrivate::EF_TransferJobAsync) {
             return;
@@ -233,14 +233,14 @@ void TransferJob::slotDataReq()
     }
 
     static const int max_size = 14 * 1024 * 1024;
-    if (dataForSlave.size() > max_size) {
-        // qDebug() << "send" << dataForSlave.size() / 1024 / 1024 << "MB of data in TransferJob::dataReq. This needs to be split, which requires a copy. Fix
+    if (dataForWorker.size() > max_size) {
+        // qDebug() << "send" << dataForWorker.size() / 1024 / 1024 << "MB of data in TransferJob::dataReq. This needs to be split, which requires a copy. Fix
         // the application.";
-        d->staticData = QByteArray(dataForSlave.data() + max_size, dataForSlave.size() - max_size);
-        dataForSlave.truncate(max_size);
+        d->staticData = QByteArray(dataForWorker.data() + max_size, dataForWorker.size() - max_size);
+        dataForWorker.truncate(max_size);
     }
 
-    sendAsyncData(dataForSlave);
+    sendAsyncData(dataForWorker);
 
     if (d->m_subJob) {
         // Bitburger protocol in action
@@ -305,19 +305,21 @@ void TransferJobPrivate::start(Slave *slave)
 
     if (m_outgoingDataSource) {
         if (m_extraFlags & JobPrivate::EF_TransferJobAsync) {
-            q->connect(m_outgoingDataSource, &QIODevice::readyRead, q, [this]() {
+            auto dataReqFunc = [this]() {
                 slotDataReqFromDevice();
-            });
-            q->connect(m_outgoingDataSource, &QIODevice::readChannelFinished, q, [this]() {
+            };
+            q->connect(m_outgoingDataSource, &QIODevice::readyRead, q, dataReqFunc);
+            auto ioClosedFunc = [this]() {
                 slotIODeviceClosed();
-            });
+            };
+            q->connect(m_outgoingDataSource, &QIODevice::readChannelFinished, q, ioClosedFunc);
             // We don't really need to disconnect since we're never checking
             // m_closedBeforeStart again but it's the proper thing to do logically
             QObject::disconnect(m_readChannelFinishedConnection);
             if (m_closedBeforeStart) {
-                QMetaObject::invokeMethod(q, "slotIODeviceClosed", Qt::QueuedConnection);
+                QMetaObject::invokeMethod(q, ioClosedFunc, Qt::QueuedConnection);
             } else if (m_outgoingDataSource->bytesAvailable() > 0) {
-                QMetaObject::invokeMethod(q, "slotDataReqFromDevice", Qt::QueuedConnection);
+                QMetaObject::invokeMethod(q, dataReqFunc, Qt::QueuedConnection);
             }
         } else {
             q->connect(slave, &SlaveInterface::dataReq, q, [this]() {
@@ -346,7 +348,7 @@ void TransferJobPrivate::start(Slave *slave)
 
     if (slave->suspended()) {
         m_mimetype = QStringLiteral("unknown");
-        // WABA: The slave was put on hold. Resume operation.
+        // WABA: The worker was put on hold. Resume operation.
         slave->resume();
     }
 
@@ -376,43 +378,43 @@ void TransferJobPrivate::slotSubUrlData(KIO::Job *, const QByteArray &data)
     internalResume(); // Activate ourselves again.
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 void TransferJob::slotMetaData(const KIO::MetaData &_metaData)
 {
-    Q_D(TransferJob);
     SimpleJob::slotMetaData(_metaData);
-    storeSSLSessionFromJob(d->m_redirectionURL);
 }
+#endif
 
 void TransferJobPrivate::slotDataReqFromDevice()
 {
     Q_Q(TransferJob);
 
     bool done = false;
-    QByteArray dataForSlave;
+    QByteArray dataForWorker;
 
     m_extraFlags |= JobPrivate::EF_TransferJobNeedData;
 
     if (m_outgoingDataSource) {
-        dataForSlave.resize(MAX_READ_BUF_SIZE);
+        dataForWorker.resize(MAX_READ_BUF_SIZE);
 
         // Code inspired in QNonContiguousByteDevice
-        qint64 bytesRead = m_outgoingDataSource->read(dataForSlave.data(), MAX_READ_BUF_SIZE);
+        qint64 bytesRead = m_outgoingDataSource->read(dataForWorker.data(), MAX_READ_BUF_SIZE);
         if (bytesRead >= 0) {
-            dataForSlave.resize(bytesRead);
+            dataForWorker.resize(bytesRead);
         } else {
-            dataForSlave.clear();
+            dataForWorker.clear();
         }
         done = ((bytesRead == -1) || (bytesRead == 0 && m_outgoingDataSource->atEnd() && !m_outgoingDataSource->isSequential()));
     }
 
-    if (dataForSlave.isEmpty()) {
-        Q_EMIT q->dataReq(q, dataForSlave);
+    if (dataForWorker.isEmpty()) {
+        Q_EMIT q->dataReq(q, dataForWorker);
         if (!done && (m_extraFlags & JobPrivate::EF_TransferJobAsync)) {
             return;
         }
     }
 
-    q->sendAsyncData(dataForSlave);
+    q->sendAsyncData(dataForWorker);
 
     if (m_subJob) {
         // Bitburger protocol in action

@@ -4,18 +4,21 @@ Hidden=false
 Keys=kdetechbase,techbase,tb
 Name=KDE TechBase
 Name[ar]=قاعدة التعلم لكدي
-Name[ast]=KDE TechBase
 Name[az]=KDE Texniki Basa
+Name[be]=Тэхнічная база KDE
+Name[be@latin]=Techničnaja baza KDE
 Name[bg]=Техническо ръководство за KDE
 Name[bn]=KDE টেক-বেস
-Name[bs]=Tehbaza KDE‑a
+Name[bs]=KDE Tehnološka Baza
 Name[ca]=KDE TechBase
 Name[ca@valencia]=KDE TechBase
 Name[cs]=KDE TechBase
+Name[cy]=KDE TechBase
 Name[da]=KDE TechBase
 Name[de]=KDE TechBase
 Name[el]=Τεχνική βάση KDE
 Name[en_GB]=KDE TechBase
+Name[eo]=KDE TechBase
 Name[es]=KDE TechBase
 Name[et]=KDE TechBase
 Name[eu]=KDE TechBase
@@ -32,8 +35,10 @@ Name[hr]=KDE TechBase
 Name[hu]=KDE TechBase
 Name[ia]=KDE TechBase (Base Technic)
 Name[id]=KDE TechBase
-Name[is]=KDE Tæknigrunnur
+Name[ie]=KDE TechBase
+Name[is]=KDE TechBase
 Name[it]=TechBase di KDE
+Name[ka]=KDE ტექნიკური ბაზა
 Name[kk]=KDE TechBase
 Name[km]=KDE TechBase
 Name[kn]=ಕೆಡಿಇ ಟೆಕ್ ಬೇಸ್ (TechBase)
@@ -64,6 +69,7 @@ Name[sr@latin]=Techbase KDE‑a
 Name[sv]=KDE:s teknikbas
 Name[tg]=Пойгоҳи техникии KDE
 Name[th]=KDE TechBase
+Name[tok]=alasa sona pi ilo tan kulupu KDE (TechBase)
 Name[tr]=KDE TechBase
 Name[ug]=KDE TechBase
 Name[uk]=TechBase KDE
@@ -74,15 +80,20 @@ Name[zh_CN]=KDE 技术信息库
 Name[zh_TW]=KDE TechBase
 Query=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ar]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
-Query[ast]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[az]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[be]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[be@latin]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[bg]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[bs]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ca]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ca@valencia]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[cs]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[cy]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[da]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[de]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[el]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[en_GB]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[eo]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[es]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[et]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[eu]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
@@ -92,21 +103,27 @@ Query[gl]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[hu]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ia]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[id]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[ie]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[is]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[it]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[ka]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ko]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[lt]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[my]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[nl]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[nn]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[pa]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[pl]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[pt]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[pt_BR]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[ro]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ru]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[sk]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[sl]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[sv]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[tg]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[tok]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[tr]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[uk]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[vi]=https://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[x-test]=xxhttps://techbase.kde.org/Special:Search?search=\\{@}&fulltext=Searchxx

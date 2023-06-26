@@ -4,19 +4,21 @@ Hidden=false
 Keys=kdeuserbase,userbase,ub
 Name=KDE UserBase
 Name[ar]=قاعدة مستخدمي KDE
-Name[ast]=KDE UserBase
 Name[az]=KDE İstifadəçi Baza
+Name[be]=База карыстальніка KDE
+Name[be@latin]=Baza karystaĺnika KDE
 Name[bg]=Потребителско ръководство за KDE
 Name[bn]=কে.ডি.ই. ইউসার-বেস
-Name[bs]=Korisnička baza KDE‑a
+Name[bs]=KDE Korisnička Baza
 Name[ca]=KDE UserBase
 Name[ca@valencia]=KDE UserBase
 Name[cs]=KDE UserBase
+Name[cy]=KDE UserBase
 Name[da]=KDE UserBase
 Name[de]=KDE UserBase
 Name[el]=Βάση χρηστών KDE
 Name[en_GB]=KDE UserBase
-Name[eo]=Manlibro por uzantoj de KDE
+Name[eo]=KDE UzantoBazo (manlibro por uzantoj)
 Name[es]=KDE UserBase
 Name[et]=KDE UserBase
 Name[eu]=KDE UserBase
@@ -33,8 +35,10 @@ Name[hr]=KDE UserBase
 Name[hu]=KDE UserBase
 Name[ia]=KDE UserBase (Base de Usator)
 Name[id]=KDE UserBase
-Name[is]=KDE Notandagrunnur
+Name[ie]=KDE UserBase
+Name[is]=KDE UserBase
 Name[it]=UserBase di KDE
+Name[ka]=KDE მომხმარებლების ბაზა
 Name[kk]=KDE UserBase
 Name[km]=KDE UserBase
 Name[kn]=ಕೆಡಿಇ ಯುಸರ್ ಬೇಸ್
@@ -65,6 +69,7 @@ Name[sr@latin]=Korisnička baza KDE‑a
 Name[sv]=KDE:s användarbas
 Name[tg]=Пойгоҳи корбарии KDE
 Name[th]=KDE UserBase
+Name[tok]=alasa sona pi ilo tan kulupu KDE (UserBase)
 Name[tr]=KDE UserBase
 Name[ug]=KDE UserBase
 Name[uk]=UserBase KDE
@@ -75,15 +80,20 @@ Name[zh_CN]=KDE 用户信息库
 Name[zh_TW]=KDE UserBase
 Query=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ar]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
-Query[ast]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[az]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[be]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[be@latin]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[bg]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[bs]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ca]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ca@valencia]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[cs]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[cy]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[da]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[de]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[el]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[en_GB]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[eo]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[es]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[et]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[eu]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
@@ -93,13 +103,16 @@ Query[gl]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[hu]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ia]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[id]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[ie]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[is]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[it]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[ka]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[ko]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[lt]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[my]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[nl]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[nn]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[pa]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[pl]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[pt]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[pt_BR]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
@@ -109,6 +122,8 @@ Query[sk]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[sl]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[sv]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[tg]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[tok]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
+Query[tr]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[uk]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[vi]=https://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Search
 Query[x-test]=xxhttps://userbase.kde.org/Special:Search?search=\\{@}&fulltext=Searchxx

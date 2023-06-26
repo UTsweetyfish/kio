@@ -7,6 +7,8 @@
 
 // This file can only be included once in a given binary
 
+#include "../src/utils_p.h"
+
 #include <QDateTime>
 #include <QDebug>
 #include <QDir>
@@ -54,7 +56,7 @@ static void setTimeStamp(const QString &path, const QDateTime &mtime)
 #endif
 }
 
-static void createTestFile(const QString &path, bool plainText = false)
+static void createTestFile(const QString &path, bool plainText = false, const QByteArray &customData = {})
 {
     QDir().mkpath(QFileInfo(path).absolutePath());
     QFile f(path);
@@ -63,7 +65,7 @@ static void createTestFile(const QString &path, bool plainText = false)
     }
     QByteArray data(plainText ? "Hello world" : "Hello\0world", 11);
     QCOMPARE(data.size(), 11);
-    f.write(data);
+    f.write(customData.isEmpty() ? data : customData);
     f.close();
     setTimeStamp(path, s_referenceTimeStamp);
 }
@@ -77,7 +79,7 @@ static void createTestSymlink(const QString &path, const QByteArray &target = "/
     }
     QT_STATBUF buf;
     QVERIFY(QT_LSTAT(QFile::encodeName(path), &buf) == 0);
-    QVERIFY((buf.st_mode & QT_STAT_MASK) == QT_STAT_LNK);
+    QVERIFY(Utils::isLinkMask(buf.st_mode));
     // qDebug( "symlink %s created", qPrintable( path ) );
     QVERIFY(QFileInfo(path).isSymLink());
 }

@@ -58,12 +58,12 @@ public:
 
     /**
      * Abort job.
-     * Suspends slave to be reused by another job for the same request.
+     * Suspends worker to be reused by another job for the same request.
      */
     virtual void putOnHold();
 
     /**
-     * Discard suspended slave.
+     * Discard suspended worker.
      */
     static void removeOnHold();
 
@@ -87,40 +87,45 @@ public:
 public Q_SLOTS:
     /**
      * @internal
-     * Called on a slave's error.
+     * Called on a worker's error.
      * Made public for the scheduler.
      */
     void slotError(int, const QString &);
 
 protected Q_SLOTS:
     /**
-     * Called when the slave marks the job
+     * Called when the worker marks the job
      * as finished.
      */
     virtual void slotFinished();
 
     /**
      * @internal
-     * Called on a slave's warning.
+     * Called on a worker's warning.
      */
     virtual void slotWarning(const QString &);
 
     /**
-     * MetaData from the slave is received.
+     * MetaData from the worker is received.
      * @param _metaData the meta data
      * @see metaData()
      */
     virtual void slotMetaData(const KIO::MetaData &_metaData);
 
 protected:
+#if KIOCORE_ENABLE_DEPRECATED_SINCE(5, 101)
     /**
      * Allow jobs that inherit SimpleJob and are aware
      * of redirections to store the SSL session used.
      * Retrieval is handled by SimpleJob::start
      * @param m_redirectionURL Reference to redirection URL,
      * used instead of m_url if not empty
+     *
+     * @deprecated Since 4.3, this is a no-op.
      */
+    KIOCORE_DEPRECATED_VERSION_BELATED(5, 101, 4, 3, "A no-op method now.")
     void storeSSLSessionFromJob(const QUrl &m_redirectionURL);
+#endif
 
     /**
      * Creates a new simple job. You don't need to use this constructor,
@@ -190,7 +195,7 @@ KIOCORE_EXPORT SimpleJob *rename(const QUrl &src, const QUrl &dest, JobFlags fla
 /**
  * Create or move a symlink.
  * This is the lowlevel operation, similar to file_copy and file_move.
- * It doesn't do any check (other than those the slave does)
+ * It doesn't do any check (other than those the worker does)
  * and it doesn't show rename and skip dialogs - use KIO::link for that.
  * @param target The string that will become the "target" of the link (can be relative)
  * @param dest The symlink to create.
@@ -200,14 +205,14 @@ KIOCORE_EXPORT SimpleJob *rename(const QUrl &src, const QUrl &dest, JobFlags fla
 KIOCORE_EXPORT SimpleJob *symlink(const QString &target, const QUrl &dest, JobFlags flags = DefaultFlags);
 
 /**
- * Execute any command that is specific to one slave (protocol).
+ * Execute any command that is specific to one worker (protocol).
  *
  * Examples are : HTTP POST, mount and unmount (kio_file)
  *
- * @param url The URL isn't passed to the slave, but is used to know
- *        which slave to send it to :-)
+ * @param url The URL isn't passed to the worker, but is used to know
+ *        which worker to send it to :-)
  * @param data Packed data.  The meaning is completely dependent on the
- *        slave, but usually starts with an int for the command number.
+ *        worker, but usually starts with an int for the command number.
  * @param flags Can be HideProgressInfo here
  * @return the job handling the operation.
  */

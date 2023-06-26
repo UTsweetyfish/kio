@@ -14,6 +14,7 @@
 
 #include <QStorageInfo>
 
+#include "../../utils_p.h"
 #include "kioglobal_p.h"
 
 #ifdef Q_OS_UNIX
@@ -48,16 +49,21 @@
 #include <QStandardPaths>
 #include <kmountpoint.h>
 
-#include <ioslave_defaults.h>
+#include <ioworker_defaults.h>
 #include <kdirnotify.h>
+#include <workerfactory.h>
 
-Q_LOGGING_CATEGORY(KIO_FILE, "kf.kio.slaves.file")
+Q_LOGGING_CATEGORY(KIO_FILE, "kf.kio.workers.file")
 
-// Pseudo plugin class to embed meta data
-class KIOPluginForMetaData : public QObject
+class KIOPluginFactory : public KIO::WorkerFactory
 {
     Q_OBJECT
     Q_PLUGIN_METADATA(IID "org.kde.kio.slave.file" FILE "file.json")
+public:
+    std::unique_ptr<KIO::SlaveBase> createWorker(const QByteArray &pool, const QByteArray &app) override
+    {
+        return std::make_unique<FileProtocol>(pool, app);
+    }
 };
 
 using namespace KIO;
@@ -239,7 +245,7 @@ void FileProtocol::mkdir(const QUrl &url, int permissions)
         }
     }
 
-    if ((buff.st_mode & QT_STAT_MASK) == QT_STAT_DIR) {
+    if (Utils::isDirMask(buff.st_mode)) {
         // qDebug() << "ERR_DIR_ALREADY_EXIST";
         error(KIO::ERR_DIR_ALREADY_EXIST, path);
         return;
@@ -257,8 +263,9 @@ void FileProtocol::redirect(const QUrl &url)
     // DavWWWRoot "token" which in the Windows world tells win explorer to access
     // a webdav url
     // https://www.webdavsystem.com/server/access/windows
-    if ((redir.scheme() == QLatin1String("smb")) && redir.path().startsWith(QLatin1String("/DavWWWRoot/"))) {
-        redir.setPath(redir.path().mid(11)); // remove /DavWWWRoot
+    const QLatin1String davRoot("/DavWWWRoot/");
+    if ((redir.scheme() == QLatin1String("smb")) && redir.path().startsWith(davRoot)) {
+        redir.setPath(redir.path().mid(davRoot.size() - 1)); // remove /DavWWWRoot
         redir.setScheme(QStringLiteral("webdav"));
     }
 
@@ -284,11 +291,11 @@ void FileProtocol::get(const QUrl &url)
         return;
     }
 
-    if ((buff.st_mode & QT_STAT_MASK) == QT_STAT_DIR) {
+    if (Utils::isDirMask(buff.st_mode)) {
         error(KIO::ERR_IS_DIRECTORY, path);
         return;
     }
-    if ((buff.st_mode & QT_STAT_MASK) != QT_STAT_REG) {
+    if (!Utils::isRegFileMask(buff.st_mode)) {
         error(KIO::ERR_CANNOT_OPEN_FOR_READING, path);
         return;
     }
@@ -387,11 +394,11 @@ void FileProtocol::open(const QUrl &url, QIODevice::OpenMode mode)
         return;
     }
 
-    if ((buff.st_mode & QT_STAT_MASK) == QT_STAT_DIR) {
+    if (Utils::isDirMask(buff.st_mode)) {
         error(KIO::ERR_IS_DIRECTORY, openPath);
         return;
     }
-    if ((buff.st_mode & QT_STAT_MASK) != QT_STAT_REG) {
+    if (!Utils::isRegFileMask(buff.st_mode)) {
         error(KIO::ERR_CANNOT_OPEN_FOR_READING, openPath);
         return;
     }
@@ -525,8 +532,12 @@ void FileProtocol::put(const QUrl &url, int _mode, KIO::JobFlags _flags)
         QT_STATBUF buff_part;
         bPartExists = (QT_LSTAT(QFile::encodeName(dest_part).constData(), &buff_part) != -1);
 
-        if (bPartExists && !(_flags & KIO::Resume) && !(_flags & KIO::Overwrite) && buff_part.st_size > 0
-            && ((buff_part.st_mode & QT_STAT_MASK) == QT_STAT_REG)) {
+        if (bPartExists //
+            && !(_flags & KIO::Resume) //
+            && !(_flags & KIO::Overwrite) //
+            && buff_part.st_size > 0 //
+            && Utils::isRegFileMask(buff_part.st_mode) //
+        ) {
             // qDebug() << "calling canResume with" << KIO::number(buff_part.st_size);
 
             // Maybe we can use this partial file for resuming
@@ -539,7 +550,7 @@ void FileProtocol::put(const QUrl &url, int _mode, KIO::JobFlags _flags)
     }
 
     if (bOrigExists && !(_flags & KIO::Overwrite) && !(_flags & KIO::Resume)) {
-        if ((buff_orig.st_mode & QT_STAT_MASK) == QT_STAT_DIR) {
+        if (Utils::isDirMask(buff_orig.st_mode)) {
             error(KIO::ERR_DIR_ALREADY_EXIST, dest_orig);
         } else {
             error(KIO::ERR_FILE_ALREADY_EXIST, dest_orig);
@@ -789,16 +800,18 @@ void FileProtocol::mount(bool _ro, const char *_fstype, const QString &_dev, con
     return;
 #endif
 
+    const QLatin1String label("LABEL=");
+    const QLatin1String uuid("UUID=");
     QTemporaryFile tmpFile;
     tmpFile.setAutoRemove(false);
     tmpFile.open();
     QByteArray tmpFileName = QFile::encodeName(tmpFile.fileName());
     QByteArray dev;
-    if (_dev.startsWith(QLatin1String("LABEL="))) { // turn LABEL=foo into -L foo (#71430)
-        QString labelName = _dev.mid(6);
+    if (_dev.startsWith(label)) { // turn LABEL=foo into -L foo (#71430)
+        QString labelName = _dev.mid(label.size());
         dev = "-L " + QFile::encodeName(KShell::quoteArg(labelName)); // is it correct to assume same encoding as filesystem?
-    } else if (_dev.startsWith(QLatin1String("UUID="))) { // and UUID=bar into -U bar
-        QString uuidName = _dev.mid(5);
+    } else if (_dev.startsWith(uuid)) { // and UUID=bar into -U bar
+        QString uuidName = _dev.mid(uuid.size());
         dev = "-U " + QFile::encodeName(KShell::quoteArg(uuidName));
     } else {
         dev = QFile::encodeName(KShell::quoteArg(_dev)); // get those ready to be given to a shell

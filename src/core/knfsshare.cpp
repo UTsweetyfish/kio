@@ -7,6 +7,8 @@
 
 #include "knfsshare.h"
 
+#include "../utils_p.h"
+
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
@@ -23,7 +25,7 @@ class Q_DECL_HIDDEN KNFSShare::KNFSSharePrivate
 public:
     explicit KNFSSharePrivate(KNFSShare *parent);
 
-    void _k_slotFileChange(const QString &);
+    void slotFileChange(const QString &);
 
     bool readExportsFile();
     bool findExportsFile();
@@ -140,11 +142,8 @@ bool KNFSShare::KNFSSharePrivate::readExportsFile()
         // qDebug() << "KNFSShare: Found path: " << path;
 
         if (!path.isEmpty()) {
-            // normalize path
-            if (!path.endsWith(QLatin1Char('/'))) {
-                path += QLatin1Char('/');
-            }
-
+            // Append a '/' to normalize path
+            Utils::appendSlash(path);
             sharedPaths.insert(path);
         }
     }
@@ -158,7 +157,7 @@ KNFSShare::KNFSShare()
     if (!d->exportsFile.isEmpty() && QFileInfo::exists(d->exportsFile)) {
         KDirWatch::self()->addFile(d->exportsFile);
         connect(KDirWatch::self(), &KDirWatch::dirty, this, [this](const QString &path) {
-            d->_k_slotFileChange(path);
+            d->slotFileChange(path);
         });
     }
 }
@@ -170,12 +169,8 @@ bool KNFSShare::isDirectoryShared(const QString &path) const
     if (path.isEmpty()) {
         return false;
     }
-    QString fixedPath = path;
-    if (!fixedPath.endsWith(QLatin1Char('/'))) {
-        fixedPath += QLatin1Char('/');
-    }
 
-    return d->sharedPaths.contains(fixedPath);
+    return d->sharedPaths.contains(Utils::slashAppended(path));
 }
 
 QStringList KNFSShare::sharedDirectories() const
@@ -188,7 +183,7 @@ QString KNFSShare::exportsPath() const
     return d->exportsFile;
 }
 
-void KNFSShare::KNFSSharePrivate::_k_slotFileChange(const QString &path)
+void KNFSShare::KNFSSharePrivate::slotFileChange(const QString &path)
 {
     if (path == exportsFile) {
         readExportsFile();

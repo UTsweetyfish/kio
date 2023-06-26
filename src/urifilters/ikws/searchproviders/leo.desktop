@@ -4,13 +4,14 @@ Name=LEO-Translate
 Name[af]=LEO-Vertaal
 Name[ar]=ترجمة LEO
 Name[as]=LEO-Translate
+Name[ast]=LEO-Translate
 Name[az]=LEO-Tərcümə
 Name[be]=LEO-Translate
-Name[be@latin]=Pierakład „LEO”
+Name[be@latin]=LEO-Translate
 Name[bg]=LEO-превод
 Name[bn]=LEO-Translate
 Name[bn_IN]=LEO-Translate
-Name[bs]=Leo‑prevod
+Name[bs]=LEO-Prevedi
 Name[ca]=LEO-Translate
 Name[ca@valencia]=LEO-Translate
 Name[cs]=LEO-Translate
@@ -40,8 +41,10 @@ Name[hsb]=LEO-přełožowanje
 Name[hu]=LEO-Translate
 Name[ia]=LEO-Traduce
 Name[id]=LEO-Translate
-Name[is]=LEO-þýðandi
+Name[ie]=LEO-Translate
+Name[is]=LEO-Translate
 Name[it]=Traduzioni LEO
+Name[ka]=LEO-თარგმანი
 Name[kk]=LEO-аудару
 Name[km]=LEO-បកប្រែ
 Name[kn]=ಲಿಯೋ-ಅನುವಾದ
@@ -79,6 +82,7 @@ Name[sv]=LEO-översätt
 Name[te]=LEO-అనువదించు
 Name[tg]=Тарҷумаҳои LEO
 Name[th]=บริการแปลภาษาของ LEO
+Name[tok]=ilo pi ante toki LEO
 Name[tr]=LEO-Translate
 Name[ug]=LEO تەرجىمە
 Name[uk]=LEO-Translate
@@ -95,13 +99,19 @@ Query=https://dict.leo.org/?search=\\{@}
 Query[ar]=https://dict.leo.org/?search=\\{@}
 Query[ast]=https://dict.leo.org/?search=\\{@}
 Query[az]=https://dict.leo.org/?search=\\{@}
+Query[be]=https://dict.leo.org/?search=\\{@}
+Query[be@latin]=https://dict.leo.org/?search=\\{@}
+Query[bg]=https://dict.leo.org/?search=\\{@}
+Query[bs]=https://dict.leo.org/?search=\\{@}
 Query[ca]=https://dict.leo.org/?search=\\{@}
 Query[ca@valencia]=https://dict.leo.org/?search=\\{@}
 Query[cs]=https://dict.leo.org/?search=\\{@}
+Query[cy]=https://dict.leo.org/?search=\\{@}
 Query[da]=https://dict.leo.org/?search=\\{@}
 Query[de]=https://dict.leo.org/?search=\\{@}
 Query[el]=https://dict.leo.org/?search=\\{@}
 Query[en_GB]=https://dict.leo.org/?search=\\{@}
+Query[eo]=https://dict.leo.org/?search=\\{@}
 Query[es]=https://dict.leo.org/?search=\\{@}
 Query[et]=https://dict.leo.org/?search=\\{@}
 Query[eu]=https://dict.leo.org/?search=\\{@}
@@ -111,13 +121,16 @@ Query[gl]=https://dict.leo.org/?search=\\{@}
 Query[hu]=https://dict.leo.org/?search=\\{@}
 Query[ia]=https://dict.leo.org/?search=\\{@}
 Query[id]=https://dict.leo.org/?search=\\{@}
+Query[ie]=https://dict.leo.org/?search=\\{@}
 Query[is]=https://dict.leo.org/?search=\\{@}
 Query[it]=https://dict.leo.org/?search=\\{@}
+Query[ka]=https://dict.leo.org/?search=\\{@}
 Query[ko]=https://dict.leo.org/?search=\\{@}
 Query[lt]=https://dict.leo.org/?search=\\{@}
 Query[my]=https://dict.leo.org/?search=\\{@}
 Query[nl]=https://dict.leo.org/?search=\\{@}
 Query[nn]=https://dict.leo.org/?search=\\{@}
+Query[pa]=https://dict.leo.org/?search=\\{@}
 Query[pl]=https://dict.leo.org/?search=\\{@}
 Query[pt]=https://dict.leo.org/?search=\\{@}
 Query[pt_BR]=https://dict.leo.org/?search=\\{@}
@@ -127,6 +140,8 @@ Query[sk]=https://dict.leo.org/?search=\\{@}
 Query[sl]=https://dict.leo.org/?search=\\{@}
 Query[sv]=https://dict.leo.org/?search=\\{@}
 Query[tg]=https://dict.leo.org/?search=\\{@}
+Query[tok]=https://dict.leo.org/?search=\\{@}
+Query[tr]=https://dict.leo.org/?search=\\{@}
 Query[uk]=https://dict.leo.org/?search=\\{@}
 Query[vi]=https://dict.leo.org/?search=\\{@}
 Query[x-test]=xxhttps://dict.leo.org/?search=\\{@}xx

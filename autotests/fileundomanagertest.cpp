@@ -6,21 +6,15 @@
 */
 
 #include "fileundomanagertest.h"
+
+#include "../src/utils_p.h"
+
 #include "mockcoredelegateextensions.h"
-
-#include <QDateTime>
-#include <QDir>
-#include <QFileInfo>
-#include <QSignalSpy>
-#include <QTest>
-#include <kio/fileundomanager.h>
-#include <qplatformdefs.h>
-
-#include <KUrlMimeData>
 #include <kio/batchrenamejob.h>
 #include <kio/copyjob.h>
 #include <kio/deletejob.h>
-#include <kio/job.h>
+#include <kio/fileundomanager.h>
+#include <kio/mkdirjob.h>
 #include <kio/mkpathjob.h>
 #include <kio/paste.h>
 #include <kio/pastejob.h>
@@ -28,9 +22,20 @@
 #include <kioglobal_p.h>
 #include <kprotocolinfo.h>
 
+#include <QApplication>
+#include <QClipboard>
+#include <QDateTime>
+#include <QDebug>
+#include <QDir>
+#include <QFileInfo>
+#include <QMimeData>
+#include <QSignalSpy>
+#include <QTest>
+#include <qplatformdefs.h>
+
 #include <KConfig>
 #include <KConfigGroup>
-#include <QDebug>
+#include <KUrlMimeData>
 
 #include <cerrno>
 #include <time.h>
@@ -40,10 +45,6 @@
 #include <sys/time.h>
 #include <utime.h>
 #endif
-
-#include <QApplication>
-#include <QClipboard>
-#include <QMimeData>
 
 QTEST_MAIN(FileUndoManagerTest)
 
@@ -117,9 +118,9 @@ static void createTestSymlink(const QString &path)
             qFatal("couldn't create symlink: %s", strerror(errno));
         }
         QVERIFY(QT_LSTAT(QFile::encodeName(path).constData(), &buf) == 0);
-        QVERIFY((buf.st_mode & QT_STAT_MASK) == QT_STAT_LNK);
+        QVERIFY(Utils::isLinkMask(buf.st_mode));
     } else {
-        QVERIFY((buf.st_mode & QT_STAT_MASK) == QT_STAT_LNK);
+        QVERIFY(Utils::isLinkMask(buf.st_mode));
     }
     qDebug("symlink %s created", qPrintable(path));
     QVERIFY(QFileInfo(path).isSymLink());
@@ -227,7 +228,6 @@ void FileUndoManagerTest::initTestCase()
     QStandardPaths::setTestModeEnabled(true);
 
     // Get kio_trash to share our environment so that it writes trashrc to the right kdehome
-    qputenv("KDE_FORK_SLAVES", "yes");
     qputenv("KIOSLAVE_ENABLE_TESTMODE", "1");
 
     // Start with a clean base dir
@@ -768,6 +768,63 @@ void FileUndoManagerTest::testErrorDuringMoveUndo()
 
     QCOMPARE(m_uiInterface->errorCode(), KIO::ERR_FILE_ALREADY_EXIST);
     QVERIFY(QFile::exists(destFile())); // still there
+}
+
+void FileUndoManagerTest::testNoUndoForSkipAll()
+{
+    auto *undoManager = FileUndoManager::self();
+
+    QTemporaryDir tempDir;
+    const QString tempPath = tempDir.path();
+
+    const QString destPath = tempPath + "/dest_dir";
+    QVERIFY(QDir(tempPath).mkdir("dest_dir"));
+    const QUrl destUrl = QUrl::fromLocalFile(destPath);
+
+    const QList<QUrl> lst{QUrl::fromLocalFile(tempPath + "/file_a"), QUrl::fromLocalFile(tempPath + "/file_b")};
+    for (const auto &url : lst) {
+        createTestFile(url.toLocalFile(), "foo");
+    }
+
+    auto createJob = [&]() {
+        return KIO::copy(lst, destUrl, KIO::HideProgressInfo);
+    };
+
+    KIO::CopyJob *job = createJob();
+    job->setUiDelegate(nullptr);
+    undoManager->recordCopyJob(job);
+
+    QSignalSpy spyUndoAvailable(undoManager, qOverload<bool>(&FileUndoManager::undoAvailable));
+    QVERIFY(spyUndoAvailable.isValid());
+    QSignalSpy spyTextChanged(undoManager, &FileUndoManager::undoTextChanged);
+    QVERIFY(spyTextChanged.isValid());
+
+    QVERIFY2(job->exec(), qPrintable(job->errorString()));
+
+    // Src files still exist
+    for (const auto &url : lst) {
+        QVERIFY(QFile::exists(url.toLocalFile()));
+    }
+
+    // Files copied to dest
+    for (const auto &url : lst) {
+        QVERIFY(QFile::exists(destPath + '/' + url.fileName()));
+    }
+
+    // An undo command was recorded
+    QCOMPARE(spyUndoAvailable.count(), 1);
+    QCOMPARE(spyTextChanged.count(), 1);
+
+    KIO::CopyJob *repeatCopy = createJob();
+    // Copying the same files again to the same dest, and setting skip all
+    repeatCopy->setAutoSkip(true);
+    undoManager->recordCopyJob(repeatCopy);
+
+    QVERIFY2(repeatCopy->exec(), qPrintable(repeatCopy->errorString()));
+
+    // No new undo command was added since the job didn't actually copy anything
+    QCOMPARE(spyUndoAvailable.count(), 1);
+    QCOMPARE(spyTextChanged.count(), 1);
 }
 
 // TODO: add test (and fix bug) for  DND of remote urls / "Link here" (creates .desktop files) // Undo (doesn't do anything)

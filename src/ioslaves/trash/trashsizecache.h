@@ -20,7 +20,7 @@ class QFileInfo;
  *
  * The directory size cache is used to speed up the determination of the trash size.
  *
- * Since version 1.0, http://standards.freedesktop.org/trash-spec/trashspec-latest.html specifies this cache
+ * Since version 1.0, https://specifications.freedesktop.org/trash-spec/trashspec-latest.html specifies this cache
  * as a standard way to cache this information.
  *
  */
@@ -70,6 +70,8 @@ public:
     SizeAndModTime calculateSizeAndLatestModDate();
 
 private:
+    QHash<QByteArray, TrashSizeCache::SizeAndModTime> readDirCache();
+
     QString mTrashSizeCachePath;
     QString mTrashPath;
     QFileInfo getTrashFileInfo(const QString &fileName);

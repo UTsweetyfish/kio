@@ -1,0 +1,5 @@
+# Legit HTML source file
+kio source: source-is-missing [src/kioworkers/http/kcookiejar/netscape_cookie_spec.html]
+
+# to make lintian/ftp-master happy :-/
+kio source: source-is-missing [src/kioworkers/http/kcookiejar/netscape_cookie_spec.html]

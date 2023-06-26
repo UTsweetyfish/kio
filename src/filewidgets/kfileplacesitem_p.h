@@ -31,22 +31,16 @@ class KFilePlacesItem : public QObject
 {
     Q_OBJECT
 public:
-    enum GroupType {
-        PlacesType,
-        RemoteType,
-        RecentlySavedType,
-        SearchForType,
-        DevicesType,
-        RemovableDevicesType,
-        TagsType,
-    };
-
     KFilePlacesItem(KBookmarkManager *manager, const QString &address, const QString &udi, KFilePlacesModel *parent);
     ~KFilePlacesItem() override;
 
     QString id() const;
 
     bool isDevice() const;
+    KFilePlacesModel::DeviceAccessibility deviceAccessibility() const;
+    bool isTeardownAllowed() const;
+    bool isTeardownOverlayRecommended() const;
+    bool isEjectAllowed() const;
     KBookmark bookmark() const;
     void setBookmark(const KBookmark &bookmark);
     Solid::Device device() const;
@@ -71,7 +65,7 @@ public:
     static KBookmark createTagBookmark(KBookmarkManager *manager, const QString &tag);
 
 Q_SIGNALS:
-    void itemChanged(const QString &id);
+    void itemChanged(const QString &id, const QVector<int> &roles = {});
 
 private Q_SLOTS:
     void onAccessibilityChanged(bool);
@@ -90,6 +84,10 @@ private:
     bool m_folderIsEmpty;
     bool m_isCdrom;
     bool m_isAccessible;
+    bool m_isTeardownAllowed;
+    bool m_isTeardownOverlayRecommended;
+    bool m_isTeardownInProgress;
+    bool m_isSetupInProgress;
     QString m_text;
     Solid::Device m_device;
     QPointer<Solid::StorageAccess> m_access;
@@ -101,6 +99,7 @@ private:
     QString m_deviceIconName;
     QStringList m_emblems;
     QString m_groupName;
+    mutable QString m_deviceDisplayName;
 };
 
 #endif

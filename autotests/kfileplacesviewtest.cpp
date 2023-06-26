@@ -43,7 +43,6 @@ void KFilePlacesViewTest::initTestCase()
 {
     QVERIFY(m_tmpHome.isValid());
     qputenv("HOME", m_tmpHome.path().toUtf8());
-    qputenv("KDE_FORK_SLAVES", "yes"); // to avoid a runtime dependency on klauncher
     qputenv("KDE_FULL_SESSION", "1"); // attempt to enable recentlyused:/ if present, so we only need to test for isKnownProtocol below
     QStandardPaths::setTestModeEnabled(true);
 
@@ -82,12 +81,6 @@ void KFilePlacesViewTest::testUrlChanged_data()
         QTest::newRow("Modified Today") << idx++ << QStringLiteral("timeline:/today");
         ++idx; // Modified Yesterday gets turned into "timeline:/2020-06/2020-06-05"
     }
-
-    // search
-    QTest::newRow("Documents") << idx++ << QStringLiteral("baloosearch:/documents");
-    QTest::newRow("Images") << idx++ << QStringLiteral("baloosearch:/images");
-    QTest::newRow("Audio Files") << idx++ << QStringLiteral("baloosearch:/audio");
-    QTest::newRow("Videos") << idx++ << QStringLiteral("baloosearch:/videos");
 }
 
 void KFilePlacesViewTest::testUrlChanged()

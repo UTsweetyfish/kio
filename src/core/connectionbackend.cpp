@@ -55,7 +55,7 @@ void ConnectionBackend::setSuspended(bool enable)
         socket->setReadBufferSize(StandardBufferSize);
         if (socket->bytesAvailable() >= HeaderSize) {
             // there are bytes available
-            QMetaObject::invokeMethod(this, "socketReadyRead", Qt::QueuedConnection);
+            QMetaObject::invokeMethod(this, &ConnectionBackend::socketReadyRead, Qt::QueuedConnection);
         }
 
         // We read all bytes here, but we don't use readAll() because we need
@@ -66,7 +66,7 @@ void ConnectionBackend::setSuspended(bool enable)
             socket->ungetChar(data[i]);
         }
         // Workaround Qt5 bug, readyRead isn't always emitted here...
-        QMetaObject::invokeMethod(this, "socketReadyRead", Qt::QueuedConnection);
+        QMetaObject::invokeMethod(this, &ConnectionBackend::socketReadyRead, Qt::QueuedConnection);
     }
 }
 
@@ -103,9 +103,9 @@ bool ConnectionBackend::listenForRemote()
     static QBasicAtomicInt s_socketCounter = Q_BASIC_ATOMIC_INITIALIZER(1);
     QString appName = QCoreApplication::instance()->applicationName();
     appName.replace(QLatin1Char('/'), QLatin1Char('_')); // #357499
-    QTemporaryFile socketfile(prefix + QLatin1Char('/') + appName + QStringLiteral("XXXXXX.%1.slave-socket").arg(s_socketCounter.fetchAndAddAcquire(1)));
+    QTemporaryFile socketfile(prefix + QLatin1Char('/') + appName + QStringLiteral("XXXXXX.%1.kioworker.socket").arg(s_socketCounter.fetchAndAddAcquire(1)));
     if (!socketfile.open()) {
-        errorString = i18n("Unable to create io-slave: %1", QString::fromUtf8(strerror(errno)));
+        errorString = i18n("Unable to create KIO worker: %1", QString::fromUtf8(strerror(errno)));
         return false;
     }
 
@@ -172,7 +172,11 @@ bool ConnectionBackend::sendCommand(int cmd, const QByteArray &data) const
     Q_ASSERT(socket);
 
     char buffer[HeaderSize + 2];
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    sprintf(buffer, "%6llx_%2x_", data.size(), cmd);
+#else
     sprintf(buffer, "%6x_%2x_", data.size(), cmd);
+#endif
     socket->write(buffer, HeaderSize);
     socket->write(data);
 

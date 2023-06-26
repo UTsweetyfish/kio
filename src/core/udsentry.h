@@ -81,7 +81,7 @@ public:
 
     /**
      * Create a UDSEntry by QT_STATBUF
-     * @param buff QT_STATBUFF object
+     * @param buff QT_STATBUF object
      * @param name filename
      * @since 5.0
      */
@@ -242,13 +242,13 @@ public:
         /// UDS_NAME must always be set and never be empty, neither contain '/'.
         ///
         /// Note that KIO will append the UDS_NAME to the url of their
-        /// parent directory, so all kioslaves must use that naming scheme
+        /// parent directory, so all KIO workers must use that naming scheme
         /// ("url_of_parent/filename" will be the full url of that file).
         /// To customize the appearance of files without changing the url
         /// of the items, use UDS_DISPLAY_NAME.
         UDS_NAME = 6 | UDS_STRING,
-        /// A local file path if the ioslave display files sitting
-        /// on the local filesystem (but in another hierarchy, e.g. settings:/ or remote:/)
+        /// A local file path if the KIO worker display files sitting
+        /// on the local filesystem (but in another hierarchy, e.g.\ settings:/ or remote:/)
         UDS_LOCAL_PATH = 7 | UDS_STRING,
         /// Treat the file as a hidden file (if set to 1) or as a normal file (if set to 0).
         /// This field overrides the default behavior (the check for a leading dot in the filename).
@@ -274,13 +274,13 @@ public:
         /// Use UDS_DISPLAY_NAME if you simply want to customize the user-visible filenames, or use
         /// UDS_TARGET_URL if you want "links" to unrelated urls.
         UDS_URL = 15 | UDS_STRING,
-        /// A MIME type; the slave should set it if it's known.
+        /// A MIME type; the KIO worker should set it if it's known.
         UDS_MIME_TYPE = 16 | UDS_STRING,
         /// A MIME type to be used for displaying only.
         /// But when 'running' the file, the MIME type is re-determined
         /// This is for special cases like symlinks in FTP; you probably don't want to use this one.
         UDS_GUESSED_MIME_TYPE = 17 | UDS_STRING,
-        /// XML properties, e.g. for WebDAV
+        /// XML properties, e.g.\ for WebDAV
         UDS_XML_PROPERTIES = 18 | UDS_STRING,
 
         /// Indicates that the entry has extended ACL entries

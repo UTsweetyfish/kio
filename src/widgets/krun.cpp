@@ -3,11 +3,13 @@
     SPDX-FileCopyrightText: 2000 Torben Weis <weis@kde.org>
     SPDX-FileCopyrightText: 2006 David Faure <faure@kde.org>
     SPDX-FileCopyrightText: 2009 Michael Pyne <michael.pyne@kdemail.net>
+    SPDX-FileCopyrightText: 2022 Harald Sitter <sitter@kde.org>
 
     SPDX-License-Identifier: LGPL-2.0-or-later
 */
 
 #include "krun.h"
+#include <kio/job.h>
 
 #if KIOWIDGETS_BUILD_DEPRECATED_SINCE(5, 71)
 #include "kio_widgets_debug.h"
@@ -24,45 +26,45 @@
 #include <QDesktopWidget>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFile>
+#include <QFileInfo>
 #include <QHostInfo>
 #include <QMimeDatabase>
+#include <QStandardPaths>
 #include <QWidget>
 
 #include "applicationlauncherjob.h"
 #include "jobuidelegate.h"
 #include "kdesktopfileactions.h"
 #include "kio/global.h"
-#include "kio/job.h"
-#include "kio/scheduler.h"
 #include "kopenwithdialog.h"
 #include "kprocessrunner_p.h" // for KIOGuiPrivate::checkStartupNotify
 #include "krecentdocument.h"
 #include "widgetsuntrustedprogramhandler.h"
-#include <KApplicationTrader>
-#include <KJobUiDelegate>
 #include <kio/desktopexecparser.h>
 
+#include <KApplicationTrader>
+#include <KJobUiDelegate>
+#include <jobuidelegatefactory.h>
+
 #include <KAuthorized>
+#include <KConfigGroup>
+#include <KDesktopFile>
+#include <KGuiItem>
 #include <KJobWidgets>
 #include <KLocalizedString>
 #include <KMessageBox>
 #include <KProcess>
+#include <KSandbox>
 #include <KSharedConfig>
-#include <commandlauncherjob.h>
-#include <kprotocolmanager.h>
-#include <kurlauthorized.h>
-
-#include <KConfigGroup>
-#include <KDesktopFile>
-#include <KGuiItem>
 #include <KShell>
 #include <KStandardGuiItem>
-#include <QFile>
-#include <QFileInfo>
 
 #include <KIO/JobUiDelegate>
 #include <KIO/OpenUrlJob>
-#include <QStandardPaths>
+#include <commandlauncherjob.h>
+#include <kprotocolmanager.h>
+#include <kurlauthorized.h>
 
 #ifdef Q_OS_WIN
 #include "widgetsopenwithhandler_win.cpp" // displayNativeOpenWithDialog
@@ -86,18 +88,13 @@ static KService::Ptr schemeService(const QString &protocol)
     return KApplicationTrader::preferredService(QLatin1String("x-scheme-handler/") + protocol);
 }
 
-static bool checkNeedPortalSupport()
-{
-    return !QStandardPaths::locate(QStandardPaths::RuntimeLocation, QLatin1String("flatpak-info")).isEmpty() || qEnvironmentVariableIsSet("SNAP");
-}
-
 qint64 KRunPrivate::runCommandLauncherJob(KIO::CommandLauncherJob *job, QWidget *widget)
 {
     QObject *receiver = widget ? static_cast<QObject *>(widget) : static_cast<QObject *>(qApp);
     QObject::connect(job, &KJob::result, receiver, [widget](KJob *job) {
         if (job->error()) {
             QEventLoopLocker locker;
-            KMessageBox::sorry(widget, job->errorString());
+            KMessageBox::error(widget, job->errorString());
         }
     });
     job->start();
@@ -184,7 +181,7 @@ bool KRun::runUrl(const QUrl &u, const QString &_mimetype, QWidget *window, RunF
     KIO::OpenUrlJob *job = new KIO::OpenUrlJob(u, _mimetype);
     job->setSuggestedFileName(suggestedFileName);
     job->setStartupId(asn);
-    job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, window));
+    job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, window));
     job->setDeleteTemporaryFile(tempFile);
     job->setRunExecutables(runExecutables);
     job->start();
@@ -196,7 +193,7 @@ bool KRun::runUrl(const QUrl &u, const QString &_mimetype, QWidget *window, RunF
 bool KRun::displayOpenWithDialog(const QList<QUrl> &lst, QWidget *window, bool tempFiles, const QString &suggestedFileName, const QByteArray &asn)
 {
     if (!KAuthorized::authorizeAction(QStringLiteral("openwith"))) {
-        KMessageBox::sorry(window, i18n("You are not authorized to select an application to open this file."));
+        KMessageBox::information(window, i18n("You are not authorized to select an application to open this file."));
         return false;
     }
 
@@ -288,7 +285,7 @@ KRun::runApplication(const KService &service, const QList<QUrl> &urls, QWidget *
     }
     job->setSuggestedFileName(suggestedFileName);
     job->setStartupId(asn);
-    job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, window));
+    job->setUiDelegate(KIO::createDefaultJobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, window));
     job->start();
     job->waitForStarted();
     return job->error() ? 0 : job->pid();
@@ -415,7 +412,7 @@ void KRun::init()
         return;
     }
 
-    if (d->m_externalBrowserEnabled && checkNeedPortalSupport()) {
+    if (d->m_externalBrowserEnabled && KSandbox::isInside()) {
         // use the function from QDesktopServices as it handles portals correctly
         d->m_bFault = !QDesktopServices::openUrl(d->m_strURL);
         d->m_bFinished = true;
@@ -749,7 +746,7 @@ void KRun::slotStatResult(KJob *job)
 void KRun::slotScanMimeType(KIO::Job *, const QString &mimetype)
 {
     if (mimetype.isEmpty()) {
-        qCWarning(KIO_WIDGETS) << "get() didn't emit a MIME type! Probably a kioslave bug, please check the implementation of" << url().scheme();
+        qCWarning(KIO_WIDGETS) << "get() didn't emit a MIME type! Probably a KIO worker bug, please check the implementation of" << url().scheme();
     }
     mimeTypeDetermined(mimetype);
     d->m_job = nullptr;

@@ -6,20 +6,22 @@ Name[af]=Multitran - Vertaal tussen Duits en Russies
 Name[ar]=Multitran - ترجمة بين الألمانية والروسية
 Name[as]=Multitran - জাৰ্মান আৰু ৰুচীয় ভাষাৰ মাজত অনুবাদ
 Name[az]=Multitran - Alman və Rus dillərində tərcümə edin
-Name[be@latin]=Pierakład „Multitran”: niamieckaja ➙ rasiejskaja
+Name[be]=Multitran - пераклад з нямецкай на расійскую і наадварот
+Name[be@latin]=Multitran - pieraklad z niamieckaj na rasijskuju i naadvarot
 Name[bg]=Multitran - превод между немски и руски
 Name[bn]=মাল্টিট্র্যান - জার্মান থেকে রুশ বা রুশ থেকে জার্মান-এ অনুবাদ করুন
 Name[bn_IN]=Multitran - জার্মান ও রাশিয়ানের মধ্যে অনুবাদ করুন
-Name[bs]=Multitran: sa nemačkog na ruski
+Name[bs]=Multitran - Prevedite između njemaćkog i ruskog
 Name[ca]=Multitran: Tradueix entre alemany i rus
-Name[ca@valencia]=Multitran: Tradueix entre alemany i rus
+Name[ca@valencia]=Multitran: Traduïx entre alemany i rus
 Name[cs]=Multitran - překlad mezi němčinou a ruštinou
 Name[csb]=Multitran - dolmaczenié: miemiecczi ë rusczi
+Name[cy]=Multitran - Cyfieithu Rhwng Almaeneg a Rwseg
 Name[da]=Multitran - oversæt mellem tysk og russisk
 Name[de]=Multitran – Übersetzung: Deutsch/Russisch
 Name[el]=Multitran - Μετάφραση μεταξύ Γερμανικών και Ρωσικών
 Name[en_GB]=Multitran - Translate Between German and Russian
-Name[eo]=Multitran - Traduko inter la germana kaj la rusa
+Name[eo]=Multitran - Traduku Inter la germana kaj la rusa
 Name[es]=Multitran - Traducción entre alemán y ruso
 Name[et]=Multitran - tõlkimine: saksa-vene
 Name[eu]=Multitran alemanetik errusierarako itzulpenak
@@ -39,8 +41,10 @@ Name[hsb]=Multitran - přełožowanje z němčiny a rušćiny
 Name[hu]=Multitran - Fordítás németről oroszra (mindkét irányban)
 Name[ia]=Multitran - Traduce Inter Germano e Russo
 Name[id]=Multitran - Penerjemahan Antara Bahasa Jerman dan Rusia
-Name[is]=Multitran - Þýða á milli þýsku og rússnesku
+Name[ie]=Multitran - Traducter inter german e russ
+Name[is]=Multitran - þýða á milli þýsku og rússnesku
 Name[it]=Multitran - Traduzioni tra tedesco e russo
+Name[ka]=Multitran თარგმანი გერმანულიდან რუსულზე და პირიქით
 Name[kk]=Multitran - Неміс және орыс тілдер арасында аудару
 Name[km]=Multitran - បកប្រែ​​រវាង​​ភាសា​អាល្លឺម៉ង់​ និង​រុស្ស៊ី
 Name[kn]=ಮಲ್ಟಿಟ್ರಾನ್-ಜರ್ಮನ್ ಮತ್ತು ರಷ್ಯನ್ ನಡುವೆ ಅನುವಾದಿಸು
@@ -75,6 +79,7 @@ Name[sv]=Multitran - Översätt mellan tyska och ryska
 Name[te]=Multitran - జెర్మన్ మరియు రష్యన్ మద్య అనువదించు
 Name[tg]=Multitran - Тарҷумаҳои байни немисӣ ва русӣ
 Name[th]=บริการ Multitran - แปลความหมายระหว่างภาษาเยอรมันและภาษารัสเซีย
+Name[tok]=ilo pi ante toki Multitran: toki Tosi en toki Losi
 Name[tr]=Multitran - Almancadan Rusçaya Çeviri
 Name[ug]=Multitran - گېرمانچە بىلەن رۇسچە ئارىسىدا تەرجىمە
 Name[uk]=Multitran — переклад з німецької російською
@@ -88,15 +93,20 @@ Name[zh_TW]=Multitran - 翻譯德語和俄語
 Keys=mt,mtde
 Query=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[ar]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
-Query[ast]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[az]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[be]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[be@latin]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[bg]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[bs]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[ca]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[ca@valencia]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[cs]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[cy]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[da]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[de]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[el]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[en_GB]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[eo]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[es]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[et]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[eu]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
@@ -106,13 +116,16 @@ Query[gl]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[hu]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[ia]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[id]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[ie]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[is]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[it]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[ka]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[ko]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[lt]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[my]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[nl]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[nn]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[pa]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[pl]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[pt]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[pt_BR]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
@@ -122,6 +135,8 @@ Query[sk]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[sl]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[sv]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[tg]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[tok]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
+Query[tr]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[uk]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[vi]=https://multitran.ru/c/m.exe?l1=3&s=\\{@}
 Query[x-test]=xxhttps://multitran.ru/c/m.exe?l1=3&s=\\{@}xx

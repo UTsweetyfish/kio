@@ -4,18 +4,20 @@ Name=Google Movies
 Name[af]=Google Films
 Name[ar]=فيديوهات جوجل
 Name[as]=Google Movies
+Name[ast]=Google Movies
 Name[az]=Google Filmlər
 Name[be]=Фільмы Google
-Name[be@latin]=Filmy „Google”
+Name[be@latin]=Fiĺmy Google
 Name[bg]=Филми в Google
 Name[bn]=গুগল্ মুভিস্
 Name[bn_IN]=Google মুভিস
 Name[br]=Filmoù Google
-Name[bs]=Google filmovi
+Name[bs]=Gugl Filmovi
 Name[ca]=Pel·lícules de Google
 Name[ca@valencia]=Pel·lícules de Google
 Name[cs]=Google filmy
 Name[csb]=Google - filmë
+Name[cy]=Ffilmiau Google
 Name[da]=Google film
 Name[de]=Google-Filmesuche
 Name[el]=Google ταινίες
@@ -40,8 +42,10 @@ Name[hsb]=Google filmy
 Name[hu]=Google filmek
 Name[ia]=Google Movies
 Name[id]=Google Movies
+Name[ie]=Google Movies
 Name[is]=Google kvikmyndir
 Name[it]=Film di Google
+Name[ka]=Google ფილმები
 Name[kk]=Google фильмдер
 Name[km]=ភាព​យន្ត​តាម​​ហ្គូហ្គល
 Name[kn]=ಗೂಗಲ್ ಚಲಚ್ಚಿತ್ರಗಳು
@@ -81,6 +85,7 @@ Name[ta]=கூகுள் திரைப்படங்கள்
 Name[te]=గూగుల్ చలనచిత్రాలు
 Name[tg]=Видеоҳои Google
 Name[th]=ค้นหาภาพยนตร์ด้วยกูเกิล
+Name[tok]=ilo alasa pi sitelen tawa suli tan ilo Google
 Name[tr]=Google Filmleri
 Name[ug]=Google كىنولار
 Name[uk]=Фільми на Google
@@ -94,15 +99,20 @@ Name[zh_TW]=Google 電影
 Keys=ggmovie
 Query=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ar]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
-Query[ast]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[az]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[be]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[be@latin]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[bg]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[bs]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ca]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ca@valencia]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[cs]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[cy]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[da]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[de]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[el]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[en_GB]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[eo]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[es]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[et]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[eu]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
@@ -112,13 +122,16 @@ Query[gl]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[hu]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ia]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[id]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[ie]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[is]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[it]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[ka]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ko]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[lt]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[my]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[nl]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[nn]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[pa]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[pl]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[pt]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[pt_BR]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
@@ -129,6 +142,8 @@ Query[sl]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[sv]=https://www.google.se/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[ta]=https://www.google.com/search?hl=ta&q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[tg]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[tok]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
+Query[tr]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[uk]=https://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[vi]=https://www.google.com.vn/search?q=\\{@}&ie=UTF-8&oe=UTF-8
 Query[x-test]=xxhttps://www.google.com/search?q=\\{@}&ie=UTF-8&oe=UTF-8xx

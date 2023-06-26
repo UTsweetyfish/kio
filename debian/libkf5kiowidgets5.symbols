@@ -1,4 +1,4 @@
-# SymbolsHelper-Confirmed: 5.74.0 amd64
+# SymbolsHelper-Confirmed: 5.96.0 amd64 armel armhf i386 riscv64
 libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
 * Build-Depends-Package: libkf5kio-dev
  _ZN10KAutoMount11qt_metacallEN11QMetaObject4CallEiPPv@Base 5.69.0
@@ -506,8 +506,10 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZN3KIO13JobUiDelegate7askSkipEP4KJob6QFlagsINS_17SkipDialog_OptionEERK7QString@Base 5.69.0
  _ZN3KIO13JobUiDelegate9setWindowEP7QWidget@Base 5.69.0
  _ZN3KIO13JobUiDelegateC1E6QFlagsIN14KJobUiDelegate4FlagEEP7QWidget@Base 5.70.0
+ _ZN3KIO13JobUiDelegateC1ENS0_7VersionE6QFlagsIN14KJobUiDelegate4FlagEEP7QWidgetRK5QListIP7QObjectE@Base 5.98.0
  _ZN3KIO13JobUiDelegateC1Ev@Base 5.69.0
  _ZN3KIO13JobUiDelegateC2E6QFlagsIN14KJobUiDelegate4FlagEEP7QWidget@Base 5.70.0
+ _ZN3KIO13JobUiDelegateC2ENS0_7VersionE6QFlagsIN14KJobUiDelegate4FlagEEP7QWidgetRK5QListIP7QObjectE@Base 5.98.0
  _ZN3KIO13JobUiDelegateC2Ev@Base 5.69.0
  _ZN3KIO13JobUiDelegateD0Ev@Base 5.69.0
  _ZN3KIO13JobUiDelegateD1Ev@Base 5.69.0
@@ -546,6 +548,16 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZN3KIO15FileUndoManagerD2Ev@Base 5.69.0
  _ZN3KIO15pasteActionTextEPK9QMimeDataPbRK9KFileItem@Base 5.69.0
  _ZN3KIO15pasteActionTextEv@Base 5.69.0
+ _ZN3KIO16DeleteOrTrashJob10slotResultEP4KJob@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJob11qt_metacallEN11QMetaObject4CallEiPPv@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJob11qt_metacastEPKc@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJob16staticMetaObjectE@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJob5startEv@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJobC1ERK5QListI4QUrlENS_22AskUserActionInterface12DeletionTypeENS6_16ConfirmationTypeEP7QObject@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJobC2ERK5QListI4QUrlENS_22AskUserActionInterface12DeletionTypeENS6_16ConfirmationTypeEP7QObject@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJobD0Ev@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJobD1Ev@Base 5.100.0
+ _ZN3KIO16DeleteOrTrashJobD2Ev@Base 5.100.0
  _ZN3KIO16RenameFileDialog10slotResultEP4KJob@Base 5.69.0
  _ZN3KIO16RenameFileDialog11qt_metacallEN11QMetaObject4CallEiPPv@Base 5.69.0
  _ZN3KIO16RenameFileDialog11qt_metacastEPKc@Base 5.69.0
@@ -584,9 +596,13 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZN3KIO24OpenFileManagerWindowJobD1Ev@Base 5.69.0
  _ZN3KIO24OpenFileManagerWindowJobD2Ev@Base 5.69.0
  _ZN3KIO27WidgetsAskUserActionHandler11askUserSkipEP4KJob6QFlagsINS_17SkipDialog_OptionEERK7QString@Base 5.78.0
+ _ZN3KIO27WidgetsAskUserActionHandler11qt_metacallEN11QMetaObject4CallEiPPv@Base 5.98.0
+ _ZN3KIO27WidgetsAskUserActionHandler11qt_metacastEPKc@Base 5.98.0
  _ZN3KIO27WidgetsAskUserActionHandler13askUserDeleteERK5QListI4QUrlENS_22AskUserActionInterface12DeletionTypeENS6_16ConfirmationTypeEP7QWidget@Base 5.78.0
  _ZN3KIO27WidgetsAskUserActionHandler13askUserRenameEP4KJobRK7QStringRK4QUrlS8_6QFlagsINS_19RenameDialog_OptionEEyyRK9QDateTimeSE_SE_SE_@Base 5.78.0
+ _ZN3KIO27WidgetsAskUserActionHandler16staticMetaObjectE@Base 5.98.0
  _ZN3KIO27WidgetsAskUserActionHandler21requestUserMessageBoxENS_22AskUserActionInterface17MessageDialogTypeERK7QStringS5_S5_S5_S5_S5_S5_S5_RKNS_8MetaDataEP7QWidget@Base 5.78.0
+ _ZN3KIO27WidgetsAskUserActionHandler9setWindowEP7QWidget@Base 5.96.0
  _ZN3KIO27WidgetsAskUserActionHandlerC1EP7QObject@Base 5.78.0
  _ZN3KIO27WidgetsAskUserActionHandlerC2EP7QObject@Base 5.78.0
  _ZN3KIO27WidgetsAskUserActionHandlerD0Ev@Base 5.78.0
@@ -744,6 +760,7 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  (optional=templinst)_ZNK12KConfigGroup9readEntryIbEET_PKcRKS1_@Base 5.69.0
  _ZNK12KConfigGroup9readEntryIiEE5QListIT_EPKcRKS3_@Base 5.77.0
  (optional=templinst)_ZNK12KConfigGroup9readEntryIiEET_PKcRKS1_@Base 5.69.0
+ _ZNK12KConfigGroup9readEntryIyEET_PKcRKS1_@Base 5.93.0
  _ZNK12KUrlComboBox10metaObjectEv@Base 5.69.0
  _ZNK12KUrlComboBox4urlsEv@Base 5.69.0
  _ZNK12KUrlComboBox8maxItemsEv@Base 5.69.0
@@ -881,11 +898,13 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZNK3KIO15FileUndoManager15isUndoAvailableEv@Base 5.80.0
  _ZNK3KIO15FileUndoManager26currentCommandSerialNumberEv@Base 5.69.0
  _ZNK3KIO15FileUndoManager8undoTextEv@Base 5.69.0
+ _ZNK3KIO16DeleteOrTrashJob10metaObjectEv@Base 5.100.0
  _ZNK3KIO16RenameFileDialog10metaObjectEv@Base 5.69.0
  _ZNK3KIO18DndPopupMenuPlugin10metaObjectEv@Base 5.69.0
  _ZNK3KIO24OpenFileManagerWindowJob10metaObjectEv@Base 5.69.0
  _ZNK3KIO24OpenFileManagerWindowJob13highlightUrlsEv@Base 5.69.0
  _ZNK3KIO24OpenFileManagerWindowJob9startupIdEv@Base 5.69.0
+ _ZNK3KIO27WidgetsAskUserActionHandler10metaObjectEv@Base 5.98.0
  _ZNK3KIO31KUriFilterSearchProviderActions10metaObjectEv@Base 5.69.0
  _ZNK3KIO31KUriFilterSearchProviderActions12selectedTextEv@Base 5.69.0
  _ZNK3KIO37ThumbDevicePixelRatioDependentCreator16devicePixelRatioEv@Base 5.80.0
@@ -923,6 +942,7 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZNK9KDirModel8rowCountERK11QModelIndex@Base 5.69.0
  _ZNK9KDirModel9dirListerEv@Base 5.69.0
  _ZNK9KDirModel9mimeTypesEv@Base 5.69.0
+ _ZNK9KDirModel9roleNamesEv@Base 5.93.0
  _ZNSt6vectorIP23KPropertiesDialogPluginSaIS1_EE17_M_realloc_insertIJRKS1_EEEvN9__gnu_cxx17__normal_iteratorIPS1_S3_EEDpOT_@Base 5.82.0
  _ZNSt8_Rb_treeI7QStringS0_St9_IdentityIS0_ESt4lessIS0_ESaIS0_EE16_M_insert_uniqueIRKS0_EESt4pairISt17_Rb_tree_iteratorIS0_EbEOT_@Base 5.90.0
  _ZNSt8_Rb_treeI7QStringS0_St9_IdentityIS0_ESt4lessIS0_ESaIS0_EE16_M_insert_uniqueIS0_EESt4pairISt17_Rb_tree_iteratorIS0_EbEOT_@Base 5.90.0
@@ -961,14 +981,24 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZTIN3KIO13JobUiDelegateE@Base 5.69.0
  _ZTIN3KIO15FileUndoManager11UiInterfaceE@Base 5.69.0
  _ZTIN3KIO15FileUndoManagerE@Base 5.69.0
+ _ZTIN3KIO16DeleteOrTrashJobE@Base 5.100.0
  _ZTIN3KIO16RenameFileDialogE@Base 5.69.0
  _ZTIN3KIO18DndPopupMenuPluginE@Base 5.69.0
+ _ZTIN3KIO22JobUiDelegateFactoryV2E@Base 5.98.0
  _ZTIN3KIO24OpenFileManagerWindowJobE@Base 5.69.0
  _ZTIN3KIO27WidgetsAskUserActionHandlerE@Base 5.78.0
  _ZTIN3KIO31KUriFilterSearchProviderActionsE@Base 5.69.0
  _ZTIN3KIO37ThumbDevicePixelRatioDependentCreatorE@Base 5.80.0
  _ZTIN3KIO7DropJobE@Base 5.69.0
  _ZTIN3KIO8PasteJobE@Base 5.69.0
+ (arch=armel riscv64)_ZTIN9__gnu_cxx7__mutexE@Base 5.96.0
+ (arch=armel riscv64)_ZTISt11_Mutex_baseILN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTISt11_Mutex_baseILN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
+ (arch=armel riscv64)_ZTISt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTISt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
+ (arch=armel armhf)_ZTISt19_Sp_make_shared_tag@Base 5.96.0
+ (arch=armel riscv64)_ZTISt23_Sp_counted_ptr_inplaceI23QDBusPendingCallWatcherSaIvELN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTISt23_Sp_counted_ptr_inplaceI23QDBusPendingCallWatcherSaIvELN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
  _ZTS10KAutoMount@Base 5.69.0
  _ZTS10KDirLister@Base 5.69.0
  _ZTS12KAutoUnmount@Base 5.69.0
@@ -1004,14 +1034,24 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZTSN3KIO13JobUiDelegateE@Base 5.69.0
  _ZTSN3KIO15FileUndoManager11UiInterfaceE@Base 5.69.0
  _ZTSN3KIO15FileUndoManagerE@Base 5.69.0
+ _ZTSN3KIO16DeleteOrTrashJobE@Base 5.100.0
  _ZTSN3KIO16RenameFileDialogE@Base 5.69.0
  _ZTSN3KIO18DndPopupMenuPluginE@Base 5.69.0
+ _ZTSN3KIO22JobUiDelegateFactoryV2E@Base 5.98.0
  _ZTSN3KIO24OpenFileManagerWindowJobE@Base 5.69.0
  _ZTSN3KIO27WidgetsAskUserActionHandlerE@Base 5.78.0
  _ZTSN3KIO31KUriFilterSearchProviderActionsE@Base 5.69.0
  _ZTSN3KIO37ThumbDevicePixelRatioDependentCreatorE@Base 5.80.0
  _ZTSN3KIO7DropJobE@Base 5.69.0
  _ZTSN3KIO8PasteJobE@Base 5.69.0
+ (arch=armel riscv64)_ZTSN9__gnu_cxx7__mutexE@Base 5.96.0
+ (arch=armel riscv64)_ZTSSt11_Mutex_baseILN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTSSt11_Mutex_baseILN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
+ (arch=armel riscv64)_ZTSSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTSSt16_Sp_counted_baseILN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
+ _ZTSSt19_Sp_make_shared_tag@Base 5.96.0
+ (arch=armel riscv64)_ZTSSt23_Sp_counted_ptr_inplaceI23QDBusPendingCallWatcherSaIvELN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTSSt23_Sp_counted_ptr_inplaceI23QDBusPendingCallWatcherSaIvELN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
  _ZTV10KAutoMount@Base 5.69.0
  _ZTV10KDirLister@Base 5.69.0
  _ZTV12KAutoUnmount@Base 5.69.0
@@ -1047,14 +1087,19 @@ libKF5KIOWidgets.so.5 libkf5kiowidgets5 #MINVER#, kio
  _ZTVN3KIO13JobUiDelegateE@Base 5.69.0
  _ZTVN3KIO15FileUndoManager11UiInterfaceE@Base 5.69.0
  _ZTVN3KIO15FileUndoManagerE@Base 5.69.0
+ _ZTVN3KIO16DeleteOrTrashJobE@Base 5.100.0
  _ZTVN3KIO16RenameFileDialogE@Base 5.69.0
  _ZTVN3KIO18DndPopupMenuPluginE@Base 5.69.0
+ _ZTVN3KIO22JobUiDelegateFactoryV2E@Base 5.98.0
  _ZTVN3KIO24OpenFileManagerWindowJobE@Base 5.69.0
  _ZTVN3KIO27WidgetsAskUserActionHandlerE@Base 5.78.0
  _ZTVN3KIO31KUriFilterSearchProviderActionsE@Base 5.69.0
  _ZTVN3KIO37ThumbDevicePixelRatioDependentCreatorE@Base 5.80.0
  _ZTVN3KIO7DropJobE@Base 5.69.0
  _ZTVN3KIO8PasteJobE@Base 5.69.0
+ (arch=armel riscv64)_ZTVSt23_Sp_counted_ptr_inplaceI23QDBusPendingCallWatcherSaIvELN9__gnu_cxx12_Lock_policyE1EE@Base 5.96.0
+ (arch=!armel !riscv64)_ZTVSt23_Sp_counted_ptr_inplaceI23QDBusPendingCallWatcherSaIvELN9__gnu_cxx12_Lock_policyE2EE@Base 5.96.0
+ _ZZNSt19_Sp_make_shared_tag5_S_tiEvE5__tag@Base 5.96.0
  _ZZZN14KPluginFactory17instantiatePluginI16KUriFilterPluginEENS_6ResultIT_EERK15KPluginMetaDataP7QObjectRK5QListI8QVariantEENKUlvE_clEvE15qstring_literal@Base 5.90.0
  _ZZZN14KPluginFactory17instantiatePluginI23KPropertiesDialogPluginEENS_6ResultIT_EERK15KPluginMetaDataP7QObjectRK5QListI8QVariantEENKUlvE_clEvE15qstring_literal@Base 5.90.0
  _ZZZN14KPluginFactory17instantiatePluginI29KAbstractFileItemActionPluginEENS_6ResultIT_EERK15KPluginMetaDataP7QObjectRK5QListI8QVariantEENKUlvE_clEvE15qstring_literal@Base 5.90.0

@@ -12,10 +12,12 @@
 #define KURLCOMPLETION_H
 
 #include "kiowidgets_export.h"
+#include <kio/udsentry.h>
+
 #include <KCompletion>
+
 #include <QString>
 #include <QStringList>
-#include <kio/udsentry.h>
 
 #include <memory>
 
@@ -185,9 +187,6 @@ protected:
 
 private:
     std::unique_ptr<KUrlCompletionPrivate> const d;
-
-    Q_PRIVATE_SLOT(d, void _k_slotEntries(KIO::Job *, const KIO::UDSEntryList &))
-    Q_PRIVATE_SLOT(d, void _k_slotIOFinished(KJob *))
 };
 
 #endif // KURLCOMPLETION_H

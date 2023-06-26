@@ -63,8 +63,6 @@ void FavIconTest::initTestCase()
 {
     QStandardPaths::setTestModeEnabled(true);
 
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
     // To let ctest exit, we shouldn't start kio_http_cache_cleaner
     qputenv("KIO_DISABLE_CACHE_CLEANER", "yes");
     // To get KJob::errorString() in English
@@ -221,7 +219,7 @@ void FavIconTest::tooBigFaviconShouldAbort()
     job->setIconUrl(QUrl("http://download.kde.org/Attic/4.13.2/src/kcalc-4.13.2.tar.xz"));
     QVERIFY(willDownload(job));
     QVERIFY(!job->exec());
-    QCOMPARE(job->error(), int(KIO::ERR_SLAVE_DEFINED));
+    QCOMPARE(job->error(), int(KIO::ERR_WORKER_DEFINED));
     QCOMPARE(job->errorString(), QStringLiteral("Icon file too big, download aborted"));
 }
 

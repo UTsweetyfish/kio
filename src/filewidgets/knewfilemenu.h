@@ -25,7 +25,7 @@ class KNewFileMenuPrivate;
  * @class KNewFileMenu knewfilemenu.h <KNewFileMenu>
  *
  * The 'Create New' submenu, for creating files using templates
- * (e.g. "new HTML file") and directories.
+ * (e.g.\ "new HTML file") and directories.
  *
  * The same instance can be used by both for the File menu and the RMB popup menu,
  * in a file manager. This is also used in the file dialog's RMB menu.
@@ -48,6 +48,7 @@ class KIOFILEWIDGETS_EXPORT KNewFileMenu : public KActionMenu
 {
     Q_OBJECT
 public:
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 100)
     /**
      * Constructor.
      * @param collection the KActionCollection the QAction with name @p name should be added to.
@@ -61,8 +62,23 @@ public:
      *       From KIO >= 5.53, an action named "create_file" (and shortcut set) in @p collection
      *       will be linked to the creation of the first file template (either from XDG_TEMPLATES_DIR
      *       or from :/kio5/newfile-templates)
+     * @deprecated since 5.100, use KNewFileMenu(QObject *) instead. To associate the action shortcuts use
+     * setNewFileShortcutAction() and setNewFolderShortcutAction()
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 100, "Use KNewFileMenu(QObject *)")
     KNewFileMenu(KActionCollection *collection, const QString &name, QObject *parent);
+#endif
+
+    /**
+     * Constructor.
+     *
+     * @param parent the parent object, for ownership.
+     * If the parent object is a widget, it will also be used as the parent widget
+     * for any dialogs that this class might show. Otherwise, call setParentWidget.
+     *
+     * @since 5.100
+     */
+    KNewFileMenu(QObject *parent);
 
     /**
      * Destructor.
@@ -77,10 +93,14 @@ public:
      */
     bool isModal() const;
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 97)
     /**
      * Returns the files that the popup is shown for
+     * @deprecated since 5.97, use KNewFileMenu::workingDirectory().
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 97, "Use KNewFileMenu::workingDirectory()")
     QList<QUrl> popupFiles() const;
+#endif
 
     /**
      * Sets the modality of dialogs created by KNewFile. Set to false if you do not want to block
@@ -94,17 +114,35 @@ public:
      */
     void setParentWidget(QWidget *parentWidget);
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 97)
     /**
      * Set the files the popup is shown for
      * Call this before showing up the menu
+     * @deprecated since 5.97, use KNewFileMenu::setWorkingDirectory(const QUrl &).
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 97, "Use KNewFileMenu::setWorkingDirectory(const QUrl &)")
     void setPopupFiles(const QList<QUrl> &files);
+#endif
+
+    /**
+     * Set the working directory.
+     * Files will be created relative to this directory.
+     * @since 5.97.
+     */
+    void setWorkingDirectory(const QUrl &directory);
+
+    /**
+     * Returns the working directory.
+     * Files will be created relative to this directory.
+     * @since 5.97.
+     */
+    QUrl workingDirectory() const;
 
 #if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 0)
-    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 0, "Use KNewFileMenu::setPopupFiles(const QList<QUrl> &)")
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 0, "Use KNewFileMenu::setWorkingDirectory(const QUrl &)")
     void setPopupFiles(const QUrl &file)
     {
-        setPopupFiles(QList<QUrl>{file});
+        setWorkingDirectory(file);
     }
 #endif
 
@@ -115,10 +153,14 @@ public:
      */
     void setSupportedMimeTypes(const QStringList &mime);
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 97)
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 97, "Calling this has no effect")
     /**
      * Set if the directory view currently shows dot files.
+     * @deprecated since 5.97. Calling this has no effect.
      */
     void setViewShowsHiddenFiles(bool b);
+#endif
 
     /**
      * Returns the MIME types set in supportedMimeTypes()
@@ -134,11 +176,28 @@ public:
      */
     void setSelectDirWhenAlreadyExist(bool b);
 
+    /**
+     * Use this to set a shortcut for the "New Folder" action.
+     *
+     * The shortcut is copied from @param action.
+     *
+     * @since 5.100
+     */
+    void setNewFolderShortcutAction(QAction *action);
+
+    /**
+     * Use this to set a shortcut for the new file action.
+     *
+     * The shortcut is copied from @param action.
+     *
+     * @since 5.100
+     */
+    void setNewFileShortcutAction(QAction *action);
+
 public Q_SLOTS:
     /**
      * Checks if updating the list is necessary
      * IMPORTANT : Call this in the slot for aboutToShow.
-     * And while you're there, you probably want to call setViewShowsHiddenFiles ;)
      */
     void checkUpToDate();
 
@@ -147,7 +206,7 @@ public Q_SLOTS:
      * a popupmenu. This is useful to make sure that creating a directory with
      * a key shortcut (e.g. F10) triggers the exact same code as when using
      * the New menu.
-     * Requirements: call setPopupFiles first, and keep this KNewFileMenu instance
+     * Requirements: since 5.97 call setWorkingDirectory first (for older releases call setPopupFiles first), and keep this KNewFileMenu instance
      * alive (the mkdir is async).
      */
     void createDirectory();
@@ -157,7 +216,7 @@ public Q_SLOTS:
      * a popupmenu. This is useful to make sure that creating a directory with
      * a key shortcut (e.g. Shift-F10) triggers the exact same code as when using
      * the New menu.
-     * Requirements: call setPopupFiles first, and keep this KNewFileMenu instance
+     * Requirements: since 5.97 call setWorkingDirectory first (for older releases call setPopupFiles first), and keep this KNewFileMenu instance
      * alive (the copy is async).
      * @since 5.53
      */

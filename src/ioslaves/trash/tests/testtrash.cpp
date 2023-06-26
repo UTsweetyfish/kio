@@ -9,29 +9,29 @@
 
 #include <QTest>
 
-#include "../../../pathhelpers_p.h"
+#include "../../../utils_p.h"
 #include "kio_trash.h"
 
-#include <QDataStream>
-#include <QTemporaryFile>
 #include <kprotocolinfo.h>
 
 #include <KConfigGroup>
-#include <QDebug>
+#include <kfileitem.h>
+#include <kio/chmodjob.h>
 #include <kio/copyjob.h>
 #include <kio/deletejob.h>
-#include <kio/job.h>
+#include <kio/directorysizejob.h>
 
 #include <KJobUiDelegate>
+
+#include <QDataStream>
+#include <QDebug>
 #include <QDir>
 #include <QFileInfo>
+#include <QStandardPaths>
+#include <QTemporaryFile>
 #include <QUrl>
 #include <QVector>
 
-#include <QStandardPaths>
-#include <kfileitem.h>
-#include <kio/chmodjob.h>
-#include <kio/directorysizejob.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -54,7 +54,7 @@ int initLocale()
     setenv("LC_ALL", "en_US.ISO-8859-1", 1);
     unsetenv("KDE_UTF8_FILENAMES");
 #endif
-    setenv("KIOSLAVE_ENABLE_TESTMODE", "1", 1); // ensure the ioslaves call QStandardPaths::setTestModeEnabled(true) too
+    setenv("KIOSLAVE_ENABLE_TESTMODE", "1", 1); // ensure the KIO workers call QStandardPaths::setTestModeEnabled(true) too
     setenv("KDE_SKIP_KDERC", "1", 1);
     unsetenv("KDE_COLOR_DEBUG");
     return 0;
@@ -74,11 +74,7 @@ QString TestTrash::readOnlyDirPath() const
 QString TestTrash::otherTmpDir() const
 {
     // This one needs to be on another partition for the test to be meaningful
-    QString tempDir = m_tempDir.path();
-    if (!tempDir.endsWith(QLatin1Char('/'))) {
-        tempDir.append(QLatin1Char('/'));
-    }
-    return tempDir;
+    return Utils::slashAppended(m_tempDir.path());
 }
 
 QString TestTrash::utf8FileName() const
@@ -126,9 +122,6 @@ static void removeDirRecursive(const QString &dir)
 
 void TestTrash::initTestCase()
 {
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
-
     QStandardPaths::setTestModeEnabled(true);
 
     QVERIFY(m_tempDir.isValid());
@@ -325,9 +318,9 @@ void TestTrash::trashFile(const QString &origFilePath, const QString &fileId)
     } else {
         checkInfoFile(m_trashDir + QLatin1String("/info/") + fileId + QLatin1String(".trashinfo"), origFilePath);
 
-        QFileInfo files(m_trashDir + QLatin1String("/files/") + fileId);
-        QVERIFY(files.isFile());
-        QCOMPARE(files.size(), 12);
+        QFileInfo fileInTrash(m_trashDir + QLatin1String("/files/") + fileId);
+        QVERIFY(fileInTrash.isFile());
+        QCOMPARE(fileInTrash.size(), 12);
     }
 
     // coolo suggests testing that the original file is actually gone, too :)
@@ -551,7 +544,7 @@ void TestTrash::trashDirectory(const QString &origPath, const QString &fileId)
     bool found = false;
     while (!dirCache.atEnd()) {
         const QByteArray line = dirCache.readLine();
-        if (line.endsWith(' ' + QFile::encodeName(fileId).toPercentEncoding() + '\n')) {
+        if (line.endsWith(QByteArray(' ' + QFile::encodeName(fileId).toPercentEncoding() + '\n'))) {
             QVERIFY(!found); // should be there only once!
             found = true;
         }
@@ -761,7 +754,7 @@ void TestTrash::mostLocalUrlTest()
         url.setPath(QLatin1String("0-") + file);
         KIO::StatJob *statJob = KIO::mostLocalUrl(url, KIO::HideProgressInfo);
         QVERIFY(statJob->exec());
-        QCOMPARE(url, statJob->mostLocalUrl());
+        QCOMPARE(QUrl::fromLocalFile(m_trashDir + QStringLiteral("/files/") + file), statJob->mostLocalUrl());
     }
 }
 
@@ -859,7 +852,7 @@ void TestTrash::copyFromTrash(const QString &fileId, const QString &destPath, co
 {
     QUrl src(QLatin1String("trash:/0-") + fileId);
     if (!relativePath.isEmpty()) {
-        src.setPath(concatPaths(src.path(), relativePath));
+        src.setPath(Utils::concatPaths(src.path(), relativePath));
     }
     QUrl dest = QUrl::fromLocalFile(destPath);
 
@@ -969,7 +962,7 @@ void TestTrash::moveFromTrash(const QString &fileId, const QString &destPath, co
 {
     QUrl src(QLatin1String("trash:/0-") + fileId);
     if (!relativePath.isEmpty()) {
-        src.setPath(concatPaths(src.path(), relativePath));
+        src.setPath(Utils::concatPaths(src.path(), relativePath));
     }
     QUrl dest = QUrl::fromLocalFile(destPath);
 
@@ -1028,7 +1021,9 @@ void TestTrash::moveFileFromTrashToDir()
 
     // When moving it out to a dir
     QFETCH(QString, destDir);
-    const QString destPath = destDir + QStringLiteral("moveFileFromTrashToDir");
+    const auto fileId = QStringLiteral("moveFileFromTrashToDir");
+    const QString destPath = destDir + fileId;
+
     const QUrl src(QLatin1String("trash:/0-") + fileName);
     const QUrl dest(QUrl::fromLocalFile(destDir));
     KIO::Job *job = KIO::move(src, dest, KIO::HideProgressInfo);
@@ -1041,6 +1036,10 @@ void TestTrash::moveFileFromTrashToDir()
     QCOMPARE(destInfo.size(), 12);
     QVERIFY(destInfo.isWritable());
     QCOMPARE(int(destInfo.permissions()), int(origPerms));
+
+    // trashinfo should be removed
+    const QString trashInfoPath(m_trashDir + QStringLiteral("/info/") + fileId + QStringLiteral(".trashinfo"));
+    QVERIFY(!QFile::exists(trashInfoPath));
 
     QVERIFY(QFile::remove(destPath));
 }
@@ -1180,7 +1179,7 @@ void TestTrash::restoreFileFromSubDir()
     bool ok = job->exec();
     QVERIFY(!ok);
     // dest dir doesn't exist -> error message
-    QCOMPARE(job->error(), KIO::ERR_SLAVE_DEFINED);
+    QCOMPARE(job->error(), KIO::ERR_WORKER_DEFINED);
 
     // check that nothing happened
     QVERIFY(QFile::exists(infoFile));
@@ -1214,7 +1213,7 @@ void TestTrash::restoreFileToDeletedDirectory()
     bool ok = job->exec();
     QVERIFY(!ok);
     // dest dir doesn't exist -> error message
-    QCOMPARE(job->error(), KIO::ERR_SLAVE_DEFINED);
+    QCOMPARE(job->error(), KIO::ERR_WORKER_DEFINED);
 
     // check that nothing happened
     QVERIFY(QFile::exists(infoFile));

@@ -7,9 +7,8 @@
 */
 
 #include "listjob.h"
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 #include "job_p.h"
-#include "scheduler.h"
 #include "slave.h"
 #include <QTimer>
 #include <kurlauthorized.h>
@@ -106,7 +105,7 @@ void ListJobPrivate::slotListEntries(const KIO::UDSEntryList &list)
                 itemURL = q->url();
                 filename = entry.stringValue(KIO::UDSEntry::UDS_NAME);
                 Q_ASSERT(!filename.isEmpty()); // we'll recurse forever otherwise :)
-                itemURL.setPath(concatPaths(itemURL.path(), filename));
+                itemURL.setPath(Utils::concatPaths(itemURL.path(), filename));
             }
 
             if (entry.isDir() && !entry.isLink()) {
@@ -234,12 +233,12 @@ void ListJob::slotFinished()
     SimpleJob::slotFinished();
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 void ListJob::slotMetaData(const KIO::MetaData &_metaData)
 {
-    Q_D(ListJob);
     SimpleJob::slotMetaData(_metaData);
-    storeSSLSessionFromJob(d->m_redirectionURL);
 }
+#endif
 
 ListJob *KIO::listDir(const QUrl &url, JobFlags flags, bool includeHidden)
 {

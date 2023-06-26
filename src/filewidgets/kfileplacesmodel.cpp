@@ -14,31 +14,19 @@
 #include "Windows.h"
 #endif
 
-#include <QAction>
-#include <QCoreApplication>
-#include <QDir>
-#include <QFile>
-#include <QMimeData>
-#include <QMimeDatabase>
-#include <QTimer>
-
+#include <KCoreDirLister>
 #include <KLazyLocalizedString>
+#include <KListOpenFilesJob>
 #include <KLocalizedString>
 #include <kfileitem.h>
-
-#include <KUrlMimeData>
-#include <QDebug>
-
-#include <KBookmarkManager>
-
-#include <KCoreDirLister>
-#include <kio/job.h>
+#include <kio/statjob.h>
 #include <kprotocolinfo.h>
 
+#include <KBookmarkManager>
 #include <KConfig>
 #include <KConfigGroup>
+#include <KUrlMimeData>
 
-#include <QStandardPaths>
 #include <solid/devicenotifier.h>
 #include <solid/opticaldisc.h>
 #include <solid/opticaldrive.h>
@@ -47,6 +35,16 @@
 #include <solid/storageaccess.h>
 #include <solid/storagedrive.h>
 #include <solid/storagevolume.h>
+
+#include <QAction>
+#include <QCoreApplication>
+#include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QMimeData>
+#include <QMimeDatabase>
+#include <QStandardPaths>
+#include <QTimer>
 
 namespace
 {
@@ -196,6 +194,7 @@ public:
     QList<KFilePlacesItem *> items;
     QVector<QString> availableDevices;
     QMap<QObject *, QPersistentModelIndex> setupInProgress;
+    QMap<QObject *, QPersistentModelIndex> teardownInProgress;
     QStringList supportedSchemes;
 
     Solid::Predicate predicate;
@@ -216,10 +215,10 @@ public:
     void initDeviceList();
     void deviceAdded(const QString &udi);
     void deviceRemoved(const QString &udi);
-    void itemChanged(const QString &udi);
+    void itemChanged(const QString &udi, const QVector<int> &roles);
     void reloadBookmarks();
     void storageSetupDone(Solid::ErrorType error, const QVariant &errorData, Solid::StorageAccess *sender);
-    void storageTeardownDone(Solid::ErrorType error, const QVariant &errorData);
+    void storageTeardownDone(const QString &filePath, Solid::ErrorType error, const QVariant &errorData, QObject *sender);
 
 private:
     bool isBalooUrl(const QUrl &url) const;
@@ -459,23 +458,6 @@ KFilePlacesModel::KFilePlacesModel(const QString &alternativeApplicationName, QO
                                                   QStringLiteral("view-calendar-day"));
         }
 
-        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
-                                              kli18nc("KFile System Bookmarks", "Documents").untranslatedText(),
-                                              QUrl(QStringLiteral("search:/documents")),
-                                              QStringLiteral("folder-text"));
-        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
-                                              kli18nc("KFile System Bookmarks", "Images").untranslatedText(),
-                                              QUrl(QStringLiteral("search:/images")),
-                                              QStringLiteral("folder-images"));
-        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
-                                              kli18nc("KFile System Bookmarks", "Audio").untranslatedText(),
-                                              QUrl(QStringLiteral("search:/audio")),
-                                              QStringLiteral("folder-sound"));
-        KFilePlacesItem::createSystemBookmark(d->bookmarkManager,
-                                              kli18nc("KFile System Bookmarks", "Videos").untranslatedText(),
-                                              QUrl(QStringLiteral("search:/videos")),
-                                              QStringLiteral("folder-videos"));
-
         setDefaultMetadataItemForGroup(SearchForType);
         setDefaultMetadataItemForGroup(RecentlySavedType);
 
@@ -575,6 +557,46 @@ bool KFilePlacesModel::isDevice(const QModelIndex &index) const
     return item->isDevice();
 }
 
+bool KFilePlacesModel::isTeardownAllowed(const QModelIndex &index) const
+{
+    if (!index.isValid()) {
+        return false;
+    }
+
+    KFilePlacesItem *item = static_cast<KFilePlacesItem *>(index.internalPointer());
+    return item->isTeardownAllowed();
+}
+
+bool KFilePlacesModel::isEjectAllowed(const QModelIndex &index) const
+{
+    if (!index.isValid()) {
+        return false;
+    }
+
+    KFilePlacesItem *item = static_cast<KFilePlacesItem *>(index.internalPointer());
+    return item->isEjectAllowed();
+}
+
+bool KFilePlacesModel::isTeardownOverlayRecommended(const QModelIndex &index) const
+{
+    if (!index.isValid()) {
+        return false;
+    }
+
+    KFilePlacesItem *item = static_cast<KFilePlacesItem *>(index.internalPointer());
+    return item->isTeardownOverlayRecommended();
+}
+
+KFilePlacesModel::DeviceAccessibility KFilePlacesModel::deviceAccessibility(const QModelIndex &index) const
+{
+    if (!index.isValid()) {
+        return KFilePlacesModel::Accessible;
+    }
+
+    KFilePlacesItem *item = static_cast<KFilePlacesItem *>(index.internalPointer());
+    return item->deviceAccessibility();
+}
+
 Solid::Device KFilePlacesModel::deviceForIndex(const QModelIndex &index) const
 {
     if (!index.isValid()) {
@@ -661,6 +683,26 @@ QModelIndex KFilePlacesModel::parent(const QModelIndex &child) const
     return QModelIndex();
 }
 
+QHash<int, QByteArray> KFilePlacesModel::roleNames() const
+{
+    auto super = QAbstractItemModel::roleNames();
+
+    super[UrlRole] = "url";
+    super[HiddenRole] = "isHidden";
+    super[SetupNeededRole] = "isSetupNeeded";
+    super[FixedDeviceRole] = "isFixedDevice";
+    super[CapacityBarRecommendedRole] = "isCapacityBarRecommended";
+    super[GroupRole] = "group";
+    super[IconNameRole] = "iconName";
+    super[GroupHiddenRole] = "isGroupHidden";
+    super[TeardownAllowedRole] = "isTeardownAllowed";
+    super[EjectAllowedRole] = "isEjectAllowed";
+    super[TeardownOverlayRecommendedRole] = "isTeardownOverlayRecommended";
+    super[DeviceAccessibilityRole] = "deviceAccessibility";
+
+    return super;
+}
+
 int KFilePlacesModel::rowCount(const QModelIndex &parent) const
 {
     if (parent.isValid()) {
@@ -692,9 +734,10 @@ QModelIndex KFilePlacesModel::closestItem(const QUrl &url) const
             continue;
         }
 
-        const QUrl itemUrl(item->data(UrlRole).toUrl());
+        const QUrl itemUrl = convertedUrl(item->data(UrlRole).toUrl());
 
-        if (itemUrl.matches(url, QUrl::StripTrailingSlash) || itemUrl.isParentOf(url)) {
+        if (itemUrl.matches(url, QUrl::StripTrailingSlash)
+            || (itemUrl.isParentOf(url) && itemUrl.query() == url.query() && itemUrl.fragment() == url.fragment())) {
             const int length = itemUrl.toString().length();
             if (length > maxLength) {
                 foundRow = row;
@@ -750,12 +793,12 @@ void KFilePlacesModelPrivate::deviceRemoved(const QString &udi)
     }
 }
 
-void KFilePlacesModelPrivate::itemChanged(const QString &id)
+void KFilePlacesModelPrivate::itemChanged(const QString &id, const QVector<int> &roles)
 {
     for (int row = 0; row < items.size(); ++row) {
         if (items.at(row)->id() == id) {
             QModelIndex index = q->index(row, 0);
-            Q_EMIT q->dataChanged(index, index);
+            Q_EMIT q->dataChanged(index, index, roles);
         }
     }
 }
@@ -882,8 +925,8 @@ QList<KFilePlacesItem *> KFilePlacesModelPrivate::loadBookmarkList()
                 }
 
                 if (item) {
-                    QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id) {
-                        itemChanged(id);
+                    QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id, const QVector<int> &roles) {
+                        itemChanged(id, roles);
                     });
 
                     items << item;
@@ -894,8 +937,8 @@ QList<KFilePlacesItem *> KFilePlacesModelPrivate::loadBookmarkList()
                     tagsList.removeAll(tag);
                     KFilePlacesItem *item = new KFilePlacesItem(bookmarkManager, bookmark.address(), QString(), q);
                     items << item;
-                    QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id) {
-                        itemChanged(id);
+                    QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id, const QVector<int> &roles) {
+                        itemChanged(id, roles);
                     });
                 }
             }
@@ -909,8 +952,8 @@ QList<KFilePlacesItem *> KFilePlacesModelPrivate::loadBookmarkList()
         bookmark = KFilePlacesItem::createDeviceBookmark(bookmarkManager, udi);
         if (!bookmark.isNull()) {
             KFilePlacesItem *item = new KFilePlacesItem(bookmarkManager, bookmark.address(), udi, q);
-            QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id) {
-                itemChanged(id);
+            QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id, const QVector<int> &roles) {
+                itemChanged(id, roles);
             });
             // TODO: Update bookmark internal element
             items << item;
@@ -921,8 +964,8 @@ QList<KFilePlacesItem *> KFilePlacesModelPrivate::loadBookmarkList()
         bookmark = KFilePlacesItem::createTagBookmark(bookmarkManager, tag);
         if (!bookmark.isNull()) {
             KFilePlacesItem *item = new KFilePlacesItem(bookmarkManager, bookmark.address(), tag, q);
-            QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id) {
-                itemChanged(id);
+            QObject::connect(item, &KFilePlacesItem::itemChanged, q, [this](const QString &id, const QVector<int> &roles) {
+                itemChanged(id, roles);
             });
             items << item;
         }
@@ -1053,6 +1096,10 @@ bool KFilePlacesModel::dropMimeData(const QMimeData *data, Qt::DropAction action
         // let's do it in the views to get the good old drop menu
     }
 
+    if (data->hasFormat(QStringLiteral("application/x-kfileplacesmodel-ignore"))) {
+        return false;
+    }
+
     if (data->hasFormat(_k_internalMimetype(this))) {
         // The operation is an internal move
         QByteArray itemData = data->data(_k_internalMimetype(this));
@@ -1091,31 +1138,22 @@ bool KFilePlacesModel::dropMimeData(const QMimeData *data, Qt::DropAction action
         KBookmarkGroup group = d->bookmarkManager->root();
 
         for (const QUrl &url : urls) {
-            // TODO: use KIO::stat in order to get the UDS_DISPLAY_NAME too
-            KIO::MimetypeJob *job = KIO::mimetype(url);
+            KIO::StatJob *job = KIO::statDetails(url, KIO::StatJob::SourceSide, KIO::StatBasic);
 
-            QString mimeString;
             if (!job->exec()) {
-                mimeString = QStringLiteral("unknown");
-            } else {
-                mimeString = job->mimetype();
-            }
-
-            QMimeType mimetype = db.mimeTypeForName(mimeString);
-
-            if (!mimetype.isValid()) {
-                qWarning() << "URL not added to Places as MIME type could not be determined!";
+                Q_EMIT errorMessage(i18nc("Placeholder is error message", "Could not add to the Places panel: %1", job->errorString()));
                 continue;
             }
 
-            if (!mimetype.inherits(QStringLiteral("inode/directory"))) {
-                // Only directories are allowed
+            KFileItem item(job->statResult(), url, true /*delayed mime types*/);
+
+            if (!item.isDir()) {
+                Q_EMIT errorMessage(i18n("Only folders can be added to the Places panel."));
                 continue;
             }
 
-            KFileItem item(url, mimetype.name(), S_IFDIR);
+            KBookmark bookmark = KFilePlacesItem::createBookmark(d->bookmarkManager, item.text(), url, KIO::iconNameForUrl(url));
 
-            KBookmark bookmark = KFilePlacesItem::createBookmark(d->bookmarkManager, url.fileName(), url, item.iconName());
             group.moveBookmark(bookmark, afterBookmark);
             afterBookmark = bookmark;
         }
@@ -1262,7 +1300,7 @@ void KFilePlacesModel::setPlaceHidden(const QModelIndex &index, bool hidden)
         item->setHidden(hidden);
 
         d->reloadAndSignal();
-        Q_EMIT dataChanged(index, index, { KFilePlacesModel::HiddenRole });
+        Q_EMIT dataChanged(index, index, {KFilePlacesModel::HiddenRole});
     }
 }
 
@@ -1350,12 +1388,16 @@ QAction *KFilePlacesModel::teardownActionForIndex(const QModelIndex &index) cons
 {
     Solid::Device device = deviceForIndex(index);
 
+    QAction *action = nullptr;
+
     if (device.is<Solid::StorageAccess>() && device.as<Solid::StorageAccess>()->isAccessible()) {
         Solid::StorageDrive *drive = device.as<Solid::StorageDrive>();
 
         if (drive == nullptr) {
             drive = device.parent().as<Solid::StorageDrive>();
         }
+
+        const bool teardownInProgress = deviceAccessibility(index) == KFilePlacesModel::TeardownInProgress;
 
         bool hotpluggable = false;
         bool removable = false;
@@ -1369,23 +1411,39 @@ QAction *KFilePlacesModel::teardownActionForIndex(const QModelIndex &index) cons
         QString text;
 
         if (device.is<Solid::OpticalDisc>()) {
-            text = i18nc("@action:inmenu", "&Release");
+            if (teardownInProgress) {
+                text = i18nc("@action:inmenu", "Releasing…");
+            } else {
+                text = i18nc("@action:inmenu", "&Release");
+            }
         } else if (removable || hotpluggable) {
-            text = i18nc("@action:inmenu", "&Safely Remove");
+            if (teardownInProgress) {
+                text = i18nc("@action:inmenu", "Safely Removing…");
+            } else {
+                text = i18nc("@action:inmenu", "&Safely Remove");
+            }
             iconName = QStringLiteral("media-eject");
         } else {
-            text = i18nc("@action:inmenu", "&Unmount");
+            if (teardownInProgress) {
+                text = i18nc("@action:inmenu", "Unmounting…");
+            } else {
+                text = i18nc("@action:inmenu", "&Unmount");
+            }
             iconName = QStringLiteral("media-eject");
         }
 
         if (!iconName.isEmpty()) {
-            return new QAction(QIcon::fromTheme(iconName), text, nullptr);
+            action = new QAction(QIcon::fromTheme(iconName), text, nullptr);
         } else {
-            return new QAction(text, nullptr);
+            action = new QAction(text, nullptr);
+        }
+
+        if (teardownInProgress) {
+            action->setEnabled(false);
         }
     }
 
-    return nullptr;
+    return action;
 }
 
 QAction *KFilePlacesModel::ejectActionForIndex(const QModelIndex &index) const
@@ -1407,8 +1465,11 @@ void KFilePlacesModel::requestTeardown(const QModelIndex &index)
     Solid::StorageAccess *access = device.as<Solid::StorageAccess>();
 
     if (access != nullptr) {
-        connect(access, &Solid::StorageAccess::teardownDone, this, [this](Solid::ErrorType error, QVariant errorData) {
-            d->storageTeardownDone(error, errorData);
+        d->teardownInProgress[access] = index;
+
+        const QString filePath = access->filePath();
+        connect(access, &Solid::StorageAccess::teardownDone, this, [this, access, filePath](Solid::ErrorType error, QVariant errorData) {
+            d->storageTeardownDone(filePath, error, errorData, access);
         });
 
         access->teardown();
@@ -1422,8 +1483,16 @@ void KFilePlacesModel::requestEject(const QModelIndex &index)
     Solid::OpticalDrive *drive = device.parent().as<Solid::OpticalDrive>();
 
     if (drive != nullptr) {
-        connect(drive, &Solid::OpticalDrive::ejectDone, this, [this](Solid::ErrorType error, QVariant errorData) {
-            d->storageTeardownDone(error, errorData);
+        d->teardownInProgress[drive] = index;
+
+        QString filePath;
+        Solid::StorageAccess *access = device.as<Solid::StorageAccess>();
+        if (access) {
+            filePath = access->filePath();
+        }
+
+        connect(drive, &Solid::OpticalDrive::ejectDone, this, [this, filePath, drive](Solid::ErrorType error, QVariant errorData) {
+            d->storageTeardownDone(filePath, error, errorData, drive);
         });
 
         drive->eject();
@@ -1472,9 +1541,41 @@ void KFilePlacesModelPrivate::storageSetupDone(Solid::ErrorType error, const QVa
     }
 }
 
-void KFilePlacesModelPrivate::storageTeardownDone(Solid::ErrorType error, const QVariant &errorData)
+void KFilePlacesModelPrivate::storageTeardownDone(const QString &filePath, Solid::ErrorType error, const QVariant &errorData, QObject *sender)
 {
-    if (error && errorData.isValid()) {
+    QPersistentModelIndex index = teardownInProgress.take(sender);
+    if (!index.isValid()) {
+        return;
+    }
+
+    if (error == Solid::ErrorType::DeviceBusy && !filePath.isEmpty()) {
+        auto *listOpenFilesJob = new KListOpenFilesJob(filePath);
+        QObject::connect(listOpenFilesJob, &KIO::Job::result, q, [this, index, error, errorData, listOpenFilesJob]() {
+            const auto blockingProcesses = listOpenFilesJob->processInfoList();
+
+            QStringList blockingApps;
+            blockingApps.reserve(blockingProcesses.count());
+            for (const auto &process : blockingProcesses) {
+                blockingApps << process.name();
+            }
+
+            Q_EMIT q->teardownDone(index, error, errorData);
+            if (blockingProcesses.isEmpty()) {
+                Q_EMIT q->errorMessage(i18n("One or more files on this device are open within an application."));
+            } else {
+                blockingApps.removeDuplicates();
+                Q_EMIT q->errorMessage(xi18np("One or more files on this device are opened in application <application>\"%2\"</application>.",
+                                              "One or more files on this device are opened in following applications: <application>%2</application>.",
+                                              blockingApps.count(),
+                                              blockingApps.join(i18nc("separator in list of apps blocking device unmount", ", "))));
+            }
+        });
+        listOpenFilesJob->start();
+        return;
+    }
+
+    Q_EMIT q->teardownDone(index, error, errorData);
+    if (error != Solid::ErrorType::NoError && error != Solid::ErrorType::UserCanceled) {
         Q_EMIT q->errorMessage(errorData.toString());
     }
 }
@@ -1483,6 +1584,7 @@ void KFilePlacesModel::setSupportedSchemes(const QStringList &schemes)
 {
     d->supportedSchemes = schemes;
     d->reloadBookmarks();
+    Q_EMIT supportedSchemesChanged();
 }
 
 QStringList KFilePlacesModel::supportedSchemes() const

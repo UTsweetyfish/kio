@@ -49,7 +49,7 @@ public:
         StatJob *job = new StatJob(*new StatJobPrivate(url, command, packedArgs));
         job->setUiDelegate(KIO::createDefaultJobUiDelegate());
         if (!(flags & HideProgressInfo)) {
-            JobPrivate::setTransient(job);
+            job->setFinishedNotificationHidden();
             KIO::getJobTracker()->registerJob(job);
             emitStating(job, url);
         }
@@ -60,6 +60,7 @@ public:
 StatJob::StatJob(StatJobPrivate &dd)
     : SimpleJob(dd)
 {
+    setTotalAmount(Items, 1);
 }
 
 StatJob::~StatJob()
@@ -164,7 +165,7 @@ void StatJobPrivate::slotStatEntry(const KIO::UDSEntry &entry)
     m_statResult = entry;
 }
 
-// Slave got a redirection request
+// Worker got a redirection request
 void StatJobPrivate::slotRedirection(const QUrl &url)
 {
     Q_Q(StatJob);
@@ -200,16 +201,16 @@ void StatJob::slotFinished()
         }
     }
 
-    // Return slave to the scheduler
+    // Return worker to the scheduler
     SimpleJob::slotFinished();
 }
 
+#if KIOCORE_BUILD_DEPRECATED_SINCE(5, 101)
 void StatJob::slotMetaData(const KIO::MetaData &_metaData)
 {
-    Q_D(StatJob);
     SimpleJob::slotMetaData(_metaData);
-    storeSSLSessionFromJob(d->m_redirectionURL);
 }
+#endif
 
 StatJob *KIO::stat(const QUrl &url, JobFlags flags)
 {
@@ -242,7 +243,7 @@ StatJob *KIO::mostLocalUrl(const QUrl &url, JobFlags flags)
     StatJob *job = statDetails(url, StatJob::SourceSide, KIO::StatDefaultDetails, flags);
     if (!isUrlValid(url)) {
         QTimer::singleShot(0, job, &StatJob::slotFinished);
-        Scheduler::cancelJob(job); // deletes the slave if not 0
+        Scheduler::cancelJob(job); // deletes the worker if not 0
     }
     return job;
 }

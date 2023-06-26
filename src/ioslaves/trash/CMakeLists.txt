@@ -21,13 +21,12 @@ endif()
 ecm_qt_declare_logging_category(kio_trash_PART_DEBUG_SRCS
     HEADER kiotrashdebug.h
     IDENTIFIER KIO_TRASH
-    CATEGORY_NAME kf.kio.slaves.trash
-    OLD_CATEGORY_NAMES kf5.kio.trash
+    CATEGORY_NAME kf.kio.workers.trash
+    OLD_CATEGORY_NAMES kf5.kio.trash kf.kio.slaves.trash
     DESCRIPTION "kio trash (KIO)"
     EXPORT KIO
 )
-
-kcoreaddons_add_plugin(kio_trash INSTALL_NAMESPACE "kf5/kio")
+kcoreaddons_add_plugin(kio_trash INSTALL_NAMESPACE "kf${QT_MAJOR_VERSION}/kio")
 
 if(WIN32)
     target_sources(kio_trash PRIVATE
@@ -55,8 +54,8 @@ target_link_libraries(kio_trash
   KF5::ConfigCore
   KF5::Solid
   KF5::KIOCore
-  Qt5::DBus
-  Qt5::Network
+  Qt${QT_MAJOR_VERSION}::DBus
+  Qt${QT_MAJOR_VERSION}::Network
   KF5::I18n
   KF5::ConfigCore
 )
@@ -80,7 +79,7 @@ target_link_libraries(ktrash5
   KF5::ConfigCore
 )
 
-install(TARGETS ktrash5 ${KF5_INSTALL_TARGETS_DEFAULT_ARGS})
+install(TARGETS ktrash5 ${KF_INSTALL_TARGETS_DEFAULT_ARGS})
 
 ########### next target ###############
 
@@ -93,7 +92,7 @@ if(NOT WIN32 AND NOT KIOCORE_ONLY)
     )
     target_link_libraries(kcm_trash
        trash_common_unix
-       Qt5::DBus
+       Qt${QT_MAJOR_VERSION}::DBus
        KF5::I18n
        KF5::ConfigWidgets
        KF5::KIOCore
@@ -107,4 +106,5 @@ endif()
 
 ########### install files ###############
 
-install( FILES kcmtrash.desktop DESTINATION ${KDE_INSTALL_KSERVICES5DIR} )
+install( FILES kcmtrash.desktop DESTINATION ${KDE_INSTALL_KSERVICESDIR} )
+install( FILES kcm_trash.desktop DESTINATION ${KDE_INSTALL_APPDIR} )

@@ -12,7 +12,7 @@
 #include "commands_p.h"
 #include "connection_p.h"
 #include "hostinfo.h"
-#include "slavebase.h"
+#include "workerbase.h"
 #include <KLocalizedString>
 #include <signal.h>
 #include <time.h>
@@ -260,17 +260,17 @@ bool SlaveInterface::dispatch(int _cmd, const QByteArray &rawdata)
     case INF_MESSAGEBOX: {
         // qDebug() << "needs a msg box";
         QString text;
-        QString caption;
-        QString buttonYes;
-        QString buttonNo;
+        QString title;
+        QString primaryActionText;
+        QString secondaryActionText;
         QString dontAskAgainName;
         int type;
-        stream >> type >> text >> caption >> buttonYes >> buttonNo;
+        stream >> type >> text >> title >> primaryActionText >> secondaryActionText;
         if (stream.atEnd()) {
-            messageBox(type, text, caption, buttonYes, buttonNo);
+            messageBox(type, text, title, primaryActionText, secondaryActionText);
         } else {
             stream >> dontAskAgainName;
-            messageBox(type, text, caption, buttonYes, buttonNo, dontAskAgainName);
+            messageBox(type, text, title, primaryActionText, secondaryActionText, dontAskAgainName);
         }
         break;
     }
@@ -294,8 +294,9 @@ bool SlaveInterface::dispatch(int _cmd, const QByteArray &rawdata)
                     break;
                 }
             }
-        } else if (m.contains(QStringLiteral("privilege_conf_details"))) { // KF6 TODO Remove this conditional.
-            d->privilegeConfMetaData = m;
+        } else if (auto it = m.constFind(QStringLiteral("privilege_conf_details")); it != m.cend()) {
+            // see WORKER_MESSAGEBOX_DETAILS_HACK
+            d->messageBoxDetails = it.value();
         }
         Q_EMIT metaData(m);
         break;
@@ -328,7 +329,7 @@ bool SlaveInterface::dispatch(int _cmd, const QByteArray &rawdata)
         Q_EMIT privilegeOperationRequested();
         break;
     default:
-        qCWarning(KIO_CORE) << "Slave sends unknown command (" << _cmd << "), dropping slave";
+        qCWarning(KIO_CORE) << "Worker sends unknown command (" << _cmd << "), dropping worker.";
         return false;
     }
     return true;
@@ -392,16 +393,16 @@ void SlaveInterface::sendMessageBoxAnswer(int result)
     // qDebug() << "message box answer" << result;
 }
 
-void SlaveInterface::messageBox(int type, const QString &text, const QString &_caption, const QString &buttonYes, const QString &buttonNo)
+void SlaveInterface::messageBox(int type, const QString &text, const QString &title, const QString &primaryActionText, const QString &secondaryActionText)
 {
-    messageBox(type, text, _caption, buttonYes, buttonNo, QString());
+    messageBox(type, text, title, primaryActionText, secondaryActionText, QString());
 }
 
 void SlaveInterface::messageBox(int type,
                                 const QString &text,
-                                const QString &caption,
-                                const QString &buttonYes,
-                                const QString &buttonNo,
+                                const QString &title,
+                                const QString &primaryActionText,
+                                const QString &secondaryActionText,
                                 const QString &dontAskAgainName)
 {
     Q_D(SlaveInterface);
@@ -411,29 +412,29 @@ void SlaveInterface::messageBox(int type,
 
     QHash<UserNotificationHandler::MessageBoxDataType, QVariant> data;
     data.insert(UserNotificationHandler::MSG_TEXT, text);
-    data.insert(UserNotificationHandler::MSG_CAPTION, caption);
-    data.insert(UserNotificationHandler::MSG_YES_BUTTON_TEXT, buttonYes);
-    data.insert(UserNotificationHandler::MSG_NO_BUTTON_TEXT, buttonNo);
+    data.insert(UserNotificationHandler::MSG_TITLE, title);
+    data.insert(UserNotificationHandler::MSG_PRIMARYACTION_TEXT, primaryActionText);
+    data.insert(UserNotificationHandler::MSG_SECONDARYACTION_TEXT, secondaryActionText);
     data.insert(UserNotificationHandler::MSG_DONT_ASK_AGAIN, dontAskAgainName);
 
     // SMELL: the braindead way to support button icons
-    // TODO: Fix this in KIO::SlaveBase.
-    if (buttonYes == i18n("&Details")) {
-        data.insert(UserNotificationHandler::MSG_YES_BUTTON_ICON, QLatin1String("help-about"));
-    } else if (buttonYes == i18n("&Forever")) {
-        data.insert(UserNotificationHandler::MSG_YES_BUTTON_ICON, QLatin1String("flag-green"));
+    // TODO: Fix this in KIO::WorkerBase.
+    if (primaryActionText == i18n("&Details")) {
+        data.insert(UserNotificationHandler::MSG_PRIMARYACTION_ICON, QLatin1String("help-about"));
+    } else if (primaryActionText == i18n("&Forever")) {
+        data.insert(UserNotificationHandler::MSG_PRIMARYACTION_ICON, QLatin1String("flag-green"));
     }
 
-    if (buttonNo == i18n("Co&ntinue")) {
-        data.insert(UserNotificationHandler::MSG_NO_BUTTON_ICON, QLatin1String("arrow-right"));
-    } else if (buttonNo == i18n("&Current Session only")) {
-        data.insert(UserNotificationHandler::MSG_NO_BUTTON_ICON, QLatin1String("chronometer"));
+    if (secondaryActionText == i18n("Co&ntinue")) {
+        data.insert(UserNotificationHandler::MSG_SECONDARYACTION_ICON, QLatin1String("arrow-right"));
+    } else if (secondaryActionText == i18n("&Current Session only")) {
+        data.insert(UserNotificationHandler::MSG_SECONDARYACTION_ICON, QLatin1String("chronometer"));
     }
 
-    if (type == KIO::SlaveBase::SSLMessageBox) {
+    if (type == KIO::WorkerBase::SSLMessageBox) {
         data.insert(UserNotificationHandler::MSG_META_DATA, d->sslMetaData.toVariant());
-    } else if (type == KIO::SlaveBase::WarningContinueCancelDetailed) { // KF6 TODO Remove
-        data.insert(UserNotificationHandler::MSG_META_DATA, d->privilegeConfMetaData.toVariant());
+    } else if (type == KIO::WorkerBase::WarningContinueCancelDetailed) { // see WORKER_MESSAGEBOX_DETAILS_HACK
+        data.insert(UserNotificationHandler::MSG_DETAILS, d->messageBoxDetails);
     }
 
     globalUserNotificationHandler()->requestMessageBox(this, type, data);

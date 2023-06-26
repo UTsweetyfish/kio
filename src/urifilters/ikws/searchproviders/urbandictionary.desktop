@@ -4,19 +4,21 @@ Hidden=false
 Keys=urbandictionary,ud
 Name=Urban Dictionary
 Name[ar]=قاموس Urban
-Name[ast]=Urban Dictionary
 Name[az]=Urban Lüğəti
+Name[be]=Слоўнік Urban
+Name[be@latin]=Sloŭnik Urban
 Name[bg]=Urban Dictionary
 Name[bn]=Urban Dictionary
-Name[bs]=Urbani rječnik
+Name[bs]=Urbani rjeÄnik
 Name[ca]=Urban Dictionary
 Name[ca@valencia]=Urban Dictionary
 Name[cs]=Urban Dictionary
+Name[cy]=Geiriadur Dinesig
 Name[da]=Urban Dictionary
 Name[de]=Urban Dictionary
 Name[el]=Urban Dictionary(Λεξικό)
 Name[en_GB]=Urban Dictionary
-Name[eo]=Urba vortaro
+Name[eo]=Urba Vortaro
 Name[es]=Urban Dictionary
 Name[et]=Urban Dictionary
 Name[eu]=Urban Dictionary
@@ -33,8 +35,10 @@ Name[hr]=Urbani rječnik
 Name[hu]=Urban Dictionary
 Name[ia]=Dictionario Urban
 Name[id]=Urban Dictionary
-Name[is]=Urban orðabókin
+Name[ie]=Urban Dictionary
+Name[is]=Urban Dictionary
 Name[it]=Dizionario urbano
+Name[ka]=სალაპარაკო ლექსიკონი
 Name[kk]=Urban Dictionary
 Name[km]=វចនុក្រម Urban
 Name[kn]=ಅರ್ಬಾನ್(Urban) ಶಬ್ದಕೋಶ 
@@ -64,6 +68,7 @@ Name[sr@latin]=Urbani rečnik
 Name[sv]=Urban Dictionary
 Name[tg]=Луғати шаҳрнишинӣ
 Name[th]=พจนานุกรม Urban
+Name[tok]=lipu nimi Urban Dictionary
 Name[tr]=Urban Dictionary
 Name[ug]=Urban لۇغىتى
 Name[uk]=Urban Dictionary
@@ -74,15 +79,20 @@ Name[zh_CN]=都市词典
 Name[zh_TW]=Urban Dictionary
 Query=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[ar]=https://www.urbandictionary.com/define.php?term=\\{@}
-Query[ast]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[az]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[be]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[be@latin]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[bg]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[bs]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[ca]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[ca@valencia]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[cs]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[cy]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[da]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[de]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[el]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[en_GB]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[eo]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[es]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[et]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[eu]=https://www.urbandictionary.com/define.php?term=\\{@}
@@ -92,21 +102,27 @@ Query[gl]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[hu]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[ia]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[id]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[ie]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[is]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[it]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[ka]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[ko]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[lt]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[my]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[nl]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[nn]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[pa]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[pl]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[pt]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[pt_BR]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[ro]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[ru]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[sk]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[sl]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[sv]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[tg]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[tok]=https://www.urbandictionary.com/define.php?term=\\{@}
+Query[tr]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[uk]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[vi]=https://www.urbandictionary.com/define.php?term=\\{@}
 Query[x-test]=xxhttps://www.urbandictionary.com/define.php?term=\\{@}xx

@@ -26,7 +26,7 @@ Subject: report_error_removing_dirs
  
      QTimer *m_reportTimer;
  
-@@ -2185,6 +2188,10 @@ void CopyJobPrivate::setNextDirAttribute
+@@ -2183,6 +2186,10 @@ void CopyJobPrivate::setNextDirAttribute
              m_reportTimer->stop();
          }
  
@@ -37,7 +37,7 @@ Subject: report_error_removing_dirs
          q->emitResult();
      }
  }
-@@ -2256,12 +2263,14 @@ void CopyJobPrivate::slotTotalSize(KJob
+@@ -2254,12 +2261,14 @@ void CopyJobPrivate::slotTotalSize(KJob
  void CopyJobPrivate::slotResultDeletingDirs(KJob *job)
  {
      Q_Q(CopyJob);

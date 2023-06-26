@@ -71,7 +71,7 @@ public:
         Rename,
         Symlink,
         Transfer, // put() and get()
-        Other, // if other file operation set message, caption inside the job.
+        Other, // if other file operation set message, title inside the job.
     };
 
     // Maybe we could use the QObject parent/child mechanism instead
@@ -85,13 +85,14 @@ public:
     Job *q_ptr;
     // For privilege operation
     bool m_privilegeExecutionEnabled;
-    QString m_caption, m_message;
+    QString m_title, m_message;
     FileOperationType m_operationType;
 
     QByteArray privilegeOperationData();
     void slotSpeed(KJob *job, unsigned long speed);
 
     static void emitMoving(KIO::Job *, const QUrl &src, const QUrl &dest);
+    static void emitRenaming(KIO::Job *, const QUrl &src, const QUrl &dest);
     static void emitCopying(KIO::Job *, const QUrl &src, const QUrl &dest);
     static void emitCreatingDir(KIO::Job *, const QUrl &dir);
     static void emitDeleting(KIO::Job *, const QUrl &url);
@@ -99,7 +100,6 @@ public:
     static void emitTransferring(KIO::Job *, const QUrl &url);
     static void emitMounting(KIO::Job *, const QString &dev, const QString &point);
     static void emitUnmounting(KIO::Job *, const QString &point);
-    static void setTransient(KIO::Job *, bool transient = true);
 
     Q_DECLARE_PUBLIC(Job)
 };
@@ -126,14 +126,14 @@ public:
     QPointer<Slave> m_slave;
     QByteArray m_packedArgs;
     QUrl m_url;
-    QUrl m_subUrl;
+    QUrl m_subUrl; // TODO KF6 remove
     int m_command;
 
     // for use in KIO::Scheduler
     //
     // There are two kinds of protocol:
     // (1) The protocol of the url
-    // (2) The actual protocol that the io-slave uses.
+    // (2) The actual protocol that the KIO worker uses.
     //
     // These two often match, but not necessarily. Most notably, they don't
     // match when doing ftp via a proxy.
@@ -142,7 +142,7 @@ public:
     // JobData::protocol stores (2) while Job::url().protocol() returns (1).
     // The ProtocolInfoDict is indexed with (2).
     //
-    // We schedule slaves based on (2) but tell the slave about (1) via
+    // We schedule workers based on (2) but tell the worker about (1) via
     // Slave::setProtocol().
     QString m_protocol;
     QStringList m_proxyList;
@@ -206,20 +206,6 @@ public:
      * passed in. The regular URL will be set to the redirection URL which is then cleared.
      */
     void restartAfterRedirection(QUrl *redirectionUrl);
-
-    /**
-     * Request the ui delegate to show a message box.
-     * @internal
-     */
-    int requestMessageBox(int type,
-                          const QString &text,
-                          const QString &caption,
-                          const QString &buttonYes,
-                          const QString &buttonNo,
-                          const QString &iconYes = QString(),
-                          const QString &iconNo = QString(),
-                          const QString &dontAskAgainName = QString(),
-                          const KIO::MetaData &sslMetaData = KIO::MetaData());
 
     Q_DECLARE_PUBLIC(SimpleJob)
 
@@ -316,7 +302,7 @@ public:
     void start(KIO::Slave *slave) override;
     /**
      * @internal
-     * Called when the ioslave needs the data to send the server. This slot
+     * Called when the KIO worker needs the data to send the server. This slot
      * is invoked when the data is to be sent is read from a QIODevice rather
      * instead of a QByteArray buffer.
      */
@@ -333,7 +319,7 @@ public:
         TransferJob *job = new TransferJob(*new TransferJobPrivate(url, command, packedArgs, _staticData));
         job->setUiDelegate(KIO::createDefaultJobUiDelegate());
         if (!(flags & HideProgressInfo)) {
-            JobPrivate::setTransient(job);
+            job->setFinishedNotificationHidden();
             KIO::getJobTracker()->registerJob(job);
         }
         if (!(flags & NoPrivilegeExecution)) {
@@ -348,7 +334,7 @@ public:
         TransferJob *job = new TransferJob(*new TransferJobPrivate(url, command, packedArgs, ioDevice));
         job->setUiDelegate(KIO::createDefaultJobUiDelegate());
         if (!(flags & HideProgressInfo)) {
-            JobPrivate::setTransient(job);
+            job->setFinishedNotificationHidden();
             KIO::getJobTracker()->registerJob(job);
         }
         if (!(flags & NoPrivilegeExecution)) {
@@ -362,7 +348,7 @@ public:
 class DirectCopyJobPrivate;
 /**
  * @internal
- * Used for direct copy from or to the local filesystem (i.e. SlaveBase::copy())
+ * Used for direct copy from or to the local filesystem (i.e.\ WorkerBase::copy())
  */
 class DirectCopyJob : public SimpleJob
 {

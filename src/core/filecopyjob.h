@@ -38,7 +38,7 @@ public:
     /**
      * Sets the modification time of the file
      *
-     * Note that this is ignored if a direct copy (SlaveBase::copy) can be done,
+     * Note that this is ignored if a direct copy (WorkerBase::copy) can be done,
      * in which case the mtime of the source is applied to the destination (if the protocol
      * supports the concept).
      */
@@ -65,7 +65,7 @@ Q_SIGNALS:
     /**
      * MIME type determined during a file copy.
      * This is never emitted during a move, and might not be emitted during
-     * a file copy, depending on the slave. But when a get and a put are
+     * a file copy, depending on the worker. But when a get and a put are
      * being used (which is the common case), this signal forwards the
      * MIME type information from the get job.
      *
@@ -80,7 +80,7 @@ Q_SIGNALS:
     /**
      * MIME type determined during a file copy.
      * This is never emitted during a move, and might not be emitted during
-     * a file copy, depending on the slave. But when a get and a put are
+     * a file copy, depending on the worker. But when a get and a put are
      * being used (which is the common case), this signal forwards the
      * MIME type information from the get job.
      *
@@ -107,14 +107,15 @@ private:
 /**
  * Copy a single file.
  *
- * Uses either SlaveBase::copy() if the slave supports that
+ * Uses either WorkerBase::copy() if the worker supports that
  * or get() and put() otherwise.
  *
  * @param src Where to get the file
  * @param dest Where to put the file
  * @param permissions the file mode permissions to set on @p dest; if this is -1
  * (the default) no special permissions will be set on @p dest, i.e. it'll have
- * the default system permissions for newly created files.
+ * the default system permissions for newly created files, and the owner and group
+ * permissions are not preserved.
  * @param flags Can be @ref JobFlag::HideProgressInfo, Overwrite and Resume here
  * WARNING: Setting @ref JobFlag::Resume means that the data will be appended to
  * @p dest if @p dest exists
@@ -132,14 +133,15 @@ FileCopyJob *file_copy(const QUrl &src, const QUrl &dest, JobFlags flags) Q_DECL
 /**
  * Move a single file.
  *
- * Use either SlaveBase::rename() if the slave supports that,
+ * Use either WorkerBase::rename() if the worker supports that,
  * or copy() and del() otherwise, or eventually get() & put() & del()
  *
  * @param src Where to get the file
  * @param dest Where to put the file
  * @param permissions the file mode permissions to set on @p dest; if this is -1
  * (the default), no special permissions are set on @p dest, i.e. it'll have
- * the default system permissions for newly created files.
+ * the default system permissions for newly created files, and the owner and group
+ * permissions are not preserved.
  * @param flags Can be HideProgressInfo, Overwrite and Resume here
  * WARNING: Setting @ref JobFlag::Resume means that the data will be appended to
  * @p dest if @p dest exists

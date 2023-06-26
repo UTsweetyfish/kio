@@ -64,7 +64,7 @@ public:
     QString desktopEntryName() const;
 
     /**
-     * Returns the descriptive name of the search provider, e.g. "Google News".
+     * Returns the descriptive name of the search provider, e.g.\ "Google News".
      *
      * This name comes from the "Name=" property entry in the desktop file that
      * contains the search provider's information.
@@ -156,21 +156,18 @@ class KIOWIDGETS_EXPORT KUriFilterData
 public:
     /**
      * Describes the type of the URI that was filtered.
-     * Here is a brief description of the types:
-     *
-     * @li NetProtocol  - Any network protocol: http, ftp, nttp, pop3, etc...
-     * @li LocalFile    - A local file whose executable flag is not set
-     * @li LocalDir     - A local directory
-     * @li Executable   - A local file whose executable flag is set
-     * @li Help         - A man or info page
-     * @li Shell        - A shell executable (ex: echo "Test..." >> ~/testfile)
-     * @li Blocked      - A URI that should be blocked/filtered (ex: ad filtering)
-     * @li Error        - An incorrect URI (ex: "~johndoe" when user johndoe
-     *                    does not exist in that system )
-     * @li Unknown      - A URI that is not identified. Default value when
-     *                    a KUriFilterData is first created.
      */
-    enum UriTypes { NetProtocol = 0, LocalFile, LocalDir, Executable, Help, Shell, Blocked, Error, Unknown };
+    enum UriTypes {
+        NetProtocol = 0, ///< Any network protocol: http, ftp, nttp, pop3, etc...
+        LocalFile, ///< A local file whose executable flag is not set
+        LocalDir, ///< A local directory
+        Executable, ///< A local file whose executable flag is set
+        Help, ///< A man or info page
+        Shell, ///< A shell executable (ex: echo "Test..." >> ~/testfile)
+        Blocked, ///< A URI that should be blocked/filtered (ex: ad filtering)
+        Error, ///< An incorrect URI (ex: "~johndoe" when user johndoe does not exist in that system)
+        Unknown, ///< A URI that is not identified. Default value when a KUriFilterData is first created.
+    };
 
     /**
      * This enum describes the search filtering options to be used.
@@ -342,7 +339,7 @@ public:
     QChar searchTermSeparator() const;
 
     /**
-     * Returns the name of the search service provider, e.g. Google.
+     * Returns the name of the search service provider, e.g.\ Google.
      *
      * If @ref typedString was not filtered by a search filter plugin, this
      * function returns an empty string.

@@ -22,7 +22,6 @@
 #include <KLocalizedString>
 #include <kio/hostinfo.h>
 
-
 namespace
 {
 static int findString(const QString &s, const char *const *values)
@@ -295,7 +294,7 @@ public:
             return QJSValue(0);
         }
 
-        return QJSValue(host.count(QLatin1Char('.')));
+        return QJSValue(static_cast<int>(host.count(QLatin1Char('.'))));
     }
 
     // shExpMatch(str, pattern)

@@ -13,14 +13,14 @@
 #include <KLocalizedString>
 #include <KPluginFactory>
 #include <KPluralHandlingSpinBox>
-#include <ioslave_defaults.h>
+#include <ioworker_defaults.h>
 
 // Local
 #include "../ksaveioconfig.h"
 
 static constexpr int s_maxTimeoutValue = 3600;
 
-K_PLUGIN_FACTORY(KIOPreferencesFactory, registerPlugin<KIOPreferences>();)
+K_PLUGIN_CLASS_WITH_JSON(KIOPreferences, "netpref.json")
 
 KIOPreferences::KIOPreferences(QWidget *parent, const QVariantList &)
     : KCModule(parent)
@@ -160,7 +160,7 @@ void KIOPreferences::save()
     config.group("").writeEntry("MarkPartial", cb_ftpMarkPartial->isChecked());
     config.sync();
 
-    KSaveIOConfig::updateRunningIOSlaves(this);
+    KSaveIOConfig::updateRunningWorkers(this);
 
     Q_EMIT changed(false);
 }

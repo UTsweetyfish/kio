@@ -2,6 +2,7 @@
     This file is part of the KDE project
     SPDX-FileCopyrightText: 2007 Kevin Ottens <ervin@kde.org>
     SPDX-FileCopyrightText: 2008 Rafael Fernández López <ereslibre@kde.org>
+    SPDX-FileCopyrightText: 2022 Kai Uwe Broulik <kde@broulik.de>
 
     SPDX-License-Identifier: LGPL-2.0-only
 */
@@ -15,25 +16,29 @@
 #include <QDir>
 #include <QKeyEvent>
 #include <QMenu>
+#include <QMetaMethod>
+#include <QMimeData>
 #include <QPainter>
 #include <QPointer>
 #include <QScrollBar>
+#include <QScroller>
 #include <QTimeLine>
 #include <QTimer>
+#include <QToolTip>
+#include <QVariantAnimation>
+#include <QWindow>
+#include <kio/deleteortrashjob.h>
 
-#include <KCapacityBar>
+#include <KColorScheme>
+#include <KColorUtils>
 #include <KConfig>
 #include <KConfigGroup>
 #include <KJob>
-#include <KJobWidgets>
 #include <KLocalizedString>
-#include <KMessageBox>
 #include <KSharedConfig>
 #include <defaults-kfile.h> // ConfigGroup, PlacesIconsAutoresize, PlacesIconsStaticSize
 #include <kdirnotify.h>
-#include <kio/emptytrashjob.h>
 #include <kio/filesystemfreespacejob.h>
-#include <kio/jobuidelegate.h>
 #include <kmountpoint.h>
 #include <kpropertiesdialog.h>
 #include <solid/opticaldisc.h>
@@ -41,97 +46,32 @@
 #include <solid/storageaccess.h>
 #include <solid/storagedrive.h>
 #include <solid/storagevolume.h>
-#include <widgetsaskuseractionhandler.h>
+
+#include <chrono>
+#include <cmath>
 
 #include "kfileplaceeditdialog.h"
 #include "kfileplacesmodel.h"
 
+using namespace std::chrono_literals;
+
 static constexpr int s_lateralMargin = 4;
 static constexpr int s_capacitybarHeight = 6;
-
-struct PlaceFreeSpaceInfo {
-    QDateTime lastUpdated;
-    KIO::filesize_t used = 0;
-    KIO::filesize_t size = 0;
-    QPointer<KIO::FileSystemFreeSpaceJob> job;
-};
-
-class KFilePlacesViewDelegate : public QAbstractItemDelegate
-{
-    Q_OBJECT
-public:
-    explicit KFilePlacesViewDelegate(KFilePlacesView *parent);
-    ~KFilePlacesViewDelegate() override;
-    QSize sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-    void paint(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const override;
-
-    int iconSize() const;
-    void setIconSize(int newSize);
-
-    void addAppearingItem(const QModelIndex &index);
-    void setAppearingItemProgress(qreal value);
-    void addDisappearingItem(const QModelIndex &index);
-    void addDisappearingItemGroup(const QModelIndex &index);
-    void setDisappearingItemProgress(qreal value);
-
-    void setShowHoverIndication(bool show);
-
-    void addFadeAnimation(const QModelIndex &index, QTimeLine *timeLine);
-    void removeFadeAnimation(const QModelIndex &index);
-    QModelIndex indexForFadeAnimation(QTimeLine *timeLine) const;
-    QTimeLine *fadeAnimationForIndex(const QModelIndex &index) const;
-
-    qreal contentsOpacity(const QModelIndex &index) const;
-
-    bool pointIsHeaderArea(const QPoint &pos);
-
-    void startDrag();
-
-    int sectionHeaderHeight() const;
-
-    void clearFreeSpaceInfo();
-
-private:
-    QString groupNameFromIndex(const QModelIndex &index) const;
-    QModelIndex previousVisibleIndex(const QModelIndex &index) const;
-    bool indexIsSectionHeader(const QModelIndex &index) const;
-    void drawSectionHeader(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const;
-
-    QColor textColor(const QStyleOption &option) const;
-    QColor baseColor(const QStyleOption &option) const;
-    QColor mixedColor(const QColor &c1, const QColor &c2, int c1Percent) const;
-
-    KFilePlacesView *m_view;
-    int m_iconSize;
-
-    QList<QPersistentModelIndex> m_appearingItems;
-    int m_appearingIconSize;
-    qreal m_appearingOpacity;
-
-    QList<QPersistentModelIndex> m_disappearingItems;
-    int m_disappearingIconSize;
-    qreal m_disappearingOpacity;
-
-    bool m_showHoverIndication;
-    mutable bool m_dragStarted;
-
-    QMap<QPersistentModelIndex, QTimeLine *> m_timeLineMap;
-    QMap<QTimeLine *, QPersistentModelIndex> m_timeLineInverseMap;
-
-    mutable QMap<QPersistentModelIndex, PlaceFreeSpaceInfo> m_freeSpaceInfo;
-};
+static constexpr auto s_pollFreeSpaceInterval = 1min;
 
 KFilePlacesViewDelegate::KFilePlacesViewDelegate(KFilePlacesView *parent)
     : QAbstractItemDelegate(parent)
     , m_view(parent)
     , m_iconSize(48)
-    , m_appearingIconSize(0)
+    , m_appearingHeightScale(1.0)
     , m_appearingOpacity(0.0)
-    , m_disappearingIconSize(0)
+    , m_disappearingHeightScale(1.0)
     , m_disappearingOpacity(0.0)
     , m_showHoverIndication(true)
     , m_dragStarted(false)
 {
+    m_pollFreeSpace.setInterval(s_pollFreeSpaceInterval);
+    connect(&m_pollFreeSpace, &QTimer::timeout, this, QOverload<>::of(&KFilePlacesViewDelegate::checkFreeSpace));
 }
 
 KFilePlacesViewDelegate::~KFilePlacesViewDelegate()
@@ -140,17 +80,16 @@ KFilePlacesViewDelegate::~KFilePlacesViewDelegate()
 
 QSize KFilePlacesViewDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
-    int iconSize = m_iconSize;
+    int height = std::max(m_iconSize, option.fontMetrics.height()) + s_lateralMargin;
+
     if (m_appearingItems.contains(index)) {
-        iconSize = m_appearingIconSize;
+        height *= m_appearingHeightScale;
     } else if (m_disappearingItems.contains(index)) {
-        iconSize = m_disappearingIconSize;
+        height *= m_disappearingHeightScale;
     }
 
-    int height = option.fontMetrics.height() / 2 + qMax(iconSize, option.fontMetrics.height());
-
     if (indexIsSectionHeader(index)) {
-        height += sectionHeaderHeight();
+        height += sectionHeaderHeight(index);
     }
 
     return QSize(option.rect.width(), height);
@@ -172,12 +111,10 @@ void KFilePlacesViewDelegate::paint(QPainter *painter, const QStyleOptionViewIte
         }
 
         // Move the target rect to the actual item rect
-        const int headerHeight = sectionHeaderHeight();
+        const int headerHeight = sectionHeaderHeight(index);
         opt.rect.translate(0, headerHeight);
         opt.rect.setHeight(opt.rect.height() - headerHeight);
     }
-
-    m_dragStarted = false;
 
     // draw item
     if (m_appearingItems.contains(index)) {
@@ -194,9 +131,41 @@ void KFilePlacesViewDelegate::paint(QPainter *painter, const QStyleOptionViewIte
         opt.state &= ~QStyle::State_MouseOver;
     }
 
+    if (opt.state & QStyle::State_MouseOver) {
+        if (index == m_hoveredHeaderArea) {
+            opt.state &= ~QStyle::State_MouseOver;
+        }
+    }
+
+    // Avoid a solid background for the drag pixmap so the drop indicator
+    // is more easily seen.
+    if (m_dragStarted) {
+        opt.state.setFlag(QStyle::State_MouseOver, true);
+        opt.state.setFlag(QStyle::State_Active, false);
+        opt.state.setFlag(QStyle::State_Selected, false);
+    }
+
+    m_dragStarted = false;
+
     QApplication::style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, painter);
 
+    const auto accessibility = placesModel->deviceAccessibility(index);
+    const bool isBusy = (accessibility == KFilePlacesModel::SetupInProgress || accessibility == KFilePlacesModel::TeardownInProgress);
+
+    QIcon actionIcon;
+    if (isBusy) {
+        actionIcon = QIcon::fromTheme(QStringLiteral("view-refresh"));
+    } else if (placesModel->isTeardownOverlayRecommended(index)) {
+        actionIcon = QIcon::fromTheme(QStringLiteral("media-eject"));
+    }
+
     bool isLTR = opt.direction == Qt::LeftToRight;
+    const int iconAreaWidth = s_lateralMargin + m_iconSize;
+    const int actionAreaWidth = !actionIcon.isNull() ? s_lateralMargin + actionIconSize() : 0;
+    QRect rectText((isLTR ? iconAreaWidth : actionAreaWidth) + s_lateralMargin,
+                   opt.rect.top(),
+                   opt.rect.width() - iconAreaWidth - actionAreaWidth - 2 * s_lateralMargin,
+                   opt.rect.height());
 
     const QPalette activePalette = KIconLoader::global()->customPalette();
     const bool changePalette = activePalette != opt.palette;
@@ -204,12 +173,42 @@ void KFilePlacesViewDelegate::paint(QPainter *painter, const QStyleOptionViewIte
         KIconLoader::global()->setCustomPalette(opt.palette);
     }
 
+    const bool selectedAndActive = (opt.state & QStyle::State_Selected) && (opt.state & QStyle::State_Active);
+    QIcon::Mode mode = selectedAndActive ? QIcon::Selected : QIcon::Normal;
     QIcon icon = index.model()->data(index, Qt::DecorationRole).value<QIcon>();
-    QPixmap pm =
-        icon.pixmap(m_iconSize, m_iconSize, (opt.state & QStyle::State_Selected) && (opt.state & QStyle::State_Active) ? QIcon::Selected : QIcon::Normal);
+    QPixmap pm = icon.pixmap(m_iconSize, m_iconSize, mode);
     QPoint point(isLTR ? opt.rect.left() + s_lateralMargin : opt.rect.right() - s_lateralMargin - m_iconSize,
                  opt.rect.top() + (opt.rect.height() - m_iconSize) / 2);
     painter->drawPixmap(point, pm);
+
+    if (!actionIcon.isNull()) {
+        const int iconSize = actionIconSize();
+        QIcon::Mode mode = QIcon::Normal;
+        if (selectedAndActive) {
+            mode = QIcon::Selected;
+        } else if (m_hoveredAction == index) {
+            mode = QIcon::Active;
+        }
+
+        const QPixmap pixmap = actionIcon.pixmap(iconSize, iconSize, mode);
+
+        const QRectF rect(isLTR ? opt.rect.right() - actionAreaWidth : opt.rect.left() + s_lateralMargin,
+                          opt.rect.top() + (opt.rect.height() - iconSize) / 2,
+                          iconSize,
+                          iconSize);
+
+        if (isBusy) {
+            painter->save();
+            painter->setRenderHint(QPainter::SmoothPixmapTransform);
+            painter->translate(rect.center());
+            painter->rotate(m_busyAnimationRotation);
+            painter->translate(QPointF(-rect.width() / 2.0, -rect.height() / 2.0));
+            painter->drawPixmap(0, 0, pixmap);
+            painter->restore();
+        } else {
+            painter->drawPixmap(rect.topLeft(), pixmap);
+        }
+    }
 
     if (changePalette) {
         if (activePalette == QPalette()) {
@@ -219,86 +218,98 @@ void KFilePlacesViewDelegate::paint(QPainter *painter, const QStyleOptionViewIte
         }
     }
 
-    if (opt.state & QStyle::State_Selected) {
-        QPalette::ColorGroup cg = QPalette::Active;
-        if (!(opt.state & QStyle::State_Enabled)) {
-            cg = QPalette::Disabled;
-        } else if (!(opt.state & QStyle::State_Active)) {
-            cg = QPalette::Inactive;
-        }
-        painter->setPen(opt.palette.color(cg, QPalette::HighlightedText));
+    if (selectedAndActive) {
+        painter->setPen(opt.palette.highlightedText().color());
+    } else {
+        painter->setPen(opt.palette.text().color());
     }
 
-    QRect rectText;
-
-    bool drawCapacityBar = false;
     if (placesModel->data(index, KFilePlacesModel::CapacityBarRecommendedRole).toBool()) {
-        const QUrl url = placesModel->url(index);
-        if (contentsOpacity(index) > 0) {
-            QPersistentModelIndex persistentIndex(index);
-            PlaceFreeSpaceInfo &info = m_freeSpaceInfo[persistentIndex];
+        QPersistentModelIndex persistentIndex(index);
+        const auto info = m_freeSpaceInfo.value(persistentIndex);
 
-            drawCapacityBar = info.size > 0;
-            if (drawCapacityBar) {
-                painter->save();
-                painter->setOpacity(painter->opacity() * contentsOpacity(index));
+        checkFreeSpace(index); // async
 
-                int height = opt.fontMetrics.height() + s_capacitybarHeight;
-                rectText = QRect(isLTR ? m_iconSize + s_lateralMargin * 2 + opt.rect.left() : 0,
-                                 opt.rect.top() + (opt.rect.height() / 2 - height / 2),
-                                 opt.rect.width() - m_iconSize - s_lateralMargin * 2,
-                                 opt.fontMetrics.height());
-                painter->drawText(rectText,
-                                  Qt::AlignLeft | Qt::AlignTop,
-                                  opt.fontMetrics.elidedText(index.model()->data(index).toString(), Qt::ElideRight, rectText.width()));
-                QRect capacityRect(isLTR ? rectText.x() : s_lateralMargin, rectText.bottom() - 1, rectText.width() - s_lateralMargin, s_capacitybarHeight);
-                KCapacityBar capacityBar(KCapacityBar::DrawTextInline);
-                capacityBar.setValue((info.used * 100) / info.size);
-                capacityBar.drawCapacityBar(painter, capacityRect);
+        if (info.size > 0) {
+            const int capacityBarHeight = std::ceil(m_iconSize / 8.0);
+            const qreal usedSpace = info.used / qreal(info.size);
 
-                painter->restore();
+            // Vertically center text + capacity bar, so move text up a bit
+            rectText.setTop(opt.rect.top() + (opt.rect.height() - opt.fontMetrics.height() - capacityBarHeight) / 2);
+            rectText.setHeight(opt.fontMetrics.height());
 
-                painter->save();
-                painter->setOpacity(painter->opacity() * (1 - contentsOpacity(index)));
+            const int radius = capacityBarHeight / 2;
+            QRect capacityBgRect(rectText.x(), rectText.bottom(), rectText.width(), capacityBarHeight);
+            capacityBgRect.adjust(0.5, 0.5, -0.5, -0.5);
+            QRect capacityFillRect = capacityBgRect;
+            capacityFillRect.setWidth(capacityFillRect.width() * usedSpace);
+
+            QPalette::ColorGroup cg = QPalette::Active;
+            if (!(opt.state & QStyle::State_Enabled)) {
+                cg = QPalette::Disabled;
+            } else if (!m_view->isActiveWindow()) {
+                cg = QPalette::Inactive;
             }
 
-            if (!info.job && (!info.lastUpdated.isValid() || info.lastUpdated.secsTo(QDateTime::currentDateTimeUtc()) > 60)) {
-                info.job = KIO::fileSystemFreeSpace(url);
-                connect(info.job,
-                        &KIO::FileSystemFreeSpaceJob::result,
-                        this,
-                        [this, persistentIndex](KIO::Job *job, KIO::filesize_t size, KIO::filesize_t available) {
-                            PlaceFreeSpaceInfo &info = m_freeSpaceInfo[persistentIndex];
+            // Adapted from Breeze style's progress bar rendering
+            QColor capacityBgColor(opt.palette.color(QPalette::WindowText));
+            capacityBgColor.setAlphaF(0.2 * capacityBgColor.alphaF());
 
-                            // even if we receive an error we want to refresh lastUpdated to avoid repeatedly querying in this case
-                            info.lastUpdated = QDateTime::currentDateTimeUtc();
-
-                            if (job->error()) {
-                                return;
-                            }
-
-                            info.size = size;
-                            info.used = size - available;
-
-                            // FIXME scheduleDelayedItemsLayout but we're in the delegate here, not the view
-                        });
+            QColor capacityFgColor(selectedAndActive ? opt.palette.color(cg, QPalette::HighlightedText) : opt.palette.color(cg, QPalette::Highlight));
+            if (usedSpace > 0.95) {
+                if (!m_warningCapacityBarColor.isValid()) {
+                    m_warningCapacityBarColor = KColorScheme(cg, KColorScheme::View).foreground(KColorScheme::NegativeText).color();
+                }
+                capacityFgColor = m_warningCapacityBarColor;
             }
+
+            painter->save();
+
+            painter->setRenderHint(QPainter::Antialiasing, true);
+            painter->setPen(Qt::NoPen);
+
+            painter->setBrush(capacityBgColor);
+            painter->drawRoundedRect(capacityBgRect, radius, radius);
+
+            painter->setBrush(capacityFgColor);
+            painter->drawRoundedRect(capacityFillRect, radius, radius);
+
+            painter->restore();
         }
     }
 
-    rectText = QRect(isLTR ? m_iconSize + s_lateralMargin * 2 + opt.rect.left() : 0,
-                     opt.rect.top(),
-                     opt.rect.width() - m_iconSize - s_lateralMargin * 2,
-                     opt.rect.height());
     painter->drawText(rectText,
                       Qt::AlignLeft | Qt::AlignVCenter,
                       opt.fontMetrics.elidedText(index.model()->data(index).toString(), Qt::ElideRight, rectText.width()));
 
-    if (drawCapacityBar) {
-        painter->restore();
-    }
-
     painter->restore();
+}
+
+bool KFilePlacesViewDelegate::helpEvent(QHelpEvent *event, QAbstractItemView *view, const QStyleOptionViewItem &option, const QModelIndex &index)
+{
+    if (event->type() == QHelpEvent::ToolTip) {
+        if (pointIsTeardownAction(event->pos())) {
+            if (auto *placesModel = qobject_cast<const KFilePlacesModel *>(index.model())) {
+                Q_ASSERT(placesModel->isTeardownOverlayRecommended(index));
+
+                QString toolTipText;
+
+                if (auto eject = std::unique_ptr<QAction>{placesModel->ejectActionForIndex(index)}) {
+                    toolTipText = eject->toolTip();
+                } else if (auto teardown = std::unique_ptr<QAction>{placesModel->teardownActionForIndex(index)}) {
+                    toolTipText = teardown->toolTip();
+                }
+
+                if (!toolTipText.isEmpty()) {
+                    // TODO rect
+                    QToolTip::showText(event->globalPos(), toolTipText, m_view);
+                    event->setAccepted(true);
+                    return true;
+                }
+            }
+        }
+    }
+    return QAbstractItemDelegate::helpEvent(event, view, option, index);
 }
 
 int KFilePlacesViewDelegate::iconSize() const
@@ -320,19 +331,20 @@ void KFilePlacesViewDelegate::setAppearingItemProgress(qreal value)
 {
     if (value <= 0.25) {
         m_appearingOpacity = 0.0;
-        m_appearingIconSize = iconSize() * value * 4;
-
-        if (m_appearingIconSize >= m_iconSize) {
-            m_appearingIconSize = m_iconSize;
-        }
+        m_appearingHeightScale = std::min(1.0, value * 4);
     } else {
-        m_appearingIconSize = m_iconSize;
+        m_appearingHeightScale = 1.0;
         m_appearingOpacity = (value - 0.25) * 4 / 3;
 
         if (value >= 1.0) {
             m_appearingItems.clear();
         }
     }
+}
+
+void KFilePlacesViewDelegate::setDeviceBusyAnimationRotation(qreal angle)
+{
+    m_busyAnimationRotation = angle;
 }
 
 void KFilePlacesViewDelegate::addDisappearingItem(const QModelIndex &index)
@@ -357,17 +369,13 @@ void KFilePlacesViewDelegate::setDisappearingItemProgress(qreal value)
 
     if (value <= 0.25) {
         m_disappearingOpacity = 0.0;
-        m_disappearingIconSize = iconSize() * value * 4;
-
-        if (m_disappearingIconSize >= m_iconSize) {
-            m_disappearingIconSize = m_iconSize;
-        }
+        m_disappearingHeightScale = std::min(1.0, value * 4);
 
         if (value <= 0.0) {
             m_disappearingItems.clear();
         }
     } else {
-        m_disappearingIconSize = m_iconSize;
+        m_disappearingHeightScale = 1.0;
         m_disappearingOpacity = (value - 0.25) * 4 / 3;
     }
 }
@@ -377,39 +385,17 @@ void KFilePlacesViewDelegate::setShowHoverIndication(bool show)
     m_showHoverIndication = show;
 }
 
-void KFilePlacesViewDelegate::addFadeAnimation(const QModelIndex &index, QTimeLine *timeLine)
+void KFilePlacesViewDelegate::setHoveredHeaderArea(const QModelIndex &index)
 {
-    m_timeLineMap.insert(index, timeLine);
-    m_timeLineInverseMap.insert(timeLine, index);
+    m_hoveredHeaderArea = index;
 }
 
-void KFilePlacesViewDelegate::removeFadeAnimation(const QModelIndex &index)
+void KFilePlacesViewDelegate::setHoveredAction(const QModelIndex &index)
 {
-    QTimeLine *timeLine = m_timeLineMap.value(index, nullptr);
-    m_timeLineMap.remove(index);
-    m_timeLineInverseMap.remove(timeLine);
+    m_hoveredAction = index;
 }
 
-QModelIndex KFilePlacesViewDelegate::indexForFadeAnimation(QTimeLine *timeLine) const
-{
-    return m_timeLineInverseMap.value(timeLine, QModelIndex());
-}
-
-QTimeLine *KFilePlacesViewDelegate::fadeAnimationForIndex(const QModelIndex &index) const
-{
-    return m_timeLineMap.value(index, nullptr);
-}
-
-qreal KFilePlacesViewDelegate::contentsOpacity(const QModelIndex &index) const
-{
-    QTimeLine *timeLine = fadeAnimationForIndex(index);
-    if (timeLine) {
-        return timeLine->currentValue();
-    }
-    return 0;
-}
-
-bool KFilePlacesViewDelegate::pointIsHeaderArea(const QPoint &pos)
+bool KFilePlacesViewDelegate::pointIsHeaderArea(const QPoint &pos) const
 {
     // we only accept drag events starting from item body, ignore drag request from header
     QModelIndex index = m_view->indexAt(pos);
@@ -420,16 +406,135 @@ bool KFilePlacesViewDelegate::pointIsHeaderArea(const QPoint &pos)
     if (indexIsSectionHeader(index)) {
         const QRect vRect = m_view->visualRect(index);
         const int delegateY = pos.y() - vRect.y();
-        if (delegateY <= sectionHeaderHeight()) {
+        if (delegateY <= sectionHeaderHeight(index)) {
             return true;
         }
     }
     return false;
 }
 
+bool KFilePlacesViewDelegate::pointIsTeardownAction(const QPoint &pos) const
+{
+    QModelIndex index = m_view->indexAt(pos);
+    if (!index.isValid()) {
+        return false;
+    }
+
+    if (!index.data(KFilePlacesModel::TeardownOverlayRecommendedRole).toBool()) {
+        return false;
+    }
+
+    const QRect vRect = m_view->visualRect(index);
+    const bool isLTR = m_view->layoutDirection() == Qt::LeftToRight;
+
+    const int delegateX = pos.x() - vRect.x();
+
+    if (isLTR) {
+        if (delegateX < (vRect.width() - 2 * s_lateralMargin - actionIconSize())) {
+            return false;
+        }
+    } else {
+        if (delegateX >= 2 * s_lateralMargin + actionIconSize()) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 void KFilePlacesViewDelegate::startDrag()
 {
     m_dragStarted = true;
+}
+
+void KFilePlacesViewDelegate::checkFreeSpace()
+{
+    if (!m_view->model()) {
+        return;
+    }
+
+    bool hasChecked = false;
+
+    for (int i = 0; i < m_view->model()->rowCount(); ++i) {
+        if (m_view->isRowHidden(i)) {
+            continue;
+        }
+
+        const QModelIndex idx = m_view->model()->index(i, 0);
+        if (!idx.data(KFilePlacesModel::CapacityBarRecommendedRole).toBool()) {
+            continue;
+        }
+
+        checkFreeSpace(idx);
+        hasChecked = true;
+    }
+
+    if (!hasChecked) {
+        // Stop timer, there are no more devices
+        stopPollingFreeSpace();
+    }
+}
+
+void KFilePlacesViewDelegate::startPollingFreeSpace() const
+{
+    if (m_pollFreeSpace.isActive()) {
+        return;
+    }
+
+    if (!m_view->isActiveWindow() || !m_view->isVisible()) {
+        return;
+    }
+
+    m_pollFreeSpace.start();
+}
+
+void KFilePlacesViewDelegate::stopPollingFreeSpace() const
+{
+    m_pollFreeSpace.stop();
+}
+
+void KFilePlacesViewDelegate::checkFreeSpace(const QModelIndex &index) const
+{
+    Q_ASSERT(index.data(KFilePlacesModel::CapacityBarRecommendedRole).toBool());
+
+    const QUrl url = index.data(KFilePlacesModel::UrlRole).toUrl();
+
+    QPersistentModelIndex persistentIndex{index};
+
+    auto &info = m_freeSpaceInfo[persistentIndex];
+
+    if (info.job || !info.timeout.hasExpired()) {
+        return;
+    }
+
+    // Restarting timeout before job finishes, so that when we poll all devices
+    // and then get the result, the next poll will again update and not have
+    // a remaining time of 99% because it came in shortly afterwards.
+    // Also allow a bit of Timer slack.
+    info.timeout.setRemainingTime(s_pollFreeSpaceInterval - 100ms);
+
+    info.job = KIO::fileSystemFreeSpace(url);
+    QObject::connect(info.job,
+                     &KIO::FileSystemFreeSpaceJob::result,
+                     this,
+                     [this, persistentIndex](KIO::Job *job, KIO::filesize_t size, KIO::filesize_t available) {
+                         if (!persistentIndex.isValid()) {
+                             return;
+                         }
+
+                         if (job->error()) {
+                             return;
+                         }
+
+                         PlaceFreeSpaceInfo &info = m_freeSpaceInfo[persistentIndex];
+
+                         info.size = size;
+                         info.used = size - available;
+
+                         m_view->update(persistentIndex);
+                     });
+
+    startPollingFreeSpace();
 }
 
 void KFilePlacesViewDelegate::clearFreeSpaceInfo()
@@ -448,7 +553,7 @@ QString KFilePlacesViewDelegate::groupNameFromIndex(const QModelIndex &index) co
 
 QModelIndex KFilePlacesViewDelegate::previousVisibleIndex(const QModelIndex &index) const
 {
-    if (index.row() == 0) {
+    if (!index.isValid() || index.row() == 0) {
         return QModelIndex();
     }
 
@@ -471,10 +576,6 @@ bool KFilePlacesViewDelegate::indexIsSectionHeader(const QModelIndex &index) con
         return false;
     }
 
-    if (index.row() == 0) {
-        return true;
-    }
-
     const auto groupName = groupNameFromIndex(index);
     const auto previousGroupName = groupNameFromIndex(previousVisibleIndex(index));
     return groupName != previousGroupName;
@@ -485,14 +586,18 @@ void KFilePlacesViewDelegate::drawSectionHeader(QPainter *painter, const QStyleO
     const KFilePlacesModel *placesModel = static_cast<const KFilePlacesModel *>(index.model());
 
     const QString groupLabel = index.data(KFilePlacesModel::GroupRole).toString();
-    const QString category = placesModel->isGroupHidden(index) ? i18n("%1 (hidden)", groupLabel) : groupLabel;
+    const QString category = placesModel->isGroupHidden(index)
+            // Avoid showing "(hidden)" during disappear animation when hiding a group
+            && !m_disappearingItems.contains(index)
+        ? i18n("%1 (hidden)", groupLabel)
+        : groupLabel;
 
     QRect textRect(option.rect);
     textRect.setLeft(textRect.left() + 3);
     /* Take spacing into account:
        The spacing to the previous section compensates for the spacing to the first item.*/
     textRect.setY(textRect.y() /* + qMax(2, m_view->spacing()) - qMax(2, m_view->spacing())*/);
-    textRect.setHeight(sectionHeaderHeight());
+    textRect.setHeight(sectionHeaderHeight(index) - s_lateralMargin - m_view->spacing());
 
     painter->save();
 
@@ -502,8 +607,14 @@ void KFilePlacesViewDelegate::drawSectionHeader(QPainter *painter, const QStyleO
     QColor penColor = mixedColor(c1, c2, 60);
 
     painter->setPen(penColor);
-    painter->drawText(textRect, Qt::AlignLeft | Qt::AlignBottom, category);
+    painter->drawText(textRect, Qt::AlignLeft | Qt::AlignBottom, option.fontMetrics.elidedText(category, Qt::ElideRight, textRect.width()));
     painter->restore();
+}
+
+void KFilePlacesViewDelegate::paletteChange()
+{
+    // Reset cache, will be re-created when painted
+    m_warningCapacityBarColor = QColor();
 }
 
 QColor KFilePlacesViewDelegate::textColor(const QStyleOption &option) const
@@ -528,10 +639,20 @@ QColor KFilePlacesViewDelegate::mixedColor(const QColor &c1, const QColor &c2, i
                   (c1.blue() * c1Percent + c2.blue() * c2Percent) / 100);
 }
 
-int KFilePlacesViewDelegate::sectionHeaderHeight() const
+int KFilePlacesViewDelegate::sectionHeaderHeight(const QModelIndex &index) const
 {
     // Account for the spacing between header and item
-    return QApplication::fontMetrics().height() + qMax(2, m_view->spacing());
+    const int spacing = (s_lateralMargin + m_view->spacing());
+    int height = m_view->fontMetrics().height() + spacing;
+    if (index.row() != 0) {
+        height += 2 * spacing;
+    }
+    return height;
+}
+
+int KFilePlacesViewDelegate::actionIconSize() const
+{
+    return qApp->style()->pixelMetric(QStyle::PM_SmallIconSize, nullptr, m_view);
 }
 
 class KFilePlacesViewPrivate
@@ -543,6 +664,8 @@ public:
         , m_delegate(new KFilePlacesViewDelegate(q))
     {
     }
+
+    using ActivationSignal = void (KFilePlacesView::*)(const QUrl &);
 
     enum FadeType {
         FadeIn = 0,
@@ -557,12 +680,15 @@ public:
     bool insertAbove(const QRect &itemRect, const QPoint &pos) const;
     bool insertBelow(const QRect &itemRect, const QPoint &pos) const;
     int insertIndicatorHeight(int itemHeight) const;
-    void fadeCapacityBar(const QModelIndex &index, FadeType fadeType);
     int sectionsCount() const;
+
+    void addPlace(const QModelIndex &index);
+    void editPlace(const QModelIndex &index);
 
     void addDisappearingItem(KFilePlacesViewDelegate *delegate, const QModelIndex &index);
     void triggerItemAppearingAnimation();
     void triggerItemDisappearingAnimation();
+    bool shouldAnimate() const;
 
     void writeConfig();
     void readConfig();
@@ -571,16 +697,21 @@ public:
     // Adds the "Icon Size" sub-menu items
     void setupIconSizeSubMenu(QMenu *submenu);
 
-    void placeClicked(const QModelIndex &index);
-    void placeEntered(const QModelIndex &index);
-    void placeLeft(const QModelIndex &index);
+    void placeClicked(const QModelIndex &index, ActivationSignal activationSignal);
+    void headerAreaEntered(const QModelIndex &index);
+    void headerAreaLeft(const QModelIndex &index);
+    void actionClicked(const QModelIndex &index);
+    void actionEntered(const QModelIndex &index);
+    void actionLeft(const QModelIndex &index);
+    void teardown(const QModelIndex &index);
     void storageSetupDone(const QModelIndex &index, bool success);
     void adaptItemsUpdate(qreal value);
     void itemAppearUpdate(qreal value);
     void itemDisappearUpdate(qreal value);
     void enableSmoothItemResizing();
-    void capacityBarFadeValueChanged(QTimeLine *sender);
-    void triggerDevicePolling();
+    void slotEmptyTrash();
+
+    void deviceBusyAnimationValueChanged(const QVariant &value);
 
     KFilePlacesView *const q;
 
@@ -589,23 +720,31 @@ public:
 
     Solid::StorageAccess *m_lastClickedStorage = nullptr;
     QPersistentModelIndex m_lastClickedIndex;
+    ActivationSignal m_lastActivationSignal = nullptr;
 
-    std::unique_ptr<KIO::WidgetsAskUserActionHandler> m_askUserHandler;
+    QTimer *m_dragActivationTimer = nullptr;
+    QPersistentModelIndex m_pendingDragActivation;
+
+    QPersistentModelIndex m_pendingDropUrlsIndex;
+    std::unique_ptr<QDropEvent> m_dropUrlsEvent;
+    std::unique_ptr<QMimeData> m_dropUrlsMimeData;
+
+    KFilePlacesView::TeardownFunction m_teardownFunction = nullptr;
 
     QTimeLine m_adaptItemsTimeline;
     QTimeLine m_itemAppearTimeline;
     QTimeLine m_itemDisappearTimeline;
 
-    QTimer m_pollDevices;
+    QVariantAnimation m_deviceBusyAnimation;
+    QVector<QPersistentModelIndex> m_busyDevices;
 
     QRect m_dropRect;
+    QPersistentModelIndex m_dropIndex;
 
     QUrl m_currentUrl;
 
     int m_oldSize = 0;
     int m_endSize = 0;
-    int m_iconSz = 0;
-    int m_pollingRequestCount = 0;
 
     bool m_autoResizeItems = true;
     bool m_smoothItemResizing = false;
@@ -638,12 +777,46 @@ KFilePlacesView::KFilePlacesView(QWidget *parent)
     palette.setColor(viewport()->foregroundRole(), palette.color(QPalette::WindowText));
     viewport()->setPalette(palette);
 
-    connect(this, &KFilePlacesView::clicked, this, [this](const QModelIndex &index) {
-        d->placeClicked(index);
-    });
+    setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+
+    d->m_watcher->m_scroller = QScroller::scroller(viewport());
+    QScrollerProperties scrollerProp;
+    scrollerProp.setScrollMetric(QScrollerProperties::AcceleratingFlickMaximumTime, 0.2); // QTBUG-88249
+    d->m_watcher->m_scroller->setScrollerProperties(scrollerProp);
+    d->m_watcher->m_scroller->grabGesture(viewport());
+    connect(d->m_watcher->m_scroller, &QScroller::stateChanged, d->m_watcher, &KFilePlacesEventWatcher::qScrollerStateChanged);
+
+    setAttribute(Qt::WA_AcceptTouchEvents);
+    viewport()->grabGesture(Qt::TapGesture);
+    viewport()->grabGesture(Qt::TapAndHoldGesture);
+
     // Note: Don't connect to the activated() signal, as the behavior when it is
     // committed depends on the used widget style. The click behavior of
     // KFilePlacesView should be style independent.
+    connect(this, &KFilePlacesView::clicked, this, [this](const QModelIndex &index) {
+        const auto modifiers = qGuiApp->keyboardModifiers();
+        if (modifiers == (Qt::ControlModifier | Qt::ShiftModifier) && isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::activeTabRequested))) {
+            d->placeClicked(index, &KFilePlacesView::activeTabRequested);
+        } else if (modifiers == Qt::ControlModifier && isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::tabRequested))) {
+            d->placeClicked(index, &KFilePlacesView::tabRequested);
+        } else if (modifiers == Qt::ShiftModifier && isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::newWindowRequested))) {
+            d->placeClicked(index, &KFilePlacesView::newWindowRequested);
+        } else {
+            d->placeClicked(index, &KFilePlacesView::placeActivated);
+        }
+    });
+
+    connect(this, &QAbstractItemView::iconSizeChanged, this, [this](const QSize &newSize) {
+        d->m_autoResizeItems = (newSize.width() < 1 || newSize.height() < 1);
+
+        if (d->m_autoResizeItems) {
+            d->adaptItemSize();
+        } else {
+            const int iconSize = qMin(newSize.width(), newSize.height());
+            d->relayoutIconSize(iconSize);
+        }
+        d->writeConfig();
+    });
 
     connect(&d->m_adaptItemsTimeline, &QTimeLine::valueChanged, this, [this](qreal value) {
         d->adaptItemsUpdate(value);
@@ -666,17 +839,55 @@ KFilePlacesView::KFilePlacesView(QWidget *parent)
     d->m_itemDisappearTimeline.setUpdateInterval(5);
     d->m_itemDisappearTimeline.setEasingCurve(QEasingCurve::InOutSine);
 
-    viewport()->installEventFilter(d->m_watcher);
-    connect(d->m_watcher, &KFilePlacesEventWatcher::entryEntered, this, [this](const QModelIndex &index) {
-        d->placeEntered(index);
-    });
-    connect(d->m_watcher, &KFilePlacesEventWatcher::entryLeft, this, [this](const QModelIndex &index) {
-        d->placeLeft(index);
+    // Adapted from KBusyIndicatorWidget
+    d->m_deviceBusyAnimation.setLoopCount(-1);
+    d->m_deviceBusyAnimation.setDuration(2000);
+    d->m_deviceBusyAnimation.setStartValue(0);
+    d->m_deviceBusyAnimation.setEndValue(360);
+    connect(&d->m_deviceBusyAnimation, &QVariantAnimation::valueChanged, this, [this](const QVariant &value) {
+        d->deviceBusyAnimationValueChanged(value);
     });
 
-    d->m_pollDevices.setInterval(5000);
-    connect(&d->m_pollDevices, &QTimer::timeout, this, [this]() {
-        d->triggerDevicePolling();
+    viewport()->installEventFilter(d->m_watcher);
+    connect(d->m_watcher, &KFilePlacesEventWatcher::entryMiddleClicked, this, [this](const QModelIndex &index) {
+        if (qGuiApp->keyboardModifiers() == Qt::ShiftModifier && isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::activeTabRequested))) {
+            d->placeClicked(index, &KFilePlacesView::activeTabRequested);
+        } else if (isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::tabRequested))) {
+            d->placeClicked(index, &KFilePlacesView::tabRequested);
+        } else {
+            d->placeClicked(index, &KFilePlacesView::placeActivated);
+        }
+    });
+
+    connect(d->m_watcher, &KFilePlacesEventWatcher::headerAreaEntered, this, [this](const QModelIndex &index) {
+        d->headerAreaEntered(index);
+    });
+    connect(d->m_watcher, &KFilePlacesEventWatcher::headerAreaLeft, this, [this](const QModelIndex &index) {
+        d->headerAreaLeft(index);
+    });
+
+    connect(d->m_watcher, &KFilePlacesEventWatcher::actionClicked, this, [this](const QModelIndex &index) {
+        d->actionClicked(index);
+    });
+    connect(d->m_watcher, &KFilePlacesEventWatcher::actionEntered, this, [this](const QModelIndex &index) {
+        d->actionEntered(index);
+    });
+    connect(d->m_watcher, &KFilePlacesEventWatcher::actionLeft, this, [this](const QModelIndex &index) {
+        d->actionLeft(index);
+    });
+
+    connect(d->m_watcher, &KFilePlacesEventWatcher::windowActivated, this, [this] {
+        d->m_delegate->checkFreeSpace();
+        // Start polling even if checkFreeSpace() wouldn't because we might just have checked
+        // free space before the timeout and so the poll timer would never get started again
+        d->m_delegate->startPollingFreeSpace();
+    });
+    connect(d->m_watcher, &KFilePlacesEventWatcher::windowDeactivated, this, [this] {
+        d->m_delegate->stopPollingFreeSpace();
+    });
+
+    connect(d->m_watcher, &KFilePlacesEventWatcher::paletteChanged, this, [this] {
+        d->m_delegate->paletteChange();
     });
 
     // FIXME: this is necessary to avoid flashes of black with some widget styles.
@@ -702,6 +913,31 @@ bool KFilePlacesView::isDropOnPlaceEnabled() const
     return d->m_dropOnPlace;
 }
 
+void KFilePlacesView::setDragAutoActivationDelay(int delay)
+{
+    if (delay <= 0) {
+        delete d->m_dragActivationTimer;
+        d->m_dragActivationTimer = nullptr;
+        return;
+    }
+
+    if (!d->m_dragActivationTimer) {
+        d->m_dragActivationTimer = new QTimer(this);
+        d->m_dragActivationTimer->setSingleShot(true);
+        connect(d->m_dragActivationTimer, &QTimer::timeout, this, [this] {
+            if (d->m_pendingDragActivation.isValid()) {
+                d->placeClicked(d->m_pendingDragActivation, &KFilePlacesView::placeActivated);
+            }
+        });
+    }
+    d->m_dragActivationTimer->setInterval(delay);
+}
+
+int KFilePlacesView::dragAutoActivationDelay() const
+{
+    return d->m_dragActivationTimer ? d->m_dragActivationTimer->interval() : 0;
+}
+
 void KFilePlacesView::setAutoResizeItemsEnabled(bool enabled)
 {
     d->m_autoResizeItems = enabled;
@@ -710,6 +946,11 @@ void KFilePlacesView::setAutoResizeItemsEnabled(bool enabled)
 bool KFilePlacesView::isAutoResizeItemsEnabled() const
 {
     return d->m_autoResizeItems;
+}
+
+void KFilePlacesView::setTeardownFunction(TeardownFunction teardownFunc)
+{
+    d->m_teardownFunction = teardownFunc;
 }
 
 void KFilePlacesView::setUrl(const QUrl &url)
@@ -751,6 +992,11 @@ void KFilePlacesView::setUrl(const QUrl &url)
     }
 }
 
+bool KFilePlacesView::allPlacesShown() const
+{
+    return d->m_showAll;
+}
+
 void KFilePlacesView::setShowAll(bool showAll)
 {
     KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(model());
@@ -783,13 +1029,17 @@ void KFilePlacesView::setShowAll(bool showAll)
         }
         d->triggerItemDisappearingAnimation();
     }
+
+    Q_EMIT allPlacesShownChanged(showAll);
 }
 
 void KFilePlacesView::keyPressEvent(QKeyEvent *event)
 {
     QListView::keyPressEvent(event);
     if ((event->key() == Qt::Key_Return) || (event->key() == Qt::Key_Enter)) {
-        d->placeClicked(currentIndex());
+        // TODO Modifier keys for requesting tabs
+        // Browsers do Ctrl+Click but *Alt*+Return for new tab
+        d->placeClicked(currentIndex(), &KFilePlacesView::placeActivated);
     }
 }
 
@@ -806,10 +1056,23 @@ void KFilePlacesViewPrivate::writeConfig()
     cg.writeEntry(PlacesIconsAutoresize, m_autoResizeItems);
 
     if (!m_autoResizeItems) {
-        cg.writeEntry(PlacesIconsStaticSize, m_iconSz);
+        const int iconSize = qMin(q->iconSize().width(), q->iconSize().height());
+        cg.writeEntry(PlacesIconsStaticSize, iconSize);
     }
 
     cg.sync();
+}
+
+void KFilePlacesViewPrivate::slotEmptyTrash()
+{
+    auto *parentWindow = q->window();
+
+    using AskIface = KIO::AskUserActionInterface;
+    auto *emptyTrashJob = new KIO::DeleteOrTrashJob(QList<QUrl>{}, //
+                                                    AskIface::EmptyTrash,
+                                                    AskIface::DefaultConfirmation,
+                                                    parentWindow);
+    emptyTrashJob->start();
 }
 
 void KFilePlacesView::contextMenuEvent(QContextMenuEvent *event)
@@ -821,198 +1084,204 @@ void KFilePlacesView::contextMenuEvent(QContextMenuEvent *event)
     }
 
     QModelIndex index = indexAt(event->pos());
-    const QString label = placesModel->text(index).replace(QLatin1Char('&'), QLatin1String("&&"));
+    const QString groupName = index.data(KFilePlacesModel::GroupRole).toString();
     const QUrl placeUrl = placesModel->url(index);
+    const bool clickOverHeader = d->m_delegate->pointIsHeaderArea(event->pos());
+    const bool clickOverEmptyArea = clickOverHeader || !index.isValid();
+    const KFilePlacesModel::GroupType type = placesModel->groupType(index);
 
     QMenu menu;
 
-    QAction *edit = nullptr;
-    QAction *hide = nullptr;
     QAction *emptyTrash = nullptr;
     QAction *eject = nullptr;
-    QAction *teardown = nullptr;
-    QAction *add = nullptr;
-    QAction *mainSeparator = nullptr;
-    QAction *hideSection = nullptr;
-    QAction *properties = nullptr;
     QAction *mount = nullptr;
+    QAction *teardown = nullptr;
 
-    const bool clickOverHeader = d->m_delegate->pointIsHeaderArea(event->pos());
-    if (clickOverHeader) {
-        const KFilePlacesModel::GroupType type = placesModel->groupType(index);
-        hideSection = menu.addAction(QIcon::fromTheme(QStringLiteral("hint")), i18n("Hide Section"));
-        hideSection->setCheckable(true);
-        hideSection->setChecked(placesModel->isGroupHidden(type));
-    } else if (index.isValid()) {
-        if (!placesModel->isDevice(index)) {
-            if (placeUrl.toString() == QLatin1String("trash:/")) {
-                emptyTrash = menu.addAction(QIcon::fromTheme(QStringLiteral("trash-empty")), i18nc("@action:inmenu", "Empty Trash"));
-                KConfig trashConfig(QStringLiteral("trashrc"), KConfig::SimpleConfig);
-                emptyTrash->setEnabled(!trashConfig.group("Status").readEntry("Empty", true));
-                menu.addSeparator();
-            }
-            add = menu.addAction(QIcon::fromTheme(QStringLiteral("document-new")), i18n("Add Entry..."));
-            mainSeparator = menu.addSeparator();
-        } else {
+    QAction *newTab = nullptr;
+    QAction *newWindow = nullptr;
+    QAction *highPriorityActionsPlaceholder = new QAction();
+    QAction *properties = nullptr;
+
+    QAction *add = nullptr;
+    QAction *edit = nullptr;
+    QAction *remove = nullptr;
+
+    QAction *hide = nullptr;
+    QAction *hideSection = nullptr;
+    QAction *showAll = nullptr;
+    QMenu *iconSizeMenu = nullptr;
+
+    if (!clickOverEmptyArea) {
+        if (placeUrl.scheme() == QLatin1String("trash")) {
+            emptyTrash = new QAction(QIcon::fromTheme(QStringLiteral("trash-empty")), i18nc("@action:inmenu", "Empty Trash"), &menu);
+            KConfig trashConfig(QStringLiteral("trashrc"), KConfig::SimpleConfig);
+            emptyTrash->setEnabled(!trashConfig.group("Status").readEntry("Empty", true));
+        }
+
+        if (placesModel->isDevice(index)) {
             eject = placesModel->ejectActionForIndex(index);
-            if (eject != nullptr) {
+            if (eject) {
                 eject->setParent(&menu);
-                menu.addAction(eject);
             }
 
             teardown = placesModel->teardownActionForIndex(index);
-            if (teardown != nullptr) {
-                // Disable teardown option for root and home partitions
-                bool teardownEnabled = placeUrl != QUrl::fromLocalFile(QDir::rootPath());
-                if (teardownEnabled) {
-                    KMountPoint::Ptr mountPoint = KMountPoint::currentMountPoints().findByPath(QDir::homePath());
-                    if (mountPoint && placeUrl == QUrl::fromLocalFile(mountPoint->mountPoint())) {
-                        teardownEnabled = false;
-                    }
-                }
-                teardown->setEnabled(teardownEnabled);
-
+            if (teardown) {
                 teardown->setParent(&menu);
-                menu.addAction(teardown);
+                if (!placesModel->isTeardownAllowed(index)) {
+                    teardown->setEnabled(false);
+                }
             }
 
             if (placesModel->setupNeeded(index)) {
-                mount = menu.addAction(QIcon::fromTheme(QStringLiteral("media-mount")), i18nc("@action:inmenu", "Mount"));
+                mount = new QAction(QIcon::fromTheme(QStringLiteral("media-mount")), i18nc("@action:inmenu", "Mount"), &menu);
             }
+        }
 
-            if (teardown != nullptr || eject != nullptr || mount != nullptr) {
-                mainSeparator = menu.addSeparator();
-            }
+        // TODO What about active tab?
+        if (isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::tabRequested))) {
+            newTab = new QAction(QIcon::fromTheme(QStringLiteral("tab-new")), i18nc("@item:inmenu", "Open in New Tab"), &menu);
         }
-        if (add == nullptr) {
-            add = menu.addAction(QIcon::fromTheme(QStringLiteral("document-new")), i18n("Add Entry..."));
+        if (isSignalConnected(QMetaMethod::fromSignal(&KFilePlacesView::newWindowRequested))) {
+            newWindow = new QAction(QIcon::fromTheme(QStringLiteral("window-new")), i18nc("@item:inmenu", "Open in New Window"), &menu);
         }
+
         if (placeUrl.isLocalFile()) {
-            properties = menu.addAction(QIcon::fromTheme(QStringLiteral("document-properties")), i18n("Properties"));
+            properties = new QAction(QIcon::fromTheme(QStringLiteral("document-properties")), i18n("Properties"), &menu);
         }
-        if (!placesModel->isDevice(index)) {
-            edit = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-entry")), i18nc("@action:inmenu", "&Edit…"));
+    }
+
+    if (clickOverEmptyArea) {
+        add = new QAction(QIcon::fromTheme(QStringLiteral("document-new")), i18nc("@action:inmenu", "Add Entry…"), &menu);
+    }
+
+    if (index.isValid()) {
+        if (!clickOverHeader) {
+            if (!placesModel->isDevice(index)) {
+                edit = new QAction(QIcon::fromTheme(QStringLiteral("edit-entry")), i18nc("@action:inmenu", "&Edit…"), &menu);
+
+                KBookmark bookmark = placesModel->bookmarkForIndex(index);
+                const bool isSystemItem = bookmark.metaDataItem(QStringLiteral("isSystemItem")) == QLatin1String("true");
+                if (!isSystemItem) {
+                    remove = new QAction(QIcon::fromTheme(QStringLiteral("edit-delete")), i18nc("@action:inmenu", "Remove"), &menu);
+                }
+            }
+
+            hide = new QAction(QIcon::fromTheme(QStringLiteral("hint")), i18nc("@action:inmenu", "&Hide"), &menu);
+            hide->setCheckable(true);
+            hide->setChecked(placesModel->isHidden(index));
+            // if a parent is hidden no interaction should be possible with children, show it first to do so
+            hide->setEnabled(!placesModel->isGroupHidden(placesModel->groupType(index)));
         }
 
-        hide = menu.addAction(QIcon::fromTheme(QStringLiteral("hint")), i18nc("@action:inmenu", "&Hide"));
-        hide->setCheckable(true);
-        hide->setChecked(placesModel->isHidden(index));
-        // if a parent is hidden no interaction should be possible with children, show it first to do so
-        hide->setEnabled(!placesModel->isGroupHidden(placesModel->groupType(index)));
-
-    } else {
-        add = menu.addAction(QIcon::fromTheme(QStringLiteral("document-new")), i18n("Add Entry..."));
+        hideSection = new QAction(QIcon::fromTheme(QStringLiteral("hint")),
+                                  !groupName.isEmpty() ? i18nc("@item:inmenu", "Hide Section '%1'", groupName) : i18nc("@item:inmenu", "Hide Section"),
+                                  &menu);
+        hideSection->setCheckable(true);
+        hideSection->setChecked(placesModel->isGroupHidden(type));
     }
 
-    QAction *showAll = nullptr;
-    if (placesModel->hiddenCount() > 0) {
-        showAll = new QAction(QIcon::fromTheme(QStringLiteral("visibility")), i18n("&Show All Entries"), &menu);
-        showAll->setCheckable(true);
-        showAll->setChecked(d->m_showAll);
-        if (mainSeparator == nullptr) {
-            mainSeparator = menu.addSeparator();
+    if (clickOverEmptyArea) {
+        if (placesModel->hiddenCount() > 0) {
+            showAll = new QAction(QIcon::fromTheme(QStringLiteral("visibility")), i18n("&Show All Entries"), &menu);
+            showAll->setCheckable(true);
+            showAll->setChecked(d->m_showAll);
         }
-        menu.insertAction(mainSeparator, showAll);
+
+        iconSizeMenu = new QMenu(i18nc("@item:inmenu", "Icon Size"), &menu);
+        d->setupIconSizeSubMenu(iconSizeMenu);
     }
 
-    QAction *remove = nullptr;
-    if (!clickOverHeader && index.isValid() && !placesModel->isDevice(index)) {
-        remove = menu.addAction(QIcon::fromTheme(QStringLiteral("edit-delete")), i18nc("@action:inmenu", "Remove"));
+    auto addActionToMenu = [&menu](QAction *action) {
+        if (action) { // silence warning when adding null action
+            menu.addAction(action);
+        }
+    };
+
+    addActionToMenu(emptyTrash);
+
+    addActionToMenu(eject);
+    addActionToMenu(mount);
+    addActionToMenu(teardown);
+    menu.addSeparator();
+
+    addActionToMenu(newTab);
+    addActionToMenu(newWindow);
+    addActionToMenu(highPriorityActionsPlaceholder);
+    addActionToMenu(properties);
+    menu.addSeparator();
+
+    addActionToMenu(add);
+    addActionToMenu(edit);
+    addActionToMenu(remove);
+    addActionToMenu(hide);
+    addActionToMenu(hideSection);
+    addActionToMenu(showAll);
+    if (iconSizeMenu) {
+        menu.addMenu(iconSizeMenu);
     }
 
-    QMenu *iconSizeMenu = new QMenu(i18nc("@item:inmenu", "Icon Size"), &menu);
-    menu.insertMenu(mainSeparator, iconSizeMenu);
-    d->setupIconSizeSubMenu(iconSizeMenu);
+    menu.addSeparator();
 
-    menu.addActions(actions());
+    // Clicking a header should be treated as clicking no device, hence passing an invalid model index
+    // Emit the signal before adding any custom actions to give the user a chance to dynamically add/remove them
+    Q_EMIT contextMenuAboutToShow(clickOverHeader ? QModelIndex() : index, &menu);
 
-    if (menu.isEmpty()) {
-        return;
+    const auto additionalActions = actions();
+    for (QAction *action : additionalActions) {
+        if (action->priority() == QAction::HighPriority) {
+            menu.insertAction(highPriorityActionsPlaceholder, action);
+        } else {
+            menu.addAction(action);
+        }
     }
+    delete highPriorityActionsPlaceholder;
 
+    if (window()) {
+        menu.winId();
+        menu.windowHandle()->setTransientParent(window()->windowHandle());
+    }
     QAction *result = menu.exec(event->globalPos());
 
-    if (emptyTrash && (result == emptyTrash)) {
-        auto *parentWindow = window();
+    if (result) {
+        if (result == emptyTrash) {
+            d->slotEmptyTrash();
 
-        if (!d->m_askUserHandler) {
-            d->m_askUserHandler.reset(new KIO::WidgetsAskUserActionHandler{});
+        } else if (result == eject) {
+            placesModel->requestEject(index);
+        } else if (result == mount) {
+            placesModel->requestSetup(index);
+        } else if (result == teardown) {
+            d->teardown(index);
+        } else if (result == newTab) {
+            d->placeClicked(index, &KFilePlacesView::tabRequested);
+        } else if (result == newWindow) {
+            d->placeClicked(index, &KFilePlacesView::newWindowRequested);
+        } else if (result == properties) {
+            KPropertiesDialog::showDialog(placeUrl, this);
+        } else if (result == add) {
+            d->addPlace(index);
+        } else if (result == edit) {
+            d->editPlace(index);
+        } else if (result == remove) {
+            placesModel->removePlace(index);
+        } else if (result == hide) {
+            placesModel->setPlaceHidden(index, hide->isChecked());
+            QModelIndex current = placesModel->closestItem(d->m_currentUrl);
 
-            connect(d->m_askUserHandler.get(),
-                    &KIO::AskUserActionInterface::askUserDeleteResult,
-                    this,
-                    [parentWindow](bool allowDelete, const QList<QUrl> &, KIO::AskUserActionInterface::DeletionType, QWidget *parent) {
-                        if (parent != parentWindow || !allowDelete) {
-                            return;
-                        }
-
-                        KIO::Job *job = KIO::emptyTrash();
-                        job->setUiDelegate(new KIO::JobUiDelegate(KJobUiDelegate::AutoHandlingEnabled, parentWindow));
-                    });
-        }
-
-        d->m_askUserHandler->askUserDelete(QList<QUrl>{},
-                                           KIO::AskUserActionInterface::EmptyTrash,
-                                           KIO::AskUserActionInterface::DefaultConfirmation,
-                                           parentWindow);
-
-    } else if (properties && (result == properties)) {
-        KPropertiesDialog::showDialog(placeUrl, this);
-    } else if (edit && (result == edit)) {
-        KBookmark bookmark = placesModel->bookmarkForIndex(index);
-        QUrl url = bookmark.url();
-        QString bmLabel = bookmark.text();
-        QString iconName = bookmark.icon();
-        bool appLocal = !bookmark.metaDataItem(QStringLiteral("OnlyInApp")).isEmpty();
-
-        if (KFilePlaceEditDialog::getInformation(true, url, bmLabel, iconName, false, appLocal, 64, this)) {
-            QString appName;
-            if (appLocal) {
-                appName = QCoreApplication::instance()->applicationName();
+            if (index != current && !d->m_showAll && hide->isChecked()) {
+                d->m_delegate->addDisappearingItem(index);
+                d->triggerItemDisappearingAnimation();
             }
+        } else if (result == hideSection) {
+            placesModel->setGroupHidden(type, hideSection->isChecked());
 
-            placesModel->editPlace(index, bmLabel, url, iconName, appName);
-        }
-
-    } else if (remove && (result == remove)) {
-        placesModel->removePlace(index);
-    } else if (hideSection && (result == hideSection)) {
-        const KFilePlacesModel::GroupType type = placesModel->groupType(index);
-        placesModel->setGroupHidden(type, hideSection->isChecked());
-
-        if (!d->m_showAll && hideSection->isChecked()) {
-            d->m_delegate->addDisappearingItemGroup(index);
-            d->triggerItemDisappearingAnimation();
-        }
-    } else if (hide && (result == hide)) {
-        placesModel->setPlaceHidden(index, hide->isChecked());
-        QModelIndex current = placesModel->closestItem(d->m_currentUrl);
-
-        if (index != current && !d->m_showAll && hide->isChecked()) {
-            d->m_delegate->addDisappearingItem(index);
-            d->triggerItemDisappearingAnimation();
-        }
-    } else if (showAll && (result == showAll)) {
-        setShowAll(showAll->isChecked());
-    } else if (teardown && (result == teardown)) {
-        placesModel->requestTeardown(index);
-    } else if (eject && (result == eject)) {
-        placesModel->requestEject(index);
-    } else if (add && (result == add)) {
-        QUrl url = d->m_currentUrl;
-        QString bmLabel;
-        QString iconName = QStringLiteral("folder");
-        bool appLocal = true;
-        if (KFilePlaceEditDialog::getInformation(true, url, bmLabel, iconName, true, appLocal, 64, this)) {
-            QString appName;
-            if (appLocal) {
-                appName = QCoreApplication::instance()->applicationName();
+            if (!d->m_showAll && hideSection->isChecked()) {
+                d->m_delegate->addDisappearingItemGroup(index);
+                d->triggerItemDisappearingAnimation();
             }
-
-            placesModel->addPlace(bmLabel, url, iconName, appName, index);
+        } else if (result == showAll) {
+            setShowAll(showAll->isChecked());
         }
-    } else if (mount && (result == mount)) {
-        placesModel->requestSetup(index);
     }
 
     index = placesModel->closestItem(d->m_currentUrl);
@@ -1030,9 +1299,7 @@ void KFilePlacesViewPrivate::setupIconSizeSubMenu(QMenu *submenu)
     autoAct->setCheckable(true);
     autoAct->setChecked(m_autoResizeItems);
     QObject::connect(autoAct, &QAction::toggled, q, [this]() {
-        m_autoResizeItems = true;
-        adaptItemSize();
-        writeConfig();
+        q->setIconSize(QSize(-1, -1));
     });
     submenu->addAction(autoAct);
 
@@ -1063,14 +1330,7 @@ void KFilePlacesViewPrivate::setupIconSizeSubMenu(QMenu *submenu)
         }
 
         QObject::connect(act, &QAction::toggled, q, [this, iconSize]() {
-            m_autoResizeItems = false;
-            relayoutIconSize(iconSize);
-            // Store the new icon size in m_iconSz; which will be used by writeConfig(),
-            // otherwise if m_smoothItemResizing is true, the delegate icon size will be
-            // changed after the m_adaptItemsTimeline times out, by which time writeConfig
-            // has already finished, which means it won't save the new icon size
-            m_iconSz = iconSize;
-            writeConfig();
+            q->setIconSize(QSize(iconSize, iconSize));
         });
 
         if (!m_autoResizeItems) {
@@ -1090,6 +1350,12 @@ void KFilePlacesView::resizeEvent(QResizeEvent *event)
 void KFilePlacesView::showEvent(QShowEvent *event)
 {
     QListView::showEvent(event);
+
+    d->m_delegate->checkFreeSpace();
+    // Start polling even if checkFreeSpace() wouldn't because we might just have checked
+    // free space before the timeout and so the poll timer would never get started again
+    d->m_delegate->startPollingFreeSpace();
+
     QTimer::singleShot(100, this, [this]() {
         d->enableSmoothItemResizing();
     });
@@ -1098,6 +1364,7 @@ void KFilePlacesView::showEvent(QShowEvent *event)
 void KFilePlacesView::hideEvent(QHideEvent *event)
 {
     QListView::hideEvent(event);
+    d->m_delegate->stopPollingFreeSpace();
     d->m_smoothItemResizing = false;
 }
 
@@ -1109,6 +1376,7 @@ void KFilePlacesView::dragEnterEvent(QDragEnterEvent *event)
     d->m_delegate->setShowHoverIndication(false);
 
     d->m_dropRect = QRect();
+    d->m_dropIndex = QPersistentModelIndex();
 }
 
 void KFilePlacesView::dragLeaveEvent(QDragLeaveEvent *event)
@@ -1118,6 +1386,11 @@ void KFilePlacesView::dragLeaveEvent(QDragLeaveEvent *event)
 
     d->m_delegate->setShowHoverIndication(true);
 
+    if (d->m_dragActivationTimer) {
+        d->m_dragActivationTimer->stop();
+    }
+    d->m_pendingDragActivation = QPersistentModelIndex();
+
     setDirtyRegion(d->m_dropRect);
 }
 
@@ -1125,11 +1398,13 @@ void KFilePlacesView::dragMoveEvent(QDragMoveEvent *event)
 {
     QListView::dragMoveEvent(event);
 
+    bool autoActivate = false;
     // update the drop indicator
     const QPoint pos = event->pos();
     const QModelIndex index = indexAt(pos);
     setDirtyRegion(d->m_dropRect);
     if (index.isValid()) {
+        d->m_dropIndex = index;
         const QRect rect = visualRect(index);
         const int gap = d->insertIndicatorHeight(rect.height());
         if (d->insertAbove(rect, pos)) {
@@ -1141,6 +1416,21 @@ void KFilePlacesView::dragMoveEvent(QDragMoveEvent *event)
         } else {
             // indicate that the item be dropped above the current place
             d->m_dropRect = rect;
+            // only auto-activate when dropping ontop of a place, not inbetween
+            autoActivate = true;
+        }
+    }
+
+    if (d->m_dragActivationTimer) {
+        if (autoActivate && !d->m_delegate->pointIsHeaderArea(event->pos())) {
+            QPersistentModelIndex persistentIndex(index);
+            if (!d->m_pendingDragActivation.isValid() || d->m_pendingDragActivation != persistentIndex) {
+                d->m_pendingDragActivation = persistentIndex;
+                d->m_dragActivationTimer->start();
+            }
+        } else {
+            d->m_dragActivationTimer->stop();
+            d->m_pendingDragActivation = QPersistentModelIndex();
         }
     }
 
@@ -1156,13 +1446,45 @@ void KFilePlacesView::dropEvent(QDropEvent *event)
         if (!d->insertAbove(rect, pos) && !d->insertBelow(rect, pos)) {
             KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(model());
             Q_ASSERT(placesModel != nullptr);
-            Q_EMIT urlsDropped(placesModel->url(index), event, this);
+            if (placesModel->setupNeeded(index)) {
+                d->m_pendingDropUrlsIndex = index;
+
+                // Make a full copy of the Mime-Data
+                d->m_dropUrlsMimeData = std::make_unique<QMimeData>();
+                const auto formats = event->mimeData()->formats();
+                for (const auto &format : formats) {
+                    d->m_dropUrlsMimeData->setData(format, event->mimeData()->data(format));
+                }
+
+                d->m_dropUrlsEvent = std::make_unique<QDropEvent>(event->posF(),
+                                                                  event->possibleActions(),
+                                                                  d->m_dropUrlsMimeData.get(),
+                                                                  event->mouseButtons(),
+                                                                  event->keyboardModifiers());
+
+                placesModel->requestSetup(index);
+            } else {
+                Q_EMIT urlsDropped(placesModel->url(index), event, this);
+            }
+            // HACK Qt eventually calls into QAIM::dropMimeData when a drop event isn't
+            // accepted by the view. However, QListView::dropEvent calls ignore() on our
+            // event afterwards when
+            // "icon view didn't move the data, and moveRows not implemented, so fall back to default"
+            // overriding the acceptProposedAction() below.
+            // This special mime type tells KFilePlacesModel to ignore it.
+            auto *mime = const_cast<QMimeData *>(event->mimeData());
+            mime->setData(QStringLiteral("application/x-kfileplacesmodel-ignore"), QByteArrayLiteral("1"));
             event->acceptProposedAction();
         }
     }
 
     QListView::dropEvent(event);
     d->m_dragging = false;
+
+    if (d->m_dragActivationTimer) {
+        d->m_dragActivationTimer->stop();
+    }
+    d->m_pendingDragActivation = QPersistentModelIndex();
 
     d->m_delegate->setShowHoverIndication(true);
 }
@@ -1174,13 +1496,25 @@ void KFilePlacesView::paintEvent(QPaintEvent *event)
         // draw drop indicator
         QPainter painter(viewport());
 
-        const QModelIndex index = indexAt(d->m_dropRect.topLeft());
-        const QRect itemRect = visualRect(index);
+        QRect itemRect = visualRect(d->m_dropIndex);
+        // Take into account section headers
+        if (d->m_delegate->indexIsSectionHeader(d->m_dropIndex)) {
+            const int headerHeight = d->m_delegate->sectionHeaderHeight(d->m_dropIndex);
+            itemRect.translate(0, headerHeight);
+            itemRect.setHeight(itemRect.height() - headerHeight);
+        }
         const bool drawInsertIndicator = !d->m_dropOnPlace || d->m_dropRect.height() <= d->insertIndicatorHeight(itemRect.height());
 
         if (drawInsertIndicator) {
             // draw indicator for inserting items
-            QBrush blendedBrush = viewOptions().palette.brush(QPalette::Normal, QPalette::Highlight);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+            QStyleOptionViewItem viewOpts;
+            initViewItemOption(&viewOpts);
+#else
+            QStyleOptionViewItem viewOpts = viewOptions();
+#endif
+
+            QBrush blendedBrush = viewOpts.palette.brush(QPalette::Normal, QPalette::Highlight);
             QColor color = blendedBrush.color();
 
             const int y = (d->m_dropRect.top() + d->m_dropRect.bottom()) / 2;
@@ -1199,6 +1533,7 @@ void KFilePlacesView::paintEvent(QPaintEvent *event)
             // draw indicator for copying/moving/linking to items
             QStyleOptionViewItem opt;
             opt.initFrom(this);
+            opt.index = d->m_dropIndex;
             opt.rect = itemRect;
             opt.state = QStyle::State_Enabled | QStyle::State_MouseOver;
             style()->drawPrimitive(QStyle::PE_PanelItemViewItem, &opt, &painter, this);
@@ -1217,6 +1552,11 @@ void KFilePlacesView::mousePressEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
         // does not accept drags from section header area
         if (d->m_delegate->pointIsHeaderArea(event->pos())) {
+            return;
+        }
+        // teardown button is handled by KFilePlacesEventWatcher
+        // NOTE "mouseReleaseEvent" side is also in there.
+        if (d->m_delegate->pointIsTeardownAction(event->pos())) {
             return;
         }
     }
@@ -1239,7 +1579,10 @@ void KFilePlacesView::setModel(QAbstractItemModel *model)
             d->adaptItemSize();
         },
         Qt::QueuedConnection);
-    connect(selectionModel(), &QItemSelectionModel::currentChanged, d->m_watcher, &KFilePlacesEventWatcher::currentIndexChanged);
+
+    QObject::connect(qobject_cast<KFilePlacesModel *>(model), &KFilePlacesModel::setupDone, this, [this](const QModelIndex &idx, bool success) {
+        d->storageSetupDone(idx, success);
+    });
 
     d->m_delegate->clearFreeSpaceInfo();
 }
@@ -1310,9 +1653,6 @@ void KFilePlacesViewPrivate::setCurrentIndex(const QModelIndex &index)
         m_currentUrl = url;
         updateHiddenRows();
         Q_EMIT q->urlChanged(KFilePlacesModel::convertedUrl(url));
-        if (m_showAll) {
-            q->setShowAll(false);
-        }
     } else {
         q->setUrl(m_currentUrl);
     }
@@ -1363,7 +1703,7 @@ void KFilePlacesViewPrivate::adaptItemSize()
     const int maxWidth = q->viewport()->width() - textWidth - 4 * margin - 1;
 
     const int totalItemsHeight = (fm.height() / 2) * rowCount;
-    const int totalSectionsHeight = m_delegate->sectionHeaderHeight() * sectionsCount();
+    const int totalSectionsHeight = m_delegate->sectionHeaderHeight(QModelIndex()) * sectionsCount();
     const int maxHeight = ((q->height() - totalSectionsHeight - totalItemsHeight) / rowCount) - 1;
 
     int size = qMin(maxHeight, maxWidth);
@@ -1386,7 +1726,7 @@ void KFilePlacesViewPrivate::relayoutIconSize(const int size)
         return;
     }
 
-    if (m_smoothItemResizing) {
+    if (shouldAnimate() && m_smoothItemResizing) {
         m_oldSize = m_delegate->iconSize();
         m_endSize = size;
         if (m_adaptItemsTimeline.state() != QTimeLine::Running) {
@@ -1394,7 +1734,9 @@ void KFilePlacesViewPrivate::relayoutIconSize(const int size)
         }
     } else {
         m_delegate->setIconSize(size);
-        q->scheduleDelayedItemsLayout();
+        if (shouldAnimate()) {
+            q->scheduleDelayedItemsLayout();
+        }
     }
 }
 
@@ -1453,26 +1795,6 @@ int KFilePlacesViewPrivate::insertIndicatorHeight(int itemHeight) const
     return height;
 }
 
-void KFilePlacesViewPrivate::fadeCapacityBar(const QModelIndex &index, FadeType fadeType)
-{
-    QTimeLine *timeLine = m_delegate->fadeAnimationForIndex(index);
-    delete timeLine;
-    m_delegate->removeFadeAnimation(index);
-    timeLine = new QTimeLine(250, q);
-    QObject::connect(timeLine, &QTimeLine::valueChanged, q, [this, timeLine]() {
-        capacityBarFadeValueChanged(timeLine);
-    });
-    if (fadeType == FadeIn) {
-        timeLine->setDirection(QTimeLine::Forward);
-        timeLine->setCurrentTime(0);
-    } else {
-        timeLine->setDirection(QTimeLine::Backward);
-        timeLine->setCurrentTime(250);
-    }
-    m_delegate->addFadeAnimation(index, timeLine);
-    timeLine->start();
-}
-
 int KFilePlacesViewPrivate::sectionsCount() const
 {
     int count = 0;
@@ -1493,23 +1815,79 @@ int KFilePlacesViewPrivate::sectionsCount() const
     return count;
 }
 
+void KFilePlacesViewPrivate::addPlace(const QModelIndex &index)
+{
+    KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(q->model());
+
+    QUrl url = m_currentUrl;
+    QString label;
+    QString iconName = QStringLiteral("folder");
+    bool appLocal = true;
+    if (KFilePlaceEditDialog::getInformation(true, url, label, iconName, true, appLocal, 64, q)) {
+        QString appName;
+        if (appLocal) {
+            appName = QCoreApplication::instance()->applicationName();
+        }
+
+        placesModel->addPlace(label, url, iconName, appName, index);
+    }
+}
+
+void KFilePlacesViewPrivate::editPlace(const QModelIndex &index)
+{
+    KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(q->model());
+
+    KBookmark bookmark = placesModel->bookmarkForIndex(index);
+    QUrl url = bookmark.url();
+    // KBookmark::text() would be untranslated for system bookmarks
+    QString label = placesModel->text(index);
+    QString iconName = bookmark.icon();
+    bool appLocal = !bookmark.metaDataItem(QStringLiteral("OnlyInApp")).isEmpty();
+
+    if (KFilePlaceEditDialog::getInformation(true, url, label, iconName, false, appLocal, 64, q)) {
+        QString appName;
+        if (appLocal) {
+            appName = QCoreApplication::instance()->applicationName();
+        }
+
+        placesModel->editPlace(index, label, url, iconName, appName);
+    }
+}
+
+bool KFilePlacesViewPrivate::shouldAnimate() const
+{
+    return q->style()->styleHint(QStyle::SH_Widget_Animation_Duration, nullptr, q) > 0;
+}
+
 void KFilePlacesViewPrivate::triggerItemAppearingAnimation()
 {
-    if (m_itemAppearTimeline.state() != QTimeLine::Running) {
+    if (m_itemAppearTimeline.state() == QTimeLine::Running) {
+        return;
+    }
+
+    if (shouldAnimate()) {
         m_delegate->setAppearingItemProgress(0.0);
         m_itemAppearTimeline.start();
+    } else {
+        itemAppearUpdate(1.0);
     }
 }
 
 void KFilePlacesViewPrivate::triggerItemDisappearingAnimation()
 {
-    if (m_itemDisappearTimeline.state() != QTimeLine::Running) {
+    if (m_itemDisappearTimeline.state() == QTimeLine::Running) {
+        return;
+    }
+
+    if (shouldAnimate()) {
         m_delegate->setDisappearingItemProgress(0.0);
         m_itemDisappearTimeline.start();
+    } else {
+        itemDisappearUpdate(1.0);
     }
 }
 
-void KFilePlacesViewPrivate::placeClicked(const QModelIndex &index)
+void KFilePlacesViewPrivate::placeClicked(const QModelIndex &index, ActivationSignal activationSignal)
 {
     KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(q->model());
 
@@ -1518,57 +1896,101 @@ void KFilePlacesViewPrivate::placeClicked(const QModelIndex &index)
     }
 
     m_lastClickedIndex = QPersistentModelIndex();
+    m_lastActivationSignal = nullptr;
 
     if (placesModel->setupNeeded(index)) {
-        QObject::connect(placesModel, &KFilePlacesModel::setupDone, q, [this](const QModelIndex &idx, bool success) {
-            storageSetupDone(idx, success);
-        });
-
         m_lastClickedIndex = index;
+        m_lastActivationSignal = activationSignal;
         placesModel->requestSetup(index);
         return;
     }
 
     setCurrentIndex(index);
+
+    const QUrl url = KFilePlacesModel::convertedUrl(placesModel->url(index));
+
+    /*Q_EMIT*/ std::invoke(activationSignal, q, url);
 }
 
-void KFilePlacesViewPrivate::placeEntered(const QModelIndex &index)
+void KFilePlacesViewPrivate::headerAreaEntered(const QModelIndex &index)
 {
-    fadeCapacityBar(index, FadeIn);
-    ++m_pollingRequestCount;
-    if (m_pollingRequestCount == 1) {
-        m_pollDevices.start();
+    m_delegate->setHoveredHeaderArea(index);
+    q->update(index);
+}
+
+void KFilePlacesViewPrivate::headerAreaLeft(const QModelIndex &index)
+{
+    m_delegate->setHoveredHeaderArea(QModelIndex());
+    q->update(index);
+}
+
+void KFilePlacesViewPrivate::actionClicked(const QModelIndex &index)
+{
+    KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(q->model());
+    if (!placesModel) {
+        return;
+    }
+
+    Solid::Device device = placesModel->deviceForIndex(index);
+    if (device.is<Solid::OpticalDisc>()) {
+        placesModel->requestEject(index);
+    } else {
+        teardown(index);
     }
 }
 
-void KFilePlacesViewPrivate::placeLeft(const QModelIndex &index)
+void KFilePlacesViewPrivate::actionEntered(const QModelIndex &index)
 {
-    fadeCapacityBar(index, FadeOut);
-    --m_pollingRequestCount;
-    if (!m_pollingRequestCount) {
-        m_pollDevices.stop();
+    m_delegate->setHoveredAction(index);
+    q->update(index);
+}
+
+void KFilePlacesViewPrivate::actionLeft(const QModelIndex &index)
+{
+    m_delegate->setHoveredAction(QModelIndex());
+    q->update(index);
+}
+
+void KFilePlacesViewPrivate::teardown(const QModelIndex &index)
+{
+    if (m_teardownFunction) {
+        m_teardownFunction(index);
+    } else if (auto *placesModel = qobject_cast<KFilePlacesModel *>(q->model())) {
+        placesModel->requestTeardown(index);
     }
 }
 
 void KFilePlacesViewPrivate::storageSetupDone(const QModelIndex &index, bool success)
 {
-    if (index != m_lastClickedIndex) {
-        return;
+    KFilePlacesModel *placesModel = static_cast<KFilePlacesModel *>(q->model());
+
+    if (m_lastClickedIndex.isValid()) {
+        if (m_lastClickedIndex == index) {
+            if (success) {
+                setCurrentIndex(m_lastClickedIndex);
+            } else {
+                q->setUrl(m_currentUrl);
+            }
+
+            const QUrl url = KFilePlacesModel::convertedUrl(placesModel->url(index));
+            /*Q_EMIT*/ std::invoke(m_lastActivationSignal, q, url);
+
+            m_lastClickedIndex = QPersistentModelIndex();
+            m_lastActivationSignal = nullptr;
+        }
     }
 
-    KFilePlacesModel *placesModel = qobject_cast<KFilePlacesModel *>(q->model());
+    if (m_pendingDropUrlsIndex.isValid() && m_dropUrlsEvent) {
+        if (m_pendingDropUrlsIndex == index) {
+            if (success) {
+                Q_EMIT q->urlsDropped(placesModel->url(index), m_dropUrlsEvent.get(), q);
+            }
 
-    if (placesModel) {
-        QObject::disconnect(placesModel, &KFilePlacesModel::setupDone, q, nullptr);
+            m_pendingDropUrlsIndex = QPersistentModelIndex();
+            m_dropUrlsEvent.reset();
+            m_dropUrlsMimeData.reset();
+        }
     }
-
-    if (success) {
-        setCurrentIndex(m_lastClickedIndex);
-    } else {
-        q->setUrl(m_currentUrl);
-    }
-
-    m_lastClickedIndex = QPersistentModelIndex();
 }
 
 void KFilePlacesViewPrivate::adaptItemsUpdate(qreal value)
@@ -1602,30 +2024,11 @@ void KFilePlacesViewPrivate::enableSmoothItemResizing()
     m_smoothItemResizing = true;
 }
 
-void KFilePlacesViewPrivate::capacityBarFadeValueChanged(QTimeLine *sender)
+void KFilePlacesViewPrivate::deviceBusyAnimationValueChanged(const QVariant &value)
 {
-    const QModelIndex index = m_delegate->indexForFadeAnimation(sender);
-    if (!index.isValid()) {
-        return;
-    }
-    q->update(index);
-}
-
-void KFilePlacesViewPrivate::triggerDevicePolling()
-{
-    const QModelIndex hoveredIndex = m_watcher->hoveredIndex();
-    if (hoveredIndex.isValid()) {
-        const KFilePlacesModel *placesModel = static_cast<const KFilePlacesModel *>(hoveredIndex.model());
-        if (placesModel->isDevice(hoveredIndex)) {
-            q->update(hoveredIndex);
-        }
-    }
-    const QModelIndex focusedIndex = m_watcher->focusedIndex();
-    if (focusedIndex.isValid() && focusedIndex != hoveredIndex) {
-        const KFilePlacesModel *placesModel = static_cast<const KFilePlacesModel *>(focusedIndex.model());
-        if (placesModel->isDevice(focusedIndex)) {
-            q->update(focusedIndex);
-        }
+    m_delegate->setDeviceBusyAnimationRotation(value.toReal());
+    for (const auto &idx : std::as_const(m_busyDevices)) {
+        q->update(idx);
     }
 }
 
@@ -1633,8 +2036,27 @@ void KFilePlacesView::dataChanged(const QModelIndex &topLeft, const QModelIndex 
 {
     QListView::dataChanged(topLeft, bottomRight, roles);
     d->adaptItemSize();
+
+    if ((roles.isEmpty() || roles.contains(KFilePlacesModel::DeviceAccessibilityRole)) && d->shouldAnimate()) {
+        QVector<QPersistentModelIndex> busyDevices;
+
+        auto *placesModel = qobject_cast<KFilePlacesModel *>(model());
+        for (int i = 0; i < placesModel->rowCount(); ++i) {
+            const QModelIndex idx = placesModel->index(i, 0);
+            const auto accessibility = placesModel->deviceAccessibility(idx);
+            if (accessibility == KFilePlacesModel::SetupInProgress || accessibility == KFilePlacesModel::TeardownInProgress) {
+                busyDevices.append(QPersistentModelIndex(idx));
+            }
+        }
+
+        d->m_busyDevices = busyDevices;
+
+        if (busyDevices.isEmpty()) {
+            d->m_deviceBusyAnimation.stop();
+        } else {
+            d->m_deviceBusyAnimation.start();
+        }
+    }
 }
 
-#include "kfileplacesview.moc"
-#include "moc_kfileplacesview.cpp"
 #include "moc_kfileplacesview_p.cpp"

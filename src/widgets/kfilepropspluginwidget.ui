@@ -10,9 +10,6 @@
     <height>976</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>KFilePropsPluginWidget</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
     <layout class="QGridLayout" name="gridLayout" columnstretch="0,1">
@@ -76,6 +73,9 @@
       <widget class="QLabel" name="fsLabel">
        <property name="text">
         <string/>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -154,7 +154,10 @@
         <enum>Qt::LeftToRight</enum>
        </property>
        <property name="text">
-        <string>KSqueezedTextLabel</string>
+        <string/>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -167,6 +170,9 @@
         <widget class="QLabel" name="mimeCommentLabel">
          <property name="text">
           <string/>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::PlainText</enum>
          </property>
          <property name="textInteractionFlags">
           <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -248,6 +254,9 @@
        <property name="text">
         <string/>
        </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
+       </property>
        <property name="textInteractionFlags">
         <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
        </property>
@@ -297,6 +306,9 @@
          <property name="text">
           <string/>
          </property>
+         <property name="textFormat">
+          <enum>Qt::PlainText</enum>
+         </property>
         </widget>
        </item>
        <item>
@@ -344,7 +356,10 @@
      <item row="15" column="1">
       <widget class="KSqueezedTextLabel" name="mountPointLabel">
        <property name="text">
-        <string>KSqueezedTextLabel</string>
+        <string/>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
        </property>
        <property name="textInteractionFlags">
         <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
@@ -401,6 +416,12 @@
          <property name="text">
           <string/>
          </property>
+         <property name="textFormat">
+          <enum>Qt::PlainText</enum>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::LinksAccessibleByMouse|Qt::TextSelectableByMouse</set>
+         </property>
         </widget>
        </item>
       </layout>
@@ -419,6 +440,9 @@
       <widget class="QLabel" name="magicMimeCommentLabel">
        <property name="text">
         <string/>
+       </property>
+       <property name="textFormat">
+        <enum>Qt::PlainText</enum>
        </property>
       </widget>
      </item>

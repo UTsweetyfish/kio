@@ -13,6 +13,8 @@
 #include "ksambasharedata.h"
 #include "ksambasharedata_p.h"
 
+#include "../utils_p.h"
+
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>
@@ -30,16 +32,6 @@
 
 Q_DECLARE_LOGGING_CATEGORY(KIO_CORE_SAMBASHARE)
 Q_LOGGING_CATEGORY(KIO_CORE_SAMBASHARE, "kf.kio.core.sambashare", QtWarningMsg)
-
-// Default smb.conf locations
-// sorted by priority, most priority first
-static const char *const DefaultSambaConfigFilePathList[] = {"/etc/samba/smb.conf",
-                                                             "/etc/smb.conf",
-                                                             "/usr/local/etc/smb.conf",
-                                                             "/usr/local/samba/lib/smb.conf",
-                                                             "/usr/samba/lib/smb.conf",
-                                                             "/usr/lib/smb.conf",
-                                                             "/usr/local/lib/smb.conf"};
 
 KSambaSharePrivate::KSambaSharePrivate(KSambaShare *parent)
     : q_ptr(parent)
@@ -75,6 +67,16 @@ bool KSambaSharePrivate::isSambaInstalled()
 }
 
 #if KIOCORE_BUILD_DEPRECATED_SINCE(4, 6)
+// Default smb.conf locations
+// sorted by priority, most priority first
+static const char *const DefaultSambaConfigFilePathList[] = {"/etc/samba/smb.conf",
+                                                             "/etc/smb.conf",
+                                                             "/usr/local/etc/smb.conf",
+                                                             "/usr/local/samba/lib/smb.conf",
+                                                             "/usr/samba/lib/smb.conf",
+                                                             "/usr/lib/smb.conf",
+                                                             "/usr/local/lib/smb.conf"};
+
 // Try to find the samba config file path
 // in several well-known paths
 bool KSambaSharePrivate::findSmbConf()
@@ -107,7 +109,13 @@ int KSambaSharePrivate::runProcess(const QString &progName, const QStringList &a
     QProcess process;
 
     process.setProcessChannelMode(QProcess::SeparateChannels);
-    process.start(progName, args);
+    const QString exec = QStandardPaths::findExecutable(progName);
+    if (exec.isEmpty()) {
+        qCWarning(KIO_CORE) << "Could not find an executable named:" << progName;
+        return -1;
+    }
+
+    process.start(exec, args);
     // TODO: make it async in future
     process.waitForFinished();
 
@@ -138,16 +146,19 @@ QString KSambaSharePrivate::testparmParamValue(const QString &parameterName)
     // create a parser for the error output and
     // send error message somewhere
     if (!stdErr.isEmpty()) {
-        QList<QByteArray> err;
-        err << stdErr.trimmed().split('\n');
-        // ignore first two lines
-        if (err.count() > 0 && err.at(0).startsWith("Load smb config files from")) {
-            err.removeFirst();
-        }
-        if (err.count() > 0 && err.at(0).startsWith("Loaded services file OK.")) {
-            err.removeFirst();
-        }
-        if (err.count() > 0 && err.at(0).startsWith("WARNING: The 'netbios name' is too long (max. 15 chars).")) {
+        QList<QByteArray> errArray = stdErr.trimmed().split('\n');
+        errArray.removeAll("\n");
+        errArray.erase(std::remove_if(errArray.begin(),
+                                      errArray.end(),
+                                      [](QByteArray &line) {
+                                          return line.startsWith("Load smb config files from");
+                                      }),
+                       errArray.end());
+        errArray.removeOne("Loaded services file OK.");
+        errArray.removeOne("Weak crypto is allowed");
+
+        const int netbiosNameErrorIdx = errArray.indexOf("WARNING: The 'netbios name' is too long (max. 15 chars).");
+        if (netbiosNameErrorIdx >= 0) {
             // netbios name must be of at most 15 characters long
             // means either netbios name is badly configured
             // or not set and the default value is being used, it being "$(hostname)-W"
@@ -164,10 +175,10 @@ QString KSambaSharePrivate::testparmParamValue(const QString &parameterName)
                 qCDebug(KIO_CORE) << "Your samba 'netbios name' parameter was longer than the authorized 15 characters."
                                   << "Please define a 'netbios name' parameter in /etc/samba/smb.conf at most 15 characters long";
             }
-            err.removeFirst();
+            errArray.removeAt(netbiosNameErrorIdx);
         }
-        if (err.count() > 0) {
-            qCDebug(KIO_CORE) << "We got some errors while running testparm" << err.join("\n");
+        if (errArray.size() > 0) {
+            qCDebug(KIO_CORE) << "We got some errors while running testparm" << errArray.join("\n");
         }
     }
 
@@ -306,7 +317,8 @@ KSambaShareData::UserShareError KSambaSharePrivate::isAclValid(const QString &ac
 {
     // NOTE: capital D is not missing from the regex net usershare will in fact refuse to consider it valid
     //   - verified 2020-08-20
-    const QRegularExpression aclRx(QRegularExpression::anchoredPattern(QStringLiteral("(?:(?:(\\w(\\w|\\s)*)\\\\|)(\\w+\\s*):([fFrRd]{1})(?:,|))*")));
+    static const auto pattern = uR"--((?:(?:(\w(\w|\s)*)\\|)(\w+\s*):([fFrRd]{1})(?:,|))*)--";
+    static const QRegularExpression aclRx(QRegularExpression::anchoredPattern(pattern));
     // TODO: check if user is a valid smb user
     return aclRx.match(acl).hasMatch() ? KSambaShareData::UserShareAclOk : KSambaShareData::UserShareAclInvalid;
 }
@@ -408,15 +420,11 @@ KSambaShareData::UserShareError KSambaSharePrivate::remove(const KSambaShareData
 
 QMap<QString, KSambaShareData> KSambaSharePrivate::parse(const QByteArray &usershareData)
 {
-    const QRegularExpression headerRx(
-        QRegularExpression::anchoredPattern(QStringLiteral("^\\s*\\["
-                                                           "([^%<>*\?|/+=;:\",]+)"
-                                                           "\\]")));
+    static const char16_t headerPattern[] = uR"--(^\s*\[([^%<>*?|/+=;:",]+)\])--";
+    static const QRegularExpression headerRx(QRegularExpression::anchoredPattern(headerPattern));
 
-    const QRegularExpression OptValRx(
-        QRegularExpression::anchoredPattern(QStringLiteral("^\\s*([\\w\\d\\s]+)"
-                                                           "="
-                                                           "(.*)$")));
+    static const char16_t valPattern[] = uR"--(^\s*([\w\d\s]+)=(.*)$)--";
+    static const QRegularExpression OptValRx(QRegularExpression::anchoredPattern(valPattern));
 
     QTextStream stream(usershareData);
     QString currentShare;
@@ -442,7 +450,7 @@ QMap<QString, KSambaShareData> KSambaSharePrivate::parse(const QByteArray &users
             if (key == QLatin1String("path")) {
                 // Samba accepts paths with and w/o trailing slash, we
                 // use and expect path without slash
-                shareData.dd->path = value.endsWith(QLatin1Char('/')) ? value.chopped(1) : value;
+                shareData.dd->path = Utils::trailingSlashRemoved(value);
             } else if (key == QLatin1String("comment")) {
                 shareData.dd->comment = value;
             } else if (key == QLatin1String("usershare_acl")) {
@@ -463,7 +471,7 @@ QMap<QString, KSambaShareData> KSambaSharePrivate::parse(const QByteArray &users
     return shares;
 }
 
-void KSambaSharePrivate::_k_slotFileChange(const QString &path)
+void KSambaSharePrivate::slotFileChange(const QString &path)
 {
     if (path != userSharePath) {
         return;
@@ -478,12 +486,11 @@ KSambaShare::KSambaShare()
     : QObject(nullptr)
     , d_ptr(new KSambaSharePrivate(this))
 {
-    Q_D(const KSambaShare);
+    Q_D(KSambaShare);
     if (!d->userSharePath.isEmpty() && QFileInfo::exists(d->userSharePath)) {
         KDirWatch::self()->addDir(d->userSharePath, KDirWatch::WatchFiles);
-        connect(KDirWatch::self(), &KDirWatch::dirty, this, [this](const QString &path) {
-            Q_D(KSambaShare);
-            d->_k_slotFileChange(path);
+        connect(KDirWatch::self(), &KDirWatch::dirty, this, [d](const QString &path) {
+            d->slotFileChange(path);
         });
     }
 }

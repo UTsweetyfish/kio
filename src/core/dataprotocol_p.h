@@ -17,10 +17,10 @@
 /* Wondering what this is all about? Leo explained it to me:
  *
  * That's simple, you can compile it into a standalone executable that is
- * registered like any other kioslave.
+ * registered like any other KIO worker.
  *
  * However, given that data-urls don't depend on any external data it seemed
- * overkill, therefore I added a special hack that the kio-dataslave is invoked
+ * overkill, therefore I added a special hack that the kio-dataworker is invoked
  * in-process on the client side.
  */
 
@@ -29,20 +29,20 @@ class QByteArray;
 class QUrl;
 
 #if !defined(TESTKIO)
-#include "dataslave_p.h"
+#include "dataworker_p.h"
 #endif
 
 namespace KIO
 {
-/** This kioslave provides support of data urls as specified by rfc 2397
- * @see http://www.ietf.org/rfc/rfc2397.txt
+/** This KIO worker provides support of data urls as specified by rfc 2397
+ * @see https://www.ietf.org/rfc/rfc2397.txt
  * @author Leo Savernik
  */
 #if defined(TESTKIO)
-class DataProtocol : public TestSlave
+class DataProtocol : public TestWorker
 {
 #else
-class DataProtocol : public DataSlave
+class DataProtocol : public DataWorker
 {
     Q_OBJECT
 #endif

@@ -9,12 +9,11 @@
 
 #include "deletejob.h"
 
-#include "../pathhelpers_p.h"
+#include "../utils_p.h"
 #include "job.h" // buildErrorString
 #include "kcoredirlister.h"
 #include "kprotocolmanager.h"
 #include "listjob.h"
-#include "scheduler.h"
 #include "statjob.h"
 #include <KDirWatch>
 #include <kdirnotify.h>
@@ -148,14 +147,18 @@ using namespace KIO;
 DeleteJob::DeleteJob(DeleteJobPrivate &dd)
     : Job(dd)
 {
-    d_func()->m_reportTimer = new QTimer(this);
-    connect(d_func()->m_reportTimer, &QTimer::timeout, this, [this]() {
-        d_func()->slotReport();
+    Q_D(DeleteJob);
+
+    d->m_reportTimer = new QTimer(this);
+    connect(d->m_reportTimer, &QTimer::timeout, this, [d]() {
+        d->slotReport();
     });
     // this will update the report dialog with 5 Hz, I think this is fast enough, aleXXX
-    d_func()->m_reportTimer->start(200);
+    d->m_reportTimer->start(200);
 
-    QTimer::singleShot(0, this, SLOT(slotStart()));
+    QTimer::singleShot(0, this, [d]() {
+        d->slotStart();
+    });
 }
 
 DeleteJob::~DeleteJob()
@@ -243,7 +246,7 @@ void DeleteJobPrivate::slotEntries(KIO::Job *job, const UDSEntryList &list)
                 url = QUrl(urlStr);
             } else {
                 url = static_cast<SimpleJob *>(job)->url(); // assumed to be a dir
-                url.setPath(concatPaths(url.path(), displayName));
+                url.setPath(Utils::concatPaths(url.path(), displayName));
             }
 
             // qDebug() << displayName << "(" << url << ")";
@@ -388,7 +391,11 @@ void DeleteJobPrivate::deleteNextFile()
         // If local file, try do it directly
         if (m_currentURL.isLocalFile()) {
             // separate thread will do the work
-            QMetaObject::invokeMethod(worker(), "rmfile", Qt::QueuedConnection, Q_ARG(QUrl, m_currentURL), Q_ARG(bool, isLink));
+            DeleteJobIOWorker *w = worker();
+            auto rmfileFunc = [this, w, isLink]() {
+                w->rmfile(m_currentURL, isLink);
+            };
+            QMetaObject::invokeMethod(w, rmfileFunc, Qt::QueuedConnection);
         } else {
             // if remote, use a job
             deleteFileUsingJob(m_currentURL, isLink);
@@ -416,8 +423,8 @@ void DeleteJobPrivate::deleteDirUsingJob(const QUrl &url)
 {
     Q_Q(DeleteJob);
 
-    // Call rmdir - works for kioslaves with canDeleteRecursive too,
-    // CMD_DEL will trigger the recursive deletion in the slave.
+    // Call rmdir - works for KIO workers with canDeleteRecursive too,
+    // CMD_DEL will trigger the recursive deletion in the worker.
     SimpleJob *job = KIO::rmdir(url);
     job->setParentJob(q);
     job->addMetaData(QStringLiteral("recurse"), QStringLiteral("true"));
@@ -438,7 +445,11 @@ void DeleteJobPrivate::deleteNextDir()
         // If local dir, try to rmdir it directly
         if (m_currentURL.isLocalFile()) {
             // delete it on separate worker thread
-            QMetaObject::invokeMethod(worker(), "rmdir", Qt::QueuedConnection, Q_ARG(QUrl, m_currentURL));
+            DeleteJobIOWorker *w = worker();
+            auto rmdirFunc = [this, w]() {
+                w->rmdir(m_currentURL);
+            };
+            QMetaObject::invokeMethod(w, rmdirFunc, Qt::QueuedConnection);
         } else {
             deleteDirUsingJob(m_currentURL);
         }

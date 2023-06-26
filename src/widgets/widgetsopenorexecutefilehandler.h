@@ -19,14 +19,18 @@ namespace KIO
 
 class WidgetsOpenOrExecuteFileHandler : public OpenOrExecuteFileInterface
 {
+    Q_OBJECT
 public:
     explicit WidgetsOpenOrExecuteFileHandler(QObject *parent = nullptr);
     ~WidgetsOpenOrExecuteFileHandler() override;
 
     void promptUserOpenOrExecute(KJob *job, const QString &mimetype) override;
 
+    void setWindow(QWidget *window);
+
 private:
     // Note: no d pointer because it's not exported at this point
+    QWidget *m_parentWidget = nullptr;
 };
 
 }

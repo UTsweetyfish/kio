@@ -42,21 +42,6 @@ SystemdProcessRunner::SystemdProcessRunner()
 {
 }
 
-// Only alphanum, ':' and '_' allowed in systemd unit names
-QString SystemdProcessRunner::escapeUnitName(const QString &input)
-{
-    QString res;
-    const auto bytes = input.toUtf8();
-    for (const auto &c : bytes) {
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == ':' || c == '_' || c == '.') {
-            res += QLatin1Char(c);
-        } else {
-            res += QStringLiteral("\\x%1").arg(c, 2, 16, QLatin1Char('0'));
-        }
-    }
-    return res;
-}
-
 bool SystemdProcessRunner::waitForStarted(int timeout)
 {
     if (m_pid || m_exited) {
@@ -76,7 +61,7 @@ bool SystemdProcessRunner::waitForStarted(int timeout)
 
 void SystemdProcessRunner::startProcess()
 {
-    m_serviceName = QStringLiteral("app-%1@%2.service").arg(escapeUnitName(name()), QUuid::createUuid().toString(QUuid::Id128));
+    m_serviceName = SystemdProcessRunner::maybeAliasedName(QStringLiteral("app-%1@%2.service"));
 
     // Watch for new services
     m_manager = new systemd1::Manager(systemdService, systemdPath, QDBusConnection::sessionBus(), this);
@@ -120,7 +105,7 @@ void SystemdProcessRunner::startProcess()
         watcher->deleteLater();
         if (reply.isError()) {
             qCWarning(KIO_GUI) << "Failed to launch process as service:" << m_serviceName << reply.error().name() << reply.error().message();
-            return systemdError(reply.error().name());
+            return systemdError(reply.error().message());
         }
         qCDebug(KIO_GUI) << "Successfully asked systemd to launch process as service:" << m_serviceName;
         m_jobPath = reply.argumentAt<0>().path();
@@ -133,7 +118,7 @@ void SystemdProcessRunner::handleProperties(QDBusPendingCallWatcher *watcher)
     watcher->deleteLater();
     if (reply.isError()) {
         qCWarning(KIO_GUI) << "Failed to get properties for service:" << m_serviceName << reply.error().name() << reply.error().message();
-        return systemdError(reply.error().name());
+        return systemdError(reply.error().message());
     }
     qCDebug(KIO_GUI) << "Successfully retrieved properties for service:" << m_serviceName;
     if (m_exited) {
@@ -167,7 +152,7 @@ void SystemdProcessRunner::handleProperties(QDBusPendingCallWatcher *watcher)
         watcher->deleteLater();
         if (reply.isError()) {
             qCWarning(KIO_GUI) << "Failed to unref service:" << m_serviceName << reply.error().name() << reply.error().message();
-            return systemdError(reply.error().name());
+            return systemdError(reply.error().message());
         }
         qCDebug(KIO_GUI) << "Successfully unref'd service:" << m_serviceName;
     });

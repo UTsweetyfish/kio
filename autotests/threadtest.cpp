@@ -10,8 +10,8 @@
 #include <QThreadPool>
 #include <QtConcurrentRun>
 
+#include "kio/filecopyjob.h"
 #include "kiotesthelper.h" // homeTmpDir, createTestFile etc.
-#include <kio/job.h>
 
 class KIOThreadTest : public QObject
 {
@@ -30,8 +30,6 @@ void KIOThreadTest::initTestCase()
 {
     QStandardPaths::setTestModeEnabled(true);
 
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
     // Start with a clean base dir
     cleanupTestCase();
     homeTmpDir(); // create it
@@ -80,7 +78,11 @@ void KIOThreadTest::concurrentCopying()
     tp.setMaxThreadCount(numThreads);
     QVector<QFuture<bool>> futures(numThreads);
     for (int i = 0; i < numThreads; ++i) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        futures[i] = QtConcurrent::run(&tp, &KIOThreadTest::copyLocalFile, this, &data[i]);
+#else
         futures[i] = QtConcurrent::run(&tp, this, &KIOThreadTest::copyLocalFile, &data[i]);
+#endif
     }
     QVERIFY(tp.waitForDone(60000));
 

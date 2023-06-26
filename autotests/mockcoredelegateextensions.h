@@ -47,7 +47,7 @@ public:
     }
 
     void askUserRename(KJob *job,
-                       const QString &caption,
+                       const QString &title,
                        const QUrl &src,
                        const QUrl &dest,
                        KIO::RenameDialog_Options options,
@@ -58,7 +58,7 @@ public:
                        const QDateTime &mtimeSrc = QDateTime(),
                        const QDateTime &mtimeDest = QDateTime()) override
     {
-        Q_UNUSED(caption)
+        Q_UNUSED(title)
         Q_UNUSED(src)
         Q_UNUSED(dest)
         Q_UNUSED(options)
@@ -92,11 +92,11 @@ public:
 
     void requestUserMessageBox(MessageDialogType type,
                                const QString &text,
-                               const QString &caption,
-                               const QString &buttonYes,
-                               const QString &buttonNo,
-                               const QString &iconYes = QString(),
-                               const QString &iconNo = QString(),
+                               const QString &title,
+                               const QString &primaryActionText,
+                               const QString &secondaryActionText,
+                               const QString &primaryActionIconName = QString(),
+                               const QString &secondaryActionIconName = QString(),
                                const QString &dontAskAgainName = QString(),
                                const QString &details = QString(),
                                const KIO::MetaData &metaData = KIO::MetaData(),
@@ -104,11 +104,11 @@ public:
     {
         Q_UNUSED(type)
         Q_UNUSED(text)
-        Q_UNUSED(caption)
-        Q_UNUSED(buttonYes)
-        Q_UNUSED(buttonNo)
-        Q_UNUSED(iconYes)
-        Q_UNUSED(iconNo)
+        Q_UNUSED(title)
+        Q_UNUSED(primaryActionText)
+        Q_UNUSED(secondaryActionText)
+        Q_UNUSED(primaryActionIconName)
+        Q_UNUSED(secondaryActionIconName)
         Q_UNUSED(dontAskAgainName)
         Q_UNUSED(details)
         Q_UNUSED(metaData)

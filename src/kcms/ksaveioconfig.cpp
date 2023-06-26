@@ -18,7 +18,7 @@
 #include <KConfigGroup>
 #include <KLocalizedString>
 #include <KMessageBox>
-#include <ioslave_defaults.h>
+#include <ioworker_defaults.h>
 class KSaveIOConfigPrivate
 {
 public:
@@ -45,6 +45,7 @@ static KConfig *config()
 {
     if (!d->config) {
         d->config = new KConfig(QStringLiteral("kioslaverc"), KConfig::NoGlobals);
+        // KF6 TODO: rename to kioworkerrc here and elsewhere. See also T15956.
     }
 
     return d->config;
@@ -199,10 +200,10 @@ void KSaveIOConfig::setProxyConfigScript(const QString &_url)
     cfg.sync();
 }
 
-void KSaveIOConfig::updateRunningIOSlaves(QWidget *parent)
+void KSaveIOConfig::updateRunningWorkers(QWidget *parent)
 {
-    // Inform all running io-slaves about the changes...
-    // if we cannot update, ioslaves inform the end user...
+    // Inform all running KIO workers about the changes...
+    // if we cannot update, KIO workers inform the end user...
     QDBusMessage message =
         QDBusMessage::createSignal(QStringLiteral("/KIO/Scheduler"), QStringLiteral("org.kde.KIO.Scheduler"), QStringLiteral("reparseSlaveConfiguration"));
     message << QString();
@@ -217,7 +218,7 @@ void KSaveIOConfig::updateRunningIOSlaves(QWidget *parent)
 void KSaveIOConfig::updateProxyScout(QWidget *parent)
 {
     // Inform the proxyscout kded module about changes if we cannot update,
-    // ioslaves inform the end user...
+    // KIO workers inform the end user...
     QDBusInterface kded(QStringLiteral("org.kde.kcookiejar5"), QStringLiteral("/modules/proxyscout"), QStringLiteral("org.kde.KPAC.ProxyScout"));
     QDBusReply<void> reply = kded.call(QStringLiteral("reset"));
     if (!reply.isValid()) {

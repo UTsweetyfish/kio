@@ -5,17 +5,20 @@ Keys=duckduckgoshopping,dds,dukgoshop
 Name=Duck Duck Go Shopping
 Name[ar]=تسوّق دك دك جو
 Name[az]=Duck Duck Go : Alış
+Name[be]=Куплі Duck Duck Go
+Name[be@latin]=Kupli Duck Duck Go
 Name[bg]=Пазаруване в Duck Duck Go
 Name[bn]=ডাক ডাক গো শপিং
-Name[bs]=Dak dak go (kupovina)
+Name[bs]=Duck Duck Go Kupovina
 Name[ca]=Duck Duck Go compres
 Name[ca@valencia]=Duck Duck Go compres
 Name[cs]=Duck Duck Go Shopping
+Name[cy]=Siopa Duck Duck Go
 Name[da]=Duck Duck Go shopping
 Name[de]=Duck Duck Go Shopping
 Name[el]=Duck Duck Go Shopping
 Name[en_GB]=Duck Duck Go Shopping
-Name[eo]=Aĉetado de Duck Duck Go
+Name[eo]=Butikumo de Duck Duck Go
 Name[es]=Duck Duck Go Compras
 Name[et]=Duck Duck Go Shopping
 Name[eu]=Duck Duck Go Shopping
@@ -32,8 +35,10 @@ Name[hr]=Duck Duck Go Shopping
 Name[hu]=Duck Duck Go Shopping
 Name[ia]=Duck Duck Go Shopping
 Name[id]=Belanja Duck Duck Go
-Name[is]=Duck Duck Go verslun
+Name[ie]=Duck Duck Go Shopping
+Name[is]=Duck Duck Go Shopping
 Name[it]=Acquisti di Duck Duck Go
+Name[ka]=Duck Duck Go საყიდლები
 Name[kk]=Duck Duck Go Shopping
 Name[km]=ការ​ទិញ​ឥវ៉ាន់របស់ Duck Duck Go
 Name[kn]=ಡಕ್ ಡಕ್ ಗೊ ಖರೀದಿ
@@ -64,6 +69,7 @@ Name[sr@latin]=Duck Duck Go (kupovina)
 Name[sv]=Duck Duck Go Shopping
 Name[tg]=Дукони онлайни Duck Duck Go
 Name[th]=ช้อปปิ้งของ Duck Duck Go
+Name[tok]=ilo pi alasa esun DuckDuckGo
 Name[tr]=Duck Duck Go Alışveriş
 Name[ug]=Duck Duck Go ئېلىم-سېتىم
 Name[uk]=Duck Duck Go Shopping
@@ -74,17 +80,20 @@ Name[zh_CN]=Duck Duck Go 购物
 Name[zh_TW]=Duck Duck Go Shopping
 Query=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[ar]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
-Query[ast]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[az]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[be]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[be@latin]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[bg]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[bs]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[ca]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[ca@valencia]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[cs]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[cy]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[da]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[de]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[el]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[en_GB]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[eo]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[es]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[et]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[eu]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
@@ -96,8 +105,10 @@ Query[hi]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[hu]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[ia]=http://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[id]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[ie]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[is]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[it]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[ka]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[kk]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[ko]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[lt]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
@@ -121,6 +132,7 @@ Query[sr@ijekavianlatin]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[sr@latin]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[sv]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[tg]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
+Query[tok]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[tr]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[ug]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde
 Query[uk]=https://duckduckgo.com/?q=\\{@}&v=s&t=kde

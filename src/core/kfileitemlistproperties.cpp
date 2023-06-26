@@ -75,8 +75,8 @@ void KFileItemListPropertiesPrivate::setItems(const KFileItemList &items)
 
     QFileInfo parentDirInfo;
     for (const KFileItem &item : items) {
-        bool isLocal = false;
-        const QUrl url = item.mostLocalUrl(&isLocal);
+        const QUrl url = item.url();
+        const auto [localUrl, isLocal] = item.isMostLocalUrl();
         m_isLocal = m_isLocal && isLocal;
         m_supportsReading = m_supportsReading && KProtocolManager::supportsReading(url);
         m_supportsDeleting = m_supportsDeleting && KProtocolManager::supportsDeleting(url);
@@ -87,7 +87,7 @@ void KFileItemListPropertiesPrivate::setItems(const KFileItemList &items)
         // TODO: if we knew about the parent KFileItem, we could even do that for remote protocols too
 #ifndef Q_OS_WIN
         if (m_isLocal && (m_supportsDeleting || m_supportsMoving)) {
-            const QString directory = url.adjusted(QUrl::RemoveFilename | QUrl::StripTrailingSlash).toLocalFile();
+            const QString directory = localUrl.adjusted(QUrl::RemoveFilename | QUrl::StripTrailingSlash).toLocalFile();
             if (parentDirInfo.filePath() != directory) {
                 parentDirInfo.setFile(directory);
             }

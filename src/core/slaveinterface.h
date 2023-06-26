@@ -104,6 +104,8 @@ enum Message {
  *
  * A call to foo() results in a call to slotFoo() on the other end.
  */
+// KF6 TODO: remove export macro, nothing uses this class outside kio anymore
+// (and rename this file to slaveinterface_p.h, and don't install it anymore)
 class KIOCORE_EXPORT SlaveInterface : public QObject
 {
     Q_OBJECT
@@ -184,9 +186,14 @@ protected:
     virtual bool dispatch();
     virtual bool dispatch(int _cmd, const QByteArray &data);
 
-    void messageBox(int type, const QString &text, const QString &caption, const QString &buttonYes, const QString &buttonNo);
+    void messageBox(int type, const QString &text, const QString &title, const QString &primaryActionText, const QString &secondaryActionText);
 
-    void messageBox(int type, const QString &text, const QString &caption, const QString &buttonYes, const QString &buttonNo, const QString &dontAskAgainName);
+    void messageBox(int type,
+                    const QString &text,
+                    const QString &title,
+                    const QString &primaryActionText,
+                    const QString &secondaryActionText,
+                    const QString &dontAskAgainName);
 
     // I need to identify the slaves
     void requestNetwork(const QString &, const QString &);

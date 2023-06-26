@@ -8,6 +8,7 @@
 #include "kfileplacesitem_p.h"
 
 #include <QDateTime>
+#include <QDir>
 #include <QIcon>
 
 #include <KBookmarkManager>
@@ -37,6 +38,10 @@ KFilePlacesItem::KFilePlacesItem(KBookmarkManager *manager, const QString &addre
     , m_folderIsEmpty(true)
     , m_isCdrom(false)
     , m_isAccessible(false)
+    , m_isTeardownAllowed(false)
+    , m_isTeardownOverlayRecommended(false)
+    , m_isTeardownInProgress(false)
+    , m_isSetupInProgress(false)
 {
     updateDeviceInfo(udi);
     setBookmark(m_manager->findByAddress(address));
@@ -114,6 +119,34 @@ bool KFilePlacesItem::hasSupportedScheme(const QStringList &schemes) const
 bool KFilePlacesItem::isDevice() const
 {
     return !bookmark().metaDataItem(QStringLiteral("UDI")).isEmpty();
+}
+
+KFilePlacesModel::DeviceAccessibility KFilePlacesItem::deviceAccessibility() const
+{
+    if (m_isTeardownInProgress) {
+        return KFilePlacesModel::TeardownInProgress;
+    } else if (m_isSetupInProgress) {
+        return KFilePlacesModel::SetupInProgress;
+    } else if (m_isAccessible) {
+        return KFilePlacesModel::Accessible;
+    } else {
+        return KFilePlacesModel::SetupNeeded;
+    }
+}
+
+bool KFilePlacesItem::isTeardownAllowed() const
+{
+    return m_isTeardownAllowed;
+}
+
+bool KFilePlacesItem::isTeardownOverlayRecommended() const
+{
+    return m_isTeardownOverlayRecommended;
+}
+
+bool KFilePlacesItem::isEjectAllowed() const
+{
+    return m_isCdrom;
 }
 
 KBookmark KFilePlacesItem::bookmark() const
@@ -271,7 +304,10 @@ QVariant KFilePlacesItem::deviceData(int role) const
     if (d.isValid()) {
         switch (role) {
         case Qt::DisplayRole:
-            return d.displayName();
+            if (m_deviceDisplayName.isEmpty()) {
+                m_deviceDisplayName = d.displayName();
+            }
+            return m_deviceDisplayName;
         case Qt::DecorationRole:
             // qDebug() << "adding emblems" << m_emblems << "to device icon" << m_deviceIconName;
             return KIconUtils::addOverlays(m_deviceIconName, m_emblems);
@@ -305,6 +341,22 @@ QVariant KFilePlacesItem::deviceData(int role) const
                 return QVariant();
             }
 
+        case KFilePlacesModel::TeardownAllowedRole:
+            if (m_access) {
+                return m_isTeardownAllowed;
+            } else {
+                return QVariant();
+            }
+
+        case KFilePlacesModel::EjectAllowedRole:
+            return m_isAccessible && m_isCdrom;
+
+        case KFilePlacesModel::TeardownOverlayRecommendedRole:
+            return m_isTeardownOverlayRecommended;
+
+        case KFilePlacesModel::DeviceAccessibilityRole:
+            return deviceAccessibility();
+
         case KFilePlacesModel::FixedDeviceRole: {
             if (m_drive != nullptr) {
                 return !m_drive->isHotpluggable() && !m_drive->isRemovable();
@@ -313,7 +365,7 @@ QVariant KFilePlacesItem::deviceData(int role) const
         }
 
         case KFilePlacesModel::CapacityBarRecommendedRole:
-            return m_isAccessible && !m_isCdrom;
+            return m_isAccessible && !m_isCdrom && !m_networkShare;
 
         case KFilePlacesModel::IconNameRole:
             return m_deviceIconName;
@@ -432,6 +484,24 @@ bool KFilePlacesItem::updateDeviceInfo(const QString &udi)
         }
 
         if (m_access) {
+            connect(m_access.data(), &Solid::StorageAccess::setupRequested, this, [this] {
+                m_isSetupInProgress = true;
+                Q_EMIT itemChanged(id(), {KFilePlacesModel::DeviceAccessibilityRole});
+            });
+            connect(m_access.data(), &Solid::StorageAccess::setupDone, this, [this] {
+                m_isSetupInProgress = false;
+                Q_EMIT itemChanged(id(), {KFilePlacesModel::DeviceAccessibilityRole});
+            });
+
+            connect(m_access.data(), &Solid::StorageAccess::teardownRequested, this, [this] {
+                m_isTeardownInProgress = true;
+                Q_EMIT itemChanged(id(), {KFilePlacesModel::DeviceAccessibilityRole});
+            });
+            connect(m_access.data(), &Solid::StorageAccess::teardownDone, this, [this] {
+                m_isTeardownInProgress = false;
+                Q_EMIT itemChanged(id(), {KFilePlacesModel::DeviceAccessibilityRole});
+            });
+
             connect(m_access.data(), &Solid::StorageAccess::accessibilityChanged, this, &KFilePlacesItem::onAccessibilityChanged);
             onAccessibilityChanged(m_access->isAccessible());
         }
@@ -455,6 +525,25 @@ void KFilePlacesItem::onAccessibilityChanged(bool isAccessible)
     m_isCdrom =
         m_device.is<Solid::OpticalDrive>() || m_device.parent().is<Solid::OpticalDrive>() || (m_volume && m_volume->fsType() == QLatin1String("iso9660"));
     m_emblems = m_device.emblems();
+
+    m_isTeardownAllowed = isAccessible;
+    if (m_isTeardownAllowed) {
+        if (m_access->filePath() == QDir::rootPath()) {
+            m_isTeardownAllowed = false;
+        } else {
+            KMountPoint::Ptr mountPoint = KMountPoint::currentMountPoints().findByPath(QDir::homePath());
+            if (mountPoint && m_access->filePath() == mountPoint->mountPoint()) {
+                m_isTeardownAllowed = false;
+            }
+        }
+    }
+
+    m_isTeardownOverlayRecommended = m_isTeardownAllowed && !m_networkShare;
+    if (m_isTeardownOverlayRecommended) {
+        if (m_drive && !m_drive->isHotpluggable() && !m_drive->isRemovable()) {
+            m_isTeardownOverlayRecommended = false;
+        }
+    }
 
     Q_EMIT itemChanged(id());
 }

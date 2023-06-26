@@ -6,14 +6,13 @@ Name=WordReference.com Translation: English to French
 Name[af]=WordReference.com Vertaling: Engels na Frans
 Name[ar]=ترجمة WordReference.com: من الانجليزية إلى الفرنسية
 Name[as]=WordReference.com Translation: English to French
-Name[ast]=Traducción de WordReference.com: Inglés a francés
 Name[az]=WordReference.com Tərcümə :İngiliscədən Fransızcaya
-Name[be]=WordReference.com Пераклад: з англійскай на французскую
-Name[be@latin]=Pierakład „WordReference.com”: anhielskaja ➙ francuskaja
+Name[be]=WordReference.com - пераклад з англійскай на французскую
+Name[be@latin]=WordReference.com - pieraklad z anhlijskaj na francuzskuju
 Name[bg]=Превод с WordReference.com — от английски към френски
 Name[bn]=WordReference.com অনুবাদ: ইংরাজি থেকে ফরাসী
 Name[bn_IN]=WordReference.com অনুবাদ: ইংরাজি থেকে ফ্রেঞ্চ
-Name[bs]=Vordreferens: sa engleskog na francuski
+Name[bs]=WordReference.com Prijevod: sa engleskog na francuski
 Name[ca]=Traducció WordReference.com: Anglès - Francès
 Name[ca@valencia]=Traducció WordReference.com: Anglés - Francés
 Name[cs]=Překlad WordReference.com: z angličtiny do francouzštiny
@@ -23,7 +22,7 @@ Name[da]=WordReference.com oversættelse: Engelsk til fransk
 Name[de]=WordReference.com – Übersetzung: Englisch/Französisch
 Name[el]=WordReference.com Μετάφραση: Αγγλικά σε Γαλλικά
 Name[en_GB]=WordReference.com Translation: English to French
-Name[eo]=Tradukado WordReference.com: angle francen
+Name[eo]=WordReference.com Traduko: angla al franca
 Name[es]=WordReference.com Traducción: inglés a francés
 Name[et]=WordReference.com tõlkimine: inglise->prantsuse
 Name[eu]=WordReference.com ingelesetik frantseserako itzulpenak
@@ -43,8 +42,10 @@ Name[hsb]=WordReference.com přełožowanje: jendźelsce -> francosce
 Name[hu]=WordReference.com fordítás: angolról franciára
 Name[ia]=WordReference.com Traduction: Anglese a Francese
 Name[id]=Terjemahan WordReference.com: Bahasa Inggris ke Perancis
-Name[is]=WordReference.com þýðing: Ensk/frönsk
+Name[ie]=Traduction de WordReference.com: anglesi a francesi
+Name[is]=WordReference.com þýðingar: Úr ensku í frönsku
 Name[it]=Traduzione WordReference.com: dall'inglese al francese
+Name[ka]=WordReference.com თარგმანი: ინგლისურიდან ფრანგულზე
 Name[kk]=WordReference.com ағылшын тілінен французшаға аудару
 Name[km]=ការ​បកប្រែ WordReference.com ៖ ភាសា​អង់គ្លេស​ទៅ​ជា​​បារាំង
 Name[kn]=WordReference.com ಅನುವಾದ: ಇಂಗ್ಲೀಷಿನಿಂದ ಫ್ರೆಂಚ್ ಗೆ
@@ -81,6 +82,7 @@ Name[sv]=WordReference.com översättning: engelska till franska
 Name[te]=WordReference.com అనువాదము: ఇంగ్లీష్ నుండి ఫ్రెంచ్
 Name[tg]=Тарҷумаҳои WordReference.com: Англисӣ ба франсузӣ
 Name[th]=การแปลของ WordReference.com: ภาษาอังกฤษเป็นฝรั่งเศส
+Name[tok]=ilo pi ante toki WordReference.com: toki Inli tawa toki Kanse
 Name[tr]=WordReference.com Çevirisi: İngilizceden Fransızcaya
 Name[ug]=WordReference.com تەرجىمە: ئىنگلىزچىدىن فىرانسۇزچىغا
 Name[uk]=WordReference.com — переклад з англійської французькою
@@ -93,15 +95,20 @@ Name[zh_CN]=WordReference.com 翻译：英语译法语
 Name[zh_TW]=WordReference.com 翻譯: 英文至法文
 Query=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[ar]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
-Query[ast]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[az]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[be]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[be@latin]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[bg]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[bs]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[ca]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[ca@valencia]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[cs]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[cy]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[da]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[de]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[el]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[en_GB]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[eo]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[es]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[et]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[eu]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
@@ -111,13 +118,16 @@ Query[gl]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[hu]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[ia]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[id]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[ie]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[is]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[it]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[ka]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[ko]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[lt]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[my]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[nl]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[nn]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[pa]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[pl]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[pt]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[pt_BR]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
@@ -127,6 +137,8 @@ Query[sk]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[sl]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[sv]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[tg]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[tok]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
+Query[tr]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[uk]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[vi]=https://www.wordreference.com/fr/Translation.asp?enfr=\\{@}
 Query[x-test]=xxhttps://www.wordreference.com/fr/Translation.asp?enfr=\\{@}xx

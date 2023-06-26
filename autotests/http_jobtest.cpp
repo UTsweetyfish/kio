@@ -5,13 +5,12 @@
     SPDX-License-Identifier: LGPL-2.0-only OR LGPL-3.0-only OR LicenseRef-KDE-Accepted-LGPL
 */
 
-#include <kio/job.h>
-
 #include <QSignalSpy>
 #include <QStandardPaths>
 #include <QTest>
 
 #include "httpserver_p.h"
+#include <kio/storedtransferjob.h>
 
 class HTTPJobTest : public QObject
 {
@@ -28,8 +27,6 @@ void HTTPJobTest::initTestCase()
 {
     QStandardPaths::setTestModeEnabled(true);
 
-    // To avoid a runtime dependency on klauncher
-    qputenv("KDE_FORK_SLAVES", "yes");
     // To let ctest exit, we shouldn't start kio_http_cache_cleaner
     qputenv("KIO_DISABLE_CACHE_CLEANER", "yes");
 }

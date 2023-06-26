@@ -258,17 +258,45 @@ public:
      */
     KUrlComboBox *editor() const;
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 103)
     /**
      * If an application supports only some special protocols, they can be set
      * with \a protocols .
+     * @deprecated Since 5.103, use setSupportedSchemes(const QStringList &) instead.
      */
-    // TODO KF6 rename to setSupportedSchemes to match KDirOperator and KFileWidget
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 103, "Use KUrlNavigator::setSupportedSchemes(const QStringList &)")
     void setCustomProtocols(const QStringList &protocols);
+#endif
 
+#if KIOFILEWIDGETS_ENABLE_DEPRECATED_SINCE(5, 103)
     /**
      * @return The custom protocols if they are set, QStringList() otherwise.
+     * @deprecated Since 5.103, use supportedSchemes() const instead.
      */
+    KIOFILEWIDGETS_DEPRECATED_VERSION(5, 103, "Use KUrlNavigator::supportedSchemes() const")
     QStringList customProtocols() const;
+#endif
+
+    /**
+     * Set the URL schemes that the navigator should allow navigating to.
+     *
+     * If the passed list is empty, all schemes are supported. Examples for
+     * schemes are @c "file" or @c "ftp".
+     *
+     * @sa QFileDialog::setSupportedSchemes
+     * @since 5.103
+     */
+    void setSupportedSchemes(const QStringList &schemes);
+
+    /**
+     * Returns the URL schemes that the navigator should allow navigating to.
+     *
+     * If the returned list is empty, all schemes are supported.
+     *
+     * @sa QFileDialog::supportedSchemes
+     * @since 5.103
+     */
+    QStringList supportedSchemes() const;
 
     /**
      * The child widget that received the QDropEvent when dropping on the URL
@@ -281,7 +309,7 @@ public:
      */
     QWidget *dropWidget() const;
 
-    /** 
+    /**
      * Sets whether to show hidden folders in the subdirectories popup.
      * @since 5.87
      */
@@ -293,7 +321,7 @@ public:
      */
     bool showHiddenFolders() const;
 
-    /** 
+    /**
      * Sets whether to sort hidden folders in the subdirectories popup last.
      * @since 5.87
      */
@@ -488,9 +516,9 @@ Q_SIGNALS:
     void newWindowRequested(const QUrl &url);
 
     /**
-     * When the URL is changed and the new URL (e.g. /home/user1/)
-     * is a parent of the previous URL (e.g. /home/user1/data/stuff),
-     * then this signal is emitted and \a url is set to the child
+     * When the URL is changed and the new URL (e.g.\ /home/user1/)
+     * is a parent of the previous URL (e.g.\ /home/user1/data/stuff),
+     * then this signal is emitted and \p url is set to the child
      * directory of the new URL which is an ancestor of the old URL
      * (in the example paths this would be /home/user1/data/).
      * This signal allows file managers to pre-select the directory
